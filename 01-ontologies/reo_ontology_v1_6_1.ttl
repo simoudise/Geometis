@@ -1,0 +1,1957 @@
+#################################################################
+#
+#    Route Event Ontology (REO)
+#    Version 1.6.0 - Neurosymbolic Urban Mobility System
+#
+#    Purpose: Formal vocabulary for transportation events and their
+#    operational significance across fleet types. Models:
+#    - Event type hierarchy (weather, traffic incidents, law enforcement,
+#      security, roadwork, special events)
+#    - Event lifecycle (REPORTED → CONFIRMED → ACTIVE → RESOLVING →
+#      RESOLVED → ARCHIVED)
+#    - Spatio-temporal event footprints (GeoSPARQL + segment adjacency)
+#    - Inter-event causal and correlation relations
+#    - Fleet-event sensitivity matrix: per-intent, per-persona operational
+#      weights (safetyWeight, etaWeight, costWeight) and reroute thresholds
+#
+#    Synapse Partners, LLC
+#
+#    Import graph (acyclic):
+#    UKO v15.5.0 ← (imported by) REO v1.6.1
+#    TKO v8.4.0  ← (imported by) REO v1.6.1
+#    MLO v1.7.0  ← (imported by) REO v1.6.1
+#    REO is the terminal ontology in the import chain.
+#
+#    Change Log:
+#    - v1.6.1: Coordinated release 2026-09-19 (release set: UKO v15.5.0, TKO v8.4.0,
+#              FKO v1.2.1, MLO v1.7.0, REO v1.6.1). Import alignment only; no new
+#              terms. Realigns to TKO v8.4.0 (Trip Corpus Provenance) and MLO v1.7.0
+#              (Training Corpus Admissibility).
+#    - v1.6.0: Coordinated release 2026-06-10 (release set: UKO v15.5.0, TKO v8.3.0,
+#              FKO v1.2.0, MLO v1.6.0, REO v1.6.0).
+#              (1) Adds reo:AirQualityEvent (CARB/AirNow advisories; episodic
+#                  companion to the static uko:pm25Concentration baseline) with
+#                  aqiValue, pollutantType, advisoryLevel.
+#              (2) Adds reo:PublicSafetyEvent (Sevtsuk/Basu active-mobility
+#                  safety: incidents conditioning pedestrian route choice).
+#              (3) Adds reo:LaneClosureEvent and re-parents the existing
+#                  reo:PartialLaneClosureEvent under it, resolving the
+#                  Architecture V12 511-connector reference
+#                  (reo:LaneClosureEvent) to a declared class.
+#              (4) Formalizes reo:isPedestrianCollision, reo:isBicycleCollision,
+#                  and reo:isVulnerableUserCollision as booleans on
+#                  reo:HistoricalIncidentRecord, closing the Appendix A.4
+#                  collision-flag drift items jointly with MLO v1.6.0 (whose
+#                  gkgDependency references now point at these REO terms).
+#              (5) Updates import pins to the coordinated release.
+#              Considered, not added: MDS shared-mobility event classes - the
+#              GBFS/MDS extension lands as static/availability vocabulary in
+#              UKO v15.5; no live-event REO counterpart is required by any
+#              registered agent at this release.
+#    - v1.5.0: Aligned imports with UKO v15.3.0, MLO v1.4.0, and TKO v8.2.0. 
+#              Added reo:PedestrianFacilityClosureEvent, reo:CrowdCongestionEvent, 
+#              and reo:affectsPedestrianEdge to support dynamic event routing 
+#              on the new pedestrian multiplex graph.
+#    - v1.4.0: Deprecates reo:ActiveRouteRisk in favor of tko:TripRiskVector 
+#              to resolve dual-agent truth collisions. Updates compoundConditionKey
+#              to 2D format to align with TLP Stage 3 logic. Updates imports.
+#    - v1.3.0: Adds OHR weather event types (WindAdvisoryEvent, IceFormationEvent,
+#              ChainControlIssuanceEvent) and DisabledVehicleEvent.
+#    - v1.1.0: Adds HistoricalIncidentRecord, Collision taxonomies, PCF factors,
+#              VRU accident events, and CompoundConditionHazardEvent.
+#    - v1.0.0: Initial release. Full event taxonomy, FleetEventSensitivity matrix.
+#
+#################################################################
+
+@prefix :    <urn:route-event-kg:> .
+@prefix reo: <urn:route-event-kg:> .
+@prefix uko: <urn:urban-kg:> .
+@prefix tko: <urn:trip-kg:> .
+@prefix mlo: <urn:mobility-label-kg:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+<urn:route-event-kg:> rdf:type owl:Ontology ;
+    owl:versionIRI <urn:route-event-kg:1.6.1> ;
+    owl:imports <urn:urban-kg:15.5.0> ;
+    owl:imports <urn:trip-kg:8.4.0> ;
+    owl:imports <urn:mobility-label-kg:1.7.0> ;
+    dcterms:title "Route Event Ontology (REO) v1.6.1"@en ;
+    dcterms:description "Formal vocabulary for transportation events and their operational significance for fleet routing decisions. REO connects the static road network knowledge in UKO, the behavioral trip knowledge in TKO, and the fleet persona definitions in MLO to support dynamic, prospective route risk monitoring. The central design artifact is reo:FleetEventSensitivity, which encodes how each combination of event type, fleet persona, and trip intent should weight safety, ETA, and cost considerations — and at what risk tier threshold the dispatcher should receive a reroute recommendation."@en ;
+    rdfs:comment "v1.6.1 is a coordinated-release import alignment (TKO v8.4.0, MLO v1.7.0, release set 2026-09-19); no new terms. v1.6.0 adds air-quality and public-safety event classes, the LaneClosureEvent hierarchy fix, and the formalized collision flags on HistoricalIncidentRecord; pins the coordinated-release import set. v1.5.0 updated imports for the UNA multiplex graph integration and introduced active mobility event classes."@en ;
+    dcterms:creator "Synapse Partners, LLC"@en ;
+    dcterms:rights "Confidential and Proprietary to Synapse Partners, LLC"@en .
+
+#################################################################
+#    PART 1: CORE EVENT CLASS HIERARCHY
+#################################################################
+# Design principle: the hierarchy is organized by the CAUSE of the event,
+# not its operational impact. A single WeatherEvent can affect ETA (via road
+# closure), safety (via ice), and cargo integrity (via temperature). The
+# operational interpretation is in FleetEventSensitivity, not in the event class.
+#################################################################
+
+# ---------------------------------------------------------------------------
+# Root class
+# ---------------------------------------------------------------------------
+
+reo:Event rdf:type owl:Class ;
+    rdfs:label "Event"@en ;
+    rdfs:comment "The root class for all transportation-relevant events in REO. An Event is a time-bounded occurrence in the physical world that has a spatial footprint on the road network and may affect the safety, timeliness, or cost of one or more active DispatchedTrips. Events are ephemeral: they are created when reported, progress through a lifecycle, and are archived after resolution. Archived events contribute to the GKG's historical incident record, which informs static segment risk scores."@en .
+
+reo:RouteEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:Event ;
+    rdfs:label "Route Event"@en ;
+    rdfs:comment "An Event with a defined spatial footprint that intersects one or more uko:RoadSegments or uko:PedestrianNetworkEdges. RouteEvents are the primary input to the Dynamic Risk Monitor's segment-event intersection computation."@en .
+
+# ---------------------------------------------------------------------------
+# 1.1  Weather Events
+# ---------------------------------------------------------------------------
+
+reo:WeatherEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Weather Event"@en ;
+    rdfs:comment "An adverse atmospheric condition that affects the safety or traversability of road segments. Weather events have spatially extended footprints (polygonal or corridor-shaped) and time-varying severity. Their operational significance depends on vehicle class: ice events are CRITICAL for motorcycles and bicycles, HIGH for heavy trucks, MODERATE for passenger cars. Sourced from meteorological models (NOAA NWS, Tomorrow.io) and verified by traffic sensor data."@en .
+
+reo:FogEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Fog Event"@en ;
+    rdfs:comment "Reduced visibility due to fog or mist. Characterized by visibility distance in meters. Dense fog (visibility < 100m) is particularly hazardous for heavy trucks and high-speed routes."@en .
+
+reo:IcyRoadwayEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Icy Roadway Event"@en ;
+    rdfs:comment "Ice or black ice formation on road surfaces due to freezing temperatures, freezing rain, or refreezing after snow treatment. Highest relative safety impact of any weather event type, particularly for two-wheeled vehicles and heavy trucks. Sourced from road weather information system (RWIS) sensors and meteorological models."@en .
+
+reo:HighWindEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "High Wind Event"@en ;
+    rdfs:comment "Wind speeds exceeding safe thresholds for specific vehicle classes. Particularly hazardous for high-profile vehicles (heavy trucks, refrigerated trucks, armored vehicles). Bridge segments may have lower wind thresholds than surface roads."@en .
+
+reo:HeavyPrecipitationEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Heavy Precipitation Event"@en ;
+    rdfs:comment "Intense rainfall, snowfall, or mixed precipitation reducing road surface traction and visibility. Parent class for precipitation subtypes."@en .
+
+reo:HeavyRainEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:HeavyPrecipitationEvent ;
+    rdfs:label "Heavy Rain Event"@en ;
+    rdfs:comment "Rainfall intensity exceeding the threshold for hydroplaning risk (typically >0.5 inches/hour). Reduces effective friction, increases stopping distances, and may cause ponding."@en .
+
+reo:SnowEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:HeavyPrecipitationEvent ;
+    rdfs:label "Snow Event"@en ;
+    rdfs:comment "Snowfall resulting in snow accumulation on road surfaces. Severity characterized by accumulation rate (inches/hour) and total depth. Combined with IcyRoadwayEvent when surface temperatures are below freezing."@en .
+
+reo:SleetEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:HeavyPrecipitationEvent ;
+    rdfs:label "Sleet Event"@en ;
+    rdfs:comment "Ice pellet precipitation that creates slick surface conditions similar to freezing rain. High safety impact comparable to IcyRoadwayEvent."@en .
+
+reo:FreezingRainEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:HeavyPrecipitationEvent ;
+    rdfs:label "Freezing Rain Event"@en ;
+    rdfs:comment "Rain that freezes on contact with road surfaces below 0°C, forming glaze ice. The most dangerous precipitation type; creates invisible black ice across large corridor footprints."@en .
+
+reo:FloodingEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Flooding Event"@en ;
+    rdfs:comment "Standing or flowing water on road surfaces exceeding safe traversal depth. May completely block segments (full closure) or reduce speed and increase hazard. Particularly severe in underpasses and low-lying corridors."@en .
+
+reo:ReducedVisibilityEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Reduced Visibility Event"@en ;
+    rdfs:comment "Generic reduced visibility that does not qualify as FogEvent (e.g., smoke from wildfire, dust storm, heavy spray from trucks). Characterized by visibility distance in meters."@en .
+
+reo:ExtremeHeatEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Extreme Heat Event"@en ;
+    rdfs:comment "Ambient temperatures exceeding safe thresholds for temperature-sensitive cargo (>35°C) or vehicle operation. Primarily significant for refrigerated freight trips where cargo integrity may be compromised during extended delays."@en .
+
+reo:ExtremeColdEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Extreme Cold Event"@en ;
+    rdfs:comment "Ambient temperatures below freezing that increase the probability of IcyRoadwayEvent and may affect vehicle starting, brake performance, and fuel efficiency. A precursor indicator for road ice formation."@en .
+
+# ---------------------------------------------------------------------------
+# 1.2  Traffic Incident Events
+# ---------------------------------------------------------------------------
+
+reo:TrafficIncidentEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Traffic Incident Event"@en ;
+    rdfs:comment "An unplanned occurrence on the road network that disrupts normal traffic flow and/or creates safety hazards. Includes accidents, hazards, and road closures. Sourced from crowdsourced reports (Waze for Cities API), traffic management center feeds, and law enforcement broadcasts."@en .
+
+reo:AccidentEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:TrafficIncidentEvent ;
+    rdfs:label "Accident Event"@en ;
+    rdfs:comment "A vehicle collision or road accident. Affects traffic flow by reducing available lanes and creates safety hazards from debris, emergency vehicles, and driver distraction (rubbernecking). Parent class for severity subclasses."@en .
+
+reo:MinorAccidentEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:AccidentEvent ;
+    rdfs:label "Minor Accident Event"@en ;
+    rdfs:comment "Accident involving only property damage or minor injury. Typically affects one lane; cleared within 30–90 minutes. Causes moderate congestion impact."@en .
+
+reo:MajorAccidentEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:AccidentEvent ;
+    rdfs:label "Major Accident Event"@en ;
+    rdfs:comment "Accident involving serious injuries, fatalities, or multiple vehicles. Often results in full lane blockage or road closure. May persist 2–6 hours. Causes severe congestion upstream."@en .
+
+reo:MultiVehiclePileupEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:AccidentEvent ;
+    rdfs:label "Multi-Vehicle Pileup Event"@en ;
+    rdfs:comment "Chain-reaction accident involving 5 or more vehicles. Frequently triggered by WeatherEvents (fog, ice). Extended road closure. Dispatchers should reroute all active trips traversing affected segments immediately."@en .
+
+reo:CongestionEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:TrafficIncidentEvent ;
+    rdfs:label "Congestion Event"@en ;
+    rdfs:comment "Non-incident traffic congestion exceeding normal operational thresholds for the time period. Affects ETA but not necessarily safety. The most operationally significant event type for food delivery and time-sensitive intracity fleet operations."@en .
+
+reo:ModerateCongestionEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:CongestionEvent ;
+    rdfs:label "Moderate Congestion Event"@en ;
+    rdfs:comment "Traffic flow at 50–70% of free-flow speed. Speed index < 0.7. ETA increase of 10–25% over baseline. Triggers reroute recommendation for meal delivery fleets; informational alert for long-haul freight."@en .
+
+reo:SevereCongestionEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:CongestionEvent ;
+    rdfs:label "Severe Congestion Event"@en ;
+    rdfs:comment "Traffic flow at 30–50% of free-flow speed. Speed index < 0.5. ETA increase of 25–60% over baseline. Triggers reroute recommendation for most fleet types. Source: Waze congestion reports, traffic speed feeds."@en .
+
+reo:TrafficQueueEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:CongestionEvent ;
+    rdfs:label "Traffic Queue Event"@en ;
+    rdfs:comment "Complete stop-and-go conditions or traffic stoppage. Speed index < 0.2. Triggers immediate reroute recommendation for all time-sensitive fleet types. May also indicate an upstream AccidentEvent or RoadClosureEvent."@en .
+
+reo:CrowdCongestionEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:CongestionEvent ;
+    rdfs:label "Crowd Congestion Event"@en ;
+    rdfs:comment "Severe pedestrian or active mobility congestion. Affects pedestrian network edges (e.g., sidewalks near stadiums post-game). Impacts active mobility routing and macroscopic UNA predictions."@en .
+
+reo:RoadHazardEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:TrafficIncidentEvent ;
+    rdfs:label "Road Hazard Event"@en ;
+    rdfs:comment "Physical object or condition on the road surface creating danger or obstruction, not resulting from an accident. Sourced primarily from crowdsourced reports (Waze hazard category). Point-source spatial footprint."@en .
+
+reo:DebrisOnRoadEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadHazardEvent ;
+    rdfs:label "Debris on Road Event"@en ;
+    rdfs:comment "Foreign material (cargo spill, fallen tree, structural debris) on the road surface. Point-source. Safety significance varies by debris type; high significance for motorcycles and bicycles."@en .
+
+reo:PotholeEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadHazardEvent ;
+    rdfs:label "Pothole Event"@en ;
+    rdfs:comment "Road surface deterioration creating a hazardous depression. Significant for motorcycles, bicycles, and light commercial vehicles. Lower significance for heavy trucks with robust suspension."@en .
+
+reo:ObjectOnRoadwayEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadHazardEvent ;
+    rdfs:label "Object on Roadway Event"@en ;
+    rdfs:comment "A large, identifiable object (tire, furniture, animal carcass) blocking part of the road. May require lane change; safety hazard especially at high speed."@en .
+
+reo:SmokeOnRoadwayEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadHazardEvent ;
+    rdfs:label "Smoke on Roadway Event"@en ;
+    rdfs:comment "Smoke from a vehicle fire, wildfire, or industrial incident reducing visibility on specific road segments. May coexist with ReducedVisibilityEvent."@en .
+
+reo:RoadClosureEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:TrafficIncidentEvent ;
+    rdfs:label "Road Closure Event"@en ;
+    rdfs:comment "Full or partial closure of a road segment making it unavailable for normal traffic. Closures require the Dynamic Risk Monitor to flag affected trips for mandatory rerouting, as the assigned route is no longer traversable."@en .
+
+reo:LaneClosureEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadClosureEvent ;
+    rdfs:label "Lane Closure Event"@en ;
+    rdfs:comment "Closure of one or more lanes of a road segment. Added at v1.6.0 as the parent of reo:PartialLaneClosureEvent so that the 511 Traffic Management connector mapping (Architecture V12 Section 8: reo:RoadworkEvent, reo:LaneClosureEvent, reo:RoadClosureEvent) resolves to a declared class; 511 lane-closure records that do not distinguish partial-versus-rolling configurations are typed at this level, while records with explicit partial configuration are typed reo:PartialLaneClosureEvent."@en .
+
+reo:PartialLaneClosureEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:LaneClosureEvent ;
+    rdfs:label "Partial Lane Closure Event"@en ;
+    rdfs:comment "One or more lanes closed while others remain open. Reduces capacity and may cause upstream congestion but does not block the route entirely. ETA impact varies by lane configuration and traffic volume."@en .
+
+reo:FullRoadClosureEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadClosureEvent ;
+    rdfs:label "Full Road Closure Event"@en ;
+    rdfs:comment "All lanes of a road segment closed. Triggers mandatory reroute recommendation for all active trips with this segment in their AssignedRoute."@en .
+
+reo:BridgeClosureEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadClosureEvent ;
+    rdfs:label "Bridge Closure Event"@en ;
+    rdfs:comment "Closure of a bridge, potentially isolating a geographic area for specific vehicle classes. Particularly significant for heavy trucks if the only alternative route has weight restrictions."@en .
+
+reo:TunnelClosureEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadClosureEvent ;
+    rdfs:label "Tunnel Closure Event"@en ;
+    rdfs:comment "Closure of a road tunnel. May have disproportionate impact on freight routing if the tunnel provides the only feasible alternative to a mountain or water crossing."@en .
+
+reo:PedestrianFacilityClosureEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadClosureEvent ;
+    rdfs:label "Pedestrian Facility Closure Event"@en ;
+    rdfs:comment "Closure of a sidewalk, crosswalk, or pedestrian bridge. Disables routing along the affected uko:PedestrianNetworkEdge for active mobility users."@en .
+
+# ---------------------------------------------------------------------------
+# 1.3  Roadwork Events
+# ---------------------------------------------------------------------------
+
+reo:RoadworkEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Roadwork Event"@en ;
+    rdfs:comment "Planned or ongoing road construction, maintenance, or utility work affecting road segment availability or capacity. Roadwork events are often scheduled in advance (distinguishing them from TrafficIncidentEvents) and may have a known end time, enabling the Dynamic Risk Monitor to project when the segment will clear. Source: municipal permit databases, 511 systems, Waze for Cities roadwork feed."@en .
+
+reo:PlannedRoadworkEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadworkEvent ;
+    rdfs:label "Planned Roadwork Event"@en ;
+    rdfs:comment "Scheduled maintenance or construction work with a published start and end time. High temporal predictability; the Dynamic Risk Monitor can pre-compute route impacts for upcoming shifts. Often includes time windows (e.g., nighttime lane closures)."@en .
+
+reo:ActiveRoadworkEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadworkEvent ;
+    rdfs:label "Active Roadwork Event"@en ;
+    rdfs:comment "Roadwork currently in progress. May be a transition from PlannedRoadworkEvent when construction begins, or an unscheduled emergency repair."@en .
+
+reo:EmergencyRoadworkEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadworkEvent ;
+    rdfs:label "Emergency Roadwork Event"@en ;
+    rdfs:comment "Unscheduled emergency road repair (pipe burst, structural failure, utility emergency). No advance notice; high disruption. Source: 911 dispatch feeds and utility company alerts."@en .
+
+# ---------------------------------------------------------------------------
+# 1.4  Law Enforcement Events
+# ---------------------------------------------------------------------------
+
+reo:LawEnforcementEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Law Enforcement Event"@en ;
+    rdfs:comment "Presence or activity of law enforcement on or near a road segment. Affects vehicle speeds and may indicate proximity to another incident. Waze's 'police' and 'cop trap' categories map to this class. Relevant to fleet compliance monitoring and, at higher sensitivity, to armored car security routing."@en .
+
+reo:SpeedEnforcementEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:LawEnforcementEvent ;
+    rdfs:label "Speed Enforcement Event"@en ;
+    rdfs:comment "Active speed enforcement (radar/laser, speed camera, or officer with radar). Reduces vehicle speed near the event location. Informational for most fleet types; may trigger compliance alerts for fleets with HOS or speed-governed vehicles."@en .
+
+reo:CheckpointEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:LawEnforcementEvent ;
+    rdfs:label "Checkpoint Event"@en ;
+    rdfs:comment "Law enforcement checkpoint (DUI checkpoint, commercial vehicle inspection, border crossing). Causes significant delay; may require heavy trucks to stop for inspection. Operationally significant for time-sensitive and hazmat fleets."@en .
+
+reo:EmergencyResponseEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:LawEnforcementEvent ;
+    rdfs:label "Emergency Response Event"@en ;
+    rdfs:comment "Active law enforcement response, fire department, or EMS response in progress near a road segment. Typically co-occurs with AccidentEvent or RoadClosureEvent. Emergency vehicles in the area may affect safe passage."@en .
+
+reo:PolicePresenceEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:LawEnforcementEvent ;
+    rdfs:label "Police Presence Event"@en ;
+    rdfs:comment "Police vehicle visible on or near a road segment without an active enforcement action. Sourced from crowdsourced reports (Waze 'cop' category). Generally informational unless fleet type has compliance sensitivity."@en .
+
+# ---------------------------------------------------------------------------
+# 1.5  Security Events
+# ---------------------------------------------------------------------------
+
+reo:SecurityEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Security Event"@en ;
+    rdfs:comment "A security-relevant incident or condition affecting the physical safety of vehicle and cargo outside of traffic-related causes. Security events are operationally significant primarily for high-security fleet types (ARMORED_VEHICLE, HIGH security level cargo). They are not crowdsourced (Waze does not carry this category) but may be sourced from law enforcement broadcasts, private security intelligence feeds, or fleet operator reports."@en .
+
+reo:CriminalActivityReportEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SecurityEvent ;
+    rdfs:label "Criminal Activity Report Event"@en ;
+    rdfs:comment "Report of criminal activity (robbery, carjacking, theft) in the vicinity of a route segment. CRITICAL alertPriority for ARMORED_VEHICLE and HIGH/MAXIMUM security cargo. HIGH alertPriority for LIGHT_COMMERCIAL and PASSENGER_CAR in high-value goods delivery."@en .
+
+reo:VehicleTheftRiskEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SecurityEvent ;
+    rdfs:label "Vehicle Theft Risk Event"@en ;
+    rdfs:comment "Elevated risk of cargo theft or vehicle theft at a specific location (e.g., unsecured parking in a high-theft zone). Relevant for parked stop events in multi-stop commercial routes."@en .
+
+reo:HighRiskCorridorEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SecurityEvent ;
+    rdfs:label "High Risk Corridor Event"@en ;
+    rdfs:comment "A route corridor designated as high-risk by fleet security intelligence, typically due to a pattern of incidents rather than a single event. Longer duration than individual incident events. May trigger route redesign rather than reroute of individual trips."@en .
+
+reo:SuspiciousVehicleEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SecurityEvent ;
+    rdfs:label "Suspicious Vehicle Event"@en ;
+    rdfs:comment "Report of a suspicious vehicle following or positioned near a high-value cargo vehicle. CRITICAL alertPriority for ARMORED_VEHICLE. Triggers immediate dispatcher notification."@en .
+
+# ---------------------------------------------------------------------------
+# 1.6  Special Events
+# ---------------------------------------------------------------------------
+
+reo:SpecialEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Special Event"@en ;
+    rdfs:comment "A planned or anticipated gathering of large numbers of people causing significant traffic disruption around a venue or corridor. Special events have predictable timing and spatial footprints, making them high-confidence candidates for pre-trip route planning. Source: 511 systems, venue permit databases, municipal event calendars."@en .
+
+reo:SportingEventTrafficEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SpecialEvent ;
+    rdfs:label "Sporting Event Traffic Event"@en ;
+    rdfs:comment "Traffic disruption caused by a major sporting event (stadium arrival/departure). Pre- and post-event congestion windows are predictable from event schedule. Affects ETA for fleet operations in the vicinity."@en .
+
+reo:ConcertOrFestivalTrafficEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SpecialEvent ;
+    rdfs:label "Concert or Festival Traffic Event"@en ;
+    rdfs:comment "Traffic disruption caused by a concert, festival, or large entertainment event. Similar to sporting event pattern but often with longer post-event dispersal."@en .
+
+reo:PublicDemonstrationEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SpecialEvent ;
+    rdfs:label "Public Demonstration Event"@en ;
+    rdfs:comment "Permitted or unpermitted public demonstration, march, or rally causing road closures or detours. Less predictable timing than sporting events; may have security co-occurrence."@en .
+
+reo:VIPMovementEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:SpecialEvent ;
+    rdfs:label "VIP Movement Event"@en ;
+    rdfs:comment "Presidential, dignitary, or high-security convoy movement requiring temporary road closures along the route corridor. Short duration but can cause sudden and complete blockage of primary arteries."@en .
+
+#################################################################
+#    PART 2: EVENT LIFECYCLE
+#################################################################
+
+reo:EventLifecycleState rdf:type owl:Class ;
+    rdfs:label "Event Lifecycle State"@en ;
+    rdfs:comment "Named individuals representing the stages in an event's lifecycle. The Dynamic Risk Monitor uses lifecycle state to determine whether an event should be included in route risk computation and at what confidence weight."@en .
+
+reo:REPORTED rdf:type owl:NamedIndividual, reo:EventLifecycleState ;
+    rdfs:label "Reported"@en ;
+    rdfs:comment "Event has been reported by a source but not yet verified. Included in route risk computation at reduced confidence weight (0.4). Source: crowdsourced reports (Waze), unverified user submissions."@en .
+
+reo:CONFIRMED rdf:type owl:NamedIndividual, reo:EventLifecycleState ;
+    rdfs:label "Confirmed"@en ;
+    rdfs:comment "Event has been confirmed by a second independent source or by sensor data. Included in route risk computation at full confidence. Source: secondary crowdsource confirmation, traffic sensor agreement, official broadcast."@en .
+
+reo:ACTIVE rdf:type owl:NamedIndividual, reo:EventLifecycleState ;
+    rdfs:label "Active"@en ;
+    rdfs:comment "Event is currently in progress. This is the primary state for real-time route risk computation. Events in ACTIVE state are queried first by the Dynamic Risk Monitor."@en .
+
+reo:RESOLVING rdf:type owl:NamedIndividual, reo:EventLifecycleState ;
+    rdfs:label "Resolving"@en ;
+    rdfs:comment "Event is in the process of being cleared but has not yet fully resolved. Included in route risk at reduced weight (0.6). Trips already en route may still encounter residual impact."@en .
+
+reo:RESOLVED rdf:type owl:NamedIndividual, reo:EventLifecycleState ;
+    rdfs:label "Resolved"@en ;
+    rdfs:comment "Event has fully cleared. Excluded from real-time route risk computation. Retained in the GKG Event Layer for a configurable hold period (default: 2 hours) before archival, to catch delayed crowdsource confirmations."@en .
+
+reo:ARCHIVED rdf:type owl:NamedIndividual, reo:EventLifecycleState ;
+    rdfs:label "Archived"@en ;
+    rdfs:comment "Event has been moved to the GKG historical incident record. Contributes to updating static uko:segmentRiskScore values via the Learning Phase. No longer part of real-time queries."@en .
+
+reo:hasLifecycleState rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range reo:EventLifecycleState ;
+    rdfs:label "has lifecycle state"@en ;
+    rdfs:comment "Links an Event to its current lifecycle state. Indexed in the GKG Event Layer for efficient queries of the form: retrieve all events with lifecycleState = ACTIVE affecting segments in a given route."@en .
+
+#################################################################
+#    PART 3: EVENT SPATIO-TEMPORAL FOOTPRINT
+#################################################################
+
+# ---------------------------------------------------------------------------
+# 3.1  Spatial properties
+# ---------------------------------------------------------------------------
+
+reo:affectsSegment rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range uko:RoadSegment ;
+    rdfs:label "affects segment"@en ;
+    rdfs:comment "Links an Event to each uko:RoadSegment within its spatial footprint. This is the load-bearing property for vehicular route intersection computation."@en .
+
+reo:affectsPedestrianEdge rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range uko:PedestrianNetworkEdge ;
+    rdfs:label "affects pedestrian edge"@en ;
+    rdfs:comment "Links an Event directly to a uko:PedestrianNetworkEdge (sidewalk, crosswalk, footpath) in the multiplex graph. Allows the dynamic risk monitor to specifically target active mobility disruptions."@en .
+
+reo:hasSpatialFootprintGeometry rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range geo:Geometry ;
+    rdfs:label "has spatial footprint geometry"@en ;
+    rdfs:comment "Links an Event to a GeoSPARQL geometry representing its geographic extent. For weather events this is typically a polygon; for traffic incidents a point or short linestring; for congestion a linestring along the affected corridor. Used by the event ingestion pipeline to automatically compute reo:affectsSegment links via spatial intersection against the GKG road layer."@en .
+
+reo:hasEpicenter rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range geo:Point ;
+    rdfs:label "has epicenter"@en ;
+    rdfs:comment "The geographic point representing the center or origin of the event. For point-source events (accidents, hazards) this is the event location. For area events (weather, congestion) this is the centroid of the footprint."@en .
+
+reo:affectsCorridorName rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:string ;
+    rdfs:label "affects corridor name"@en ;
+    rdfs:comment "Human-readable name of a major route corridor affected by this event (e.g., 'I-80 EB between SR-4 and Bay Bridge'). Supplements the formal reo:affectsSegment links for dispatcher-facing alert messaging."@en .
+
+reo:spatialExtentKm rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "spatial extent (km)"@en ;
+    rdfs:comment "Approximate spatial extent of the event's footprint in kilometers (for linear events: length of affected corridor; for area events: longest dimension). Used for quick filtering of events likely to affect short vs. long trips."@en .
+
+# ---------------------------------------------------------------------------
+# 3.2  Temporal properties
+# ---------------------------------------------------------------------------
+
+reo:reportedAt rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "reported at"@en .
+
+reo:confirmedAt rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "confirmed at"@en .
+
+reo:activeSince rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "active since"@en .
+
+reo:estimatedClearanceTime rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "estimated clearance time"@en ;
+    rdfs:comment "ISO 8601 timestamp of the estimated event resolution. This is the key temporal input for spatio-temporal event projection by the Dynamic Risk Monitor. If the vehicle will not reach the affected segment until after estimatedClearanceTime, the event does not contribute to route risk. Updated dynamically as the event evolves."@en .
+
+reo:actualClearanceTime rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "actual clearance time"@en .
+
+reo:eventDurationMinutes rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:integer ;
+    rdfs:label "event duration (minutes)"@en .
+
+# ---------------------------------------------------------------------------
+# 3.3  Severity properties
+# ---------------------------------------------------------------------------
+
+reo:severityScore rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "severity score"@en ;
+    rdfs:comment "Continuous severity measure on the range [0.0, 1.0] where 1.0 represents the maximum observed severity for this event subclass. For WeatherEvents: derived from meteorological parameters (visibility distance, wind speed, precipitation rate). For TrafficIncidentEvents: derived from lane blockage fraction and confirmed injury severity. For CongestionEvents: derived from speed index relative to free-flow."@en .
+
+reo:laneBlockageFraction rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:TrafficIncidentEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "lane blockage fraction"@en .
+
+reo:visibilityMeters rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:WeatherEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "visibility (meters)"@en .
+
+reo:windSpeedKph rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:WeatherEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "wind speed (km/h)"@en .
+
+reo:precipitationRateMmPerHour rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:WeatherEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "precipitation rate (mm/hr)"@en .
+
+reo:speedIndexAtEpicenter rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CongestionEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "speed index at epicenter"@en .
+
+
+#################################################################
+#    PART 4: INTER-EVENT RELATIONS
+#################################################################
+
+reo:causesCongestion rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range reo:CongestionEvent ;
+    rdfs:label "causes congestion"@en ;
+    rdfs:comment "Asserts that an event is the primary cause of a downstream CongestionEvent. Established by the event ingestion pipeline when a new CongestionEvent appears within the spatial and temporal window of an existing event. Example: AccidentEvent A causes SevereCongestionEvent C 2 km upstream."@en .
+
+reo:exacerbatedBy rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range reo:Event ;
+    rdfs:label "exacerbated by"@en ;
+    rdfs:comment "Asserts that a concurrent event amplifies the impact of this event. Example: FogEvent exacerbatedBy ExtremeColdEvent — the cold makes black ice more likely under the fog. The reo:severityScore of the primary event should be adjusted upward in the presence of exacerbating events."@en .
+
+reo:coOccursWith rdf:type owl:SymmetricProperty, owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range reo:Event ;
+    rdfs:label "co-occurs with"@en ;
+    rdfs:comment "Asserts statistically frequent co-occurrence of two event types in the same spatial and temporal vicinity, without implying causation. Symmetric. Example: MultiVehiclePileupEvent coOccursWith IcyRoadwayEvent. Used by the Dynamic Risk Monitor to infer the probability of an unreported companion event when one is confirmed."@en .
+
+reo:hasPrecedingEvent rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range reo:Event ;
+    rdfs:label "has preceding event"@en ;
+    rdfs:comment "Links an event to an earlier event that triggered or preceded it in a causal chain. Example: MajorAccidentEvent hasPrecedingEvent IcyRoadwayEvent. Used to establish compound event chains for root cause analysis in the Learning Phase."@en .
+
+reo:hasSucceedingEvent rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range reo:Event ;
+    rdfs:label "has succeeding event"@en ;
+    rdfs:comment "Links an event to a downstream event it caused or preceded. Inverse of reo:hasPrecedingEvent."@en .
+
+reo:triggeredAlertFor rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range tko:DispatchedTrip ;
+    rdfs:label "triggered alert for"@en ;
+    rdfs:comment "Records that this event instance triggered a reroute or safety alert for a specific DispatchedTrip. Maintained in the GKG Event Layer for post-trip analysis and dispatcher performance monitoring."@en .
+
+
+#################################################################
+#    PART 5: EVENT SOURCE AND CONFIDENCE
+#################################################################
+
+reo:EventSource rdf:type owl:Class ;
+    rdfs:label "Event Source"@en ;
+    rdfs:comment "Named individuals representing the provenance of an event report. EventSource determines the base confidence weight applied to the event in route risk computation before the event's lifecycle state adjustments are applied."@en .
+
+reo:CROWDSOURCED rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Crowdsourced"@en .
+
+reo:CROWDSOURCED_CONFIRMED rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Crowdsourced Confirmed"@en .
+
+reo:OFFICIAL_GOVERNMENT rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Official Government"@en .
+
+reo:METEOROLOGICAL_MODEL rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Meteorological Model"@en .
+
+reo:SENSOR_INFERRED rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Sensor Inferred"@en .
+
+reo:VERIFIED_OPERATOR rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Verified Operator"@en .
+
+reo:SECURITY_INTELLIGENCE rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Security Intelligence"@en .
+
+reo:hasEventSource rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range reo:EventSource ;
+    rdfs:label "has event source"@en .
+
+reo:sourceConfidenceScore rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "source confidence score"@en ;
+    rdfs:comment "Composite confidence score [0.0, 1.0] incorporating EventSource base confidence and lifecycle state adjustment."@en .
+
+reo:externalEventId rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:string ;
+    rdfs:label "external event ID"@en .
+
+reo:lastUpdatedAt rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "last updated at"@en .
+
+reo:eventTTLSeconds rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:Event ;
+    rdfs:range xsd:integer ;
+    rdfs:label "event TTL (seconds)"@en .
+
+
+#################################################################
+#    PART 6: FLEET EVENT SENSITIVITY MATRIX
+#################################################################
+
+reo:FleetEventSensitivity rdf:type owl:Class ;
+    rdfs:label "Fleet Event Sensitivity"@en ;
+    rdfs:comment "A reified configuration instance encoding how a specific combination of event type, fleet persona, and trip intent should be weighted in the Dynamic Risk Monitor's route risk computation. The three weights (safetyWeight, etaWeight, costWeight) sum to 1.0 and express the relative operational priority when the event type occurs. The rerouteThreshold determines at which tko:RiskTier the dispatcher receives a reroute recommendation. Named FleetEventSensitivity individuals constitute the operational policy for a fleet."@en .
+
+reo:forEventType rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range reo:Event ;
+    rdfs:label "for event type"@en .
+
+reo:forFleetPersona rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range mlo:UseCasePersona ;
+    rdfs:label "for fleet persona"@en .
+
+reo:forTripIntent rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range tko:TripIntent ;
+    rdfs:label "for trip intent"@en .
+
+reo:forVehicleClass rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range tko:VehicleClass ;
+    rdfs:label "for vehicle class"@en .
+
+reo:safetyWeight rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "safety weight"@en .
+
+reo:etaWeight rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "ETA weight"@en .
+
+reo:costWeight rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "cost weight"@en .
+
+reo:rerouteThreshold rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range tko:RiskTier ;
+    rdfs:label "reroute threshold"@en .
+
+reo:alertPriority rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range reo:AlertPriority ;
+    rdfs:label "alert priority"@en .
+
+reo:sensitivityLabel rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range xsd:string ;
+    rdfs:label "sensitivity label"@en .
+
+reo:sensitivityRationale rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:FleetEventSensitivity ;
+    rdfs:range xsd:string ;
+    rdfs:label "sensitivity rationale"@en .
+
+
+#################################################################
+#    PART 7: ALERT PRIORITY
+#################################################################
+
+reo:AlertPriority rdf:type owl:Class ;
+    rdfs:label "Alert Priority"@en ;
+    rdfs:comment "Named individuals representing the urgency level of dispatcher notifications generated by the Dynamic Risk Monitor."@en .
+
+reo:PRIORITY_CRITICAL rdf:type owl:NamedIndividual, reo:AlertPriority ;
+    rdfs:label "Critical"@en .
+
+reo:PRIORITY_HIGH rdf:type owl:NamedIndividual, reo:AlertPriority ;
+    rdfs:label "High"@en .
+
+reo:PRIORITY_INFORMATIONAL rdf:type owl:NamedIndividual, reo:AlertPriority ;
+    rdfs:label "Informational"@en .
+
+reo:PRIORITY_SUPPRESS rdf:type owl:NamedIndividual, reo:AlertPriority ;
+    rdfs:label "Suppress"@en .
+
+#################################################################
+#    PART 8: ACTIVE ROUTE RISK (DEPRECATED)
+#################################################################
+# Deprecated in v1.4.0 to resolve dual-agent truth collisions.
+# All active, prospective risk tracking is now deferred to the
+# tko:TripRiskVector computed by the OHR Model.
+#################################################################
+
+reo:ActiveRouteRisk rdf:type owl:Class ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:label "Active Route Risk (DEPRECATED)"@en ;
+    rdfs:comment "DEPRECATED in v1.4.0. Formerly a prospective, continuously updated risk assessment for an in-progress DispatchedTrip. Superseded entirely by tko:TripRiskVector (R1-R9 OHR Model) to prevent dual-agent truth collisions during active tracking."@en .
+
+reo:hasActiveRouteRisk rdf:type owl:ObjectProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain tko:DispatchedTrip ;
+    rdfs:range reo:ActiveRouteRisk ;
+    rdfs:label "has active route risk (DEPRECATED)"@en .
+
+reo:activeRouteRiskScore rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "active route risk score (DEPRECATED)"@en .
+
+reo:hasActiveRiskTier rdf:type owl:ObjectProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range tko:RiskTier ;
+    rdfs:label "has active risk tier (DEPRECATED)"@en .
+
+reo:segmentEventRiskVector rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:string ;
+    rdfs:label "segment event risk vector (DEPRECATED)"@en .
+
+reo:contributingEventCount rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:integer ;
+    rdfs:label "contributing event count (DEPRECATED)"@en .
+
+reo:sensitivityProfileApplied rdf:type owl:ObjectProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range reo:FleetEventSensitivity ;
+    rdfs:label "sensitivity profile applied (DEPRECATED)"@en .
+
+reo:computedAt rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "computed at (DEPRECATED)"@en .
+
+reo:expiresAt rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "expires at (DEPRECATED)"@en .
+
+reo:rerouteRecommendationActive rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "reroute recommendation active (DEPRECATED)"@en .
+
+reo:alertGeneratedAt rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "alert generated at (DEPRECATED)"@en .
+
+reo:estimatedETADelay rdf:type owl:DatatypeProperty ;
+    owl:deprecated "true"^^xsd:boolean ;
+    rdfs:domain reo:ActiveRouteRisk ;
+    rdfs:range xsd:integer ;
+    rdfs:label "estimated ETA delay (DEPRECATED)"@en .
+
+
+#################################################################
+#    PART 9: FLEET EVENT SENSITIVITY NAMED INDIVIDUALS
+#################################################################
+
+# --- INTERCITY FREIGHT: WEATHER EVENTS ---
+
+reo:FES_IntercityFreight_WeatherIce rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:IcyRoadwayEvent ;
+    reo:forTripIntent tko:IntercityFreightHauling ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:safetyWeight "0.90"^^xsd:decimal ;
+    reo:etaWeight "0.08"^^xsd:decimal ;
+    reo:costWeight "0.02"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Intercity Freight — Ice Events"@en ;
+    reo:sensitivityRationale "Loaded Class 8 trucks have a center of gravity and stopping distance profile that makes ice catastrophically dangerous."@en .
+
+reo:FES_IntercityFreight_WeatherFog rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:FogEvent ;
+    reo:forTripIntent tko:IntercityFreightHauling ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:safetyWeight "0.80"^^xsd:decimal ;
+    reo:etaWeight "0.15"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Intercity Freight — Dense Fog"@en .
+
+reo:FES_IntercityFreight_HighWind rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:HighWindEvent ;
+    reo:forTripIntent tko:IntercityFreightHauling ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:safetyWeight "0.85"^^xsd:decimal ;
+    reo:etaWeight "0.10"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Intercity Freight — High Wind"@en .
+
+reo:FES_IntercityFreight_Congestion rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:CongestionEvent ;
+    reo:forTripIntent tko:IntercityFreightHauling ;
+    reo:safetyWeight "0.25"^^xsd:decimal ;
+    reo:etaWeight "0.50"^^xsd:decimal ;
+    reo:costWeight "0.25"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_HIGH ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Intercity Freight — Congestion"@en .
+
+# --- ARMORED CAR SERVICE ---
+
+reo:FES_ArmoredCar_SecurityEvent rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:SecurityEvent ;
+    reo:forTripIntent tko:ArmoredCarService ;
+    reo:forVehicleClass tko:ARMORED_VEHICLE ;
+    reo:safetyWeight "0.95"^^xsd:decimal ;
+    reo:etaWeight "0.04"^^xsd:decimal ;
+    reo:costWeight "0.01"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Armored Car — Security Events"@en .
+
+reo:FES_ArmoredCar_TrafficIncident rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:TrafficIncidentEvent ;
+    reo:forTripIntent tko:ArmoredCarService ;
+    reo:forVehicleClass tko:ARMORED_VEHICLE ;
+    reo:safetyWeight "0.80"^^xsd:decimal ;
+    reo:etaWeight "0.15"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Armored Car — Traffic Incidents"@en .
+
+reo:FES_ArmoredCar_RoadClosure rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:RoadClosureEvent ;
+    reo:forTripIntent tko:ArmoredCarService ;
+    reo:forVehicleClass tko:ARMORED_VEHICLE ;
+    reo:safetyWeight "0.85"^^xsd:decimal ;
+    reo:etaWeight "0.12"^^xsd:decimal ;
+    reo:costWeight "0.03"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Armored Car — Road Closure"@en .
+
+# --- FOOD DELIVERY ---
+
+reo:FES_FoodDelivery_SevereCongestion rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:SevereCongestionEvent ;
+    reo:forTripIntent tko:FoodDeliveryTrip ;
+    reo:safetyWeight "0.10"^^xsd:decimal ;
+    reo:etaWeight "0.85"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Food Delivery — Severe Congestion"@en .
+
+reo:FES_FoodDelivery_ModerateCongestion rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:ModerateCongestionEvent ;
+    reo:forTripIntent tko:FoodDeliveryTrip ;
+    reo:safetyWeight "0.10"^^xsd:decimal ;
+    reo:etaWeight "0.82"^^xsd:decimal ;
+    reo:costWeight "0.08"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Food Delivery — Moderate Congestion"@en .
+
+reo:FES_FoodDelivery_TrafficQueue rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:TrafficQueueEvent ;
+    reo:forTripIntent tko:FoodDeliveryTrip ;
+    reo:safetyWeight "0.08"^^xsd:decimal ;
+    reo:etaWeight "0.88"^^xsd:decimal ;
+    reo:costWeight "0.04"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Food Delivery — Traffic Queue (Stop-and-Go)"@en .
+
+reo:FES_FoodDelivery_RoadClosure rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:FullRoadClosureEvent ;
+    reo:forTripIntent tko:FoodDeliveryTrip ;
+    reo:safetyWeight "0.05"^^xsd:decimal ;
+    reo:etaWeight "0.90"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Food Delivery — Full Road Closure"@en .
+
+# --- REFRIGERATED FREIGHT ---
+
+reo:FES_ReeferFreight_WeatherIce rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:IcyRoadwayEvent ;
+    reo:forTripIntent tko:RefrigeratedFreightHauling ;
+    reo:forVehicleClass tko:REFRIGERATED_TRUCK ;
+    reo:safetyWeight "0.88"^^xsd:decimal ;
+    reo:etaWeight "0.10"^^xsd:decimal ;
+    reo:costWeight "0.02"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Refrigerated Freight — Ice Events"@en .
+
+reo:FES_ReeferFreight_ExtremeHeat rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:ExtremeHeatEvent ;
+    reo:forTripIntent tko:RefrigeratedFreightHauling ;
+    reo:forVehicleClass tko:REFRIGERATED_TRUCK ;
+    reo:safetyWeight "0.30"^^xsd:decimal ;
+    reo:etaWeight "0.60"^^xsd:decimal ;
+    reo:costWeight "0.10"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Refrigerated Freight — Extreme Heat"@en .
+
+reo:FES_ReeferFreight_SevereCongestion rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:SevereCongestionEvent ;
+    reo:forTripIntent tko:RefrigeratedFreightHauling ;
+    reo:forVehicleClass tko:REFRIGERATED_TRUCK ;
+    reo:safetyWeight "0.20"^^xsd:decimal ;
+    reo:etaWeight "0.70"^^xsd:decimal ;
+    reo:costWeight "0.10"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Refrigerated Freight — Severe Congestion"@en .
+
+# --- EMERGENCY MEDICAL SUPPLY ---
+
+reo:FES_EmergencyMedical_TrafficIncident rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:TrafficIncidentEvent ;
+    reo:forTripIntent tko:EmergencyMedicalSupplyRun ;
+    reo:safetyWeight "0.55"^^xsd:decimal ;
+    reo:etaWeight "0.40"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Emergency Medical Supply — Traffic Incidents"@en .
+
+reo:FES_EmergencyMedical_RoadClosure rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:RoadClosureEvent ;
+    reo:forTripIntent tko:EmergencyMedicalSupplyRun ;
+    reo:safetyWeight "0.50"^^xsd:decimal ;
+    reo:etaWeight "0.45"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Emergency Medical Supply — Road Closure"@en .
+
+# --- MOTORCYCLE ---
+
+reo:FES_Motorcycle_WeatherAny rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:WeatherEvent ;
+    reo:forVehicleClass tko:MOTORCYCLE ;
+    reo:safetyWeight "0.92"^^xsd:decimal ;
+    reo:etaWeight "0.06"^^xsd:decimal ;
+    reo:costWeight "0.02"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Motorcycle — Weather Events"@en .
+
+reo:FES_Motorcycle_RoadHazard rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:RoadHazardEvent ;
+    reo:forVehicleClass tko:MOTORCYCLE ;
+    reo:safetyWeight "0.90"^^xsd:decimal ;
+    reo:etaWeight "0.08"^^xsd:decimal ;
+    reo:costWeight "0.02"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Motorcycle — Road Hazards"@en .
+
+# --- REGULATED TRUCKING (HOS-sensitive) ---
+
+reo:FES_RegulatedTrucking_Checkpoint rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:CheckpointEvent ;
+    reo:forTripIntent tko:FreightHauling ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:safetyWeight "0.20"^^xsd:decimal ;
+    reo:etaWeight "0.55"^^xsd:decimal ;
+    reo:costWeight "0.25"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Regulated Trucking — Inspection Checkpoints"@en .
+
+# --- DEFAULT SENSITIVITY ---
+
+reo:FES_Default rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    rdfs:label "Default Fleet Event Sensitivity"@en ;
+    reo:safetyWeight "0.40"^^xsd:decimal ;
+    reo:etaWeight "0.45"^^xsd:decimal ;
+    reo:costWeight "0.15"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_HIGH ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Default (all fleet types, all event types)"@en .
+
+
+#################################################################
+#    PART 10: EVENT FEED CONNECTOR VOCABULARY
+#################################################################
+
+reo:EventFeedConnector rdf:type owl:Class ;
+    rdfs:label "Event Feed Connector"@en .
+
+reo:feedPollingIntervalSeconds rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:EventFeedConnector ;
+    rdfs:range xsd:integer ;
+    rdfs:label "feed polling interval (seconds)"@en .
+
+reo:feedEventClass rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:EventFeedConnector ;
+    rdfs:range reo:Event ;
+    rdfs:label "feed event class"@en .
+
+reo:feedSourceType rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:EventFeedConnector ;
+    rdfs:range reo:EventSource ;
+    rdfs:label "feed source type"@en .
+
+reo:WazeForCitiesConnector rdf:type owl:NamedIndividual, reo:EventFeedConnector ;
+    rdfs:label "Waze for Cities Connector"@en ;
+    reo:feedPollingIntervalSeconds "30"^^xsd:integer ;
+    reo:feedSourceType reo:CROWDSOURCED .
+
+reo:NWSWeatherConnector rdf:type owl:NamedIndividual, reo:EventFeedConnector ;
+    rdfs:label "NOAA NWS Weather Alert Connector"@en ;
+    reo:feedPollingIntervalSeconds "300"^^xsd:integer ;
+    reo:feedSourceType reo:OFFICIAL_GOVERNMENT .
+
+reo:TomorrowIOConnector rdf:type owl:NamedIndividual, reo:EventFeedConnector ;
+    rdfs:label "Tomorrow.io Weather API Connector"@en ;
+    reo:feedPollingIntervalSeconds "300"^^xsd:integer ;
+    reo:feedSourceType reo:METEOROLOGICAL_MODEL .
+
+reo:FiveOneOneConnector rdf:type owl:NamedIndividual, reo:EventFeedConnector ;
+    rdfs:label "511 Traffic Management Connector"@en ;
+    reo:feedPollingIntervalSeconds "60"^^xsd:integer ;
+    reo:feedSourceType reo:OFFICIAL_GOVERNMENT .
+
+reo:HERETrafficConnector rdf:type owl:NamedIndividual, reo:EventFeedConnector ;
+    rdfs:label "HERE Traffic API Connector"@en ;
+    reo:feedPollingIntervalSeconds "60"^^xsd:integer ;
+    reo:feedSourceType reo:SENSOR_INFERRED .
+
+
+#################################################################
+#    PART 11: CROSS-ONTOLOGY ANNOTATION PROPERTIES
+#################################################################
+
+reo:reoEventClass rdf:type owl:AnnotationProperty ;
+    rdfs:label "REO event class annotation"@en .
+
+reo:derivedFromSegmentRiskScore rdf:type owl:AnnotationProperty ;
+    rdfs:label "derived from segment risk score"@en .
+
+
+#################################################################
+#    PART 12: COLLISION TAXONOMY ENUMERATIONS
+#################################################################
+
+# ---------------------------------------------------------------------------
+# 12.1 CollisionType enumeration
+# ---------------------------------------------------------------------------
+reo:CollisionType rdf:type owl:Class ;
+    rdfs:label "Collision Type"@en .
+
+reo:BROADSIDE rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Broadside"@en .
+
+reo:HEAD_ON rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Head-On"@en .
+
+reo:REAR_END rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Rear End"@en .
+
+reo:SIDESWIPE rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Sideswipe"@en .
+
+reo:OVERTURNED rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Overturned"@en .
+
+reo:VEHICLE_PEDESTRIAN rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Vehicle-Pedestrian"@en .
+
+reo:VEHICLE_BICYCLIST rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Vehicle-Bicyclist"@en .
+
+reo:COLLISION_TYPE_OTHER rdf:type owl:NamedIndividual, reo:CollisionType ;
+    rdfs:label "Other"@en .
+
+# ---------------------------------------------------------------------------
+# 12.2 WeatherCondition enumeration
+# ---------------------------------------------------------------------------
+reo:WeatherCondition rdf:type owl:Class ;
+    rdfs:label "Weather Condition"@en .
+
+reo:WEATHER_CLEAR rdf:type owl:NamedIndividual, reo:WeatherCondition ;
+    rdfs:label "Clear"@en .
+
+reo:WEATHER_CLOUDY rdf:type owl:NamedIndividual, reo:WeatherCondition ;
+    rdfs:label "Cloudy"@en .
+
+reo:WEATHER_RAINING rdf:type owl:NamedIndividual, reo:WeatherCondition ;
+    rdfs:label "Raining"@en .
+
+reo:WEATHER_SNOWING rdf:type owl:NamedIndividual, reo:WeatherCondition ;
+    rdfs:label "Snowing"@en .
+
+reo:WEATHER_FOG rdf:type owl:NamedIndividual, reo:WeatherCondition ;
+    rdfs:label "Fog"@en .
+
+reo:WEATHER_WINDY rdf:type owl:NamedIndividual, reo:WeatherCondition ;
+    rdfs:label "Windy"@en .
+
+reo:WEATHER_NOT_STATED rdf:type owl:NamedIndividual, reo:WeatherCondition ;
+    rdfs:label "Not Stated"@en .
+
+# ---------------------------------------------------------------------------
+# 12.3 RoadSurfaceCondition enumeration
+# ---------------------------------------------------------------------------
+reo:RoadSurfaceCondition rdf:type owl:Class ;
+    rdfs:label "Road Surface Condition"@en .
+
+reo:SURFACE_DRY rdf:type owl:NamedIndividual, reo:RoadSurfaceCondition ;
+    rdfs:label "Dry"@en .
+
+reo:SURFACE_WET rdf:type owl:NamedIndividual, reo:RoadSurfaceCondition ;
+    rdfs:label "Wet"@en .
+
+reo:SURFACE_SNOWY_ICY rdf:type owl:NamedIndividual, reo:RoadSurfaceCondition ;
+    rdfs:label "Snowy/Icy"@en .
+
+reo:SURFACE_SLIPPERY rdf:type owl:NamedIndividual, reo:RoadSurfaceCondition ;
+    rdfs:label "Slippery"@en .
+
+reo:SURFACE_NOT_STATED rdf:type owl:NamedIndividual, reo:RoadSurfaceCondition ;
+    rdfs:label "Not Stated"@en .
+
+# ---------------------------------------------------------------------------
+# 12.4 LightingCondition enumeration
+# ---------------------------------------------------------------------------
+reo:LightingCondition rdf:type owl:Class ;
+    rdfs:label "Lighting Condition"@en .
+
+reo:LIGHTING_DAYLIGHT rdf:type owl:NamedIndividual, reo:LightingCondition ;
+    rdfs:label "Daylight"@en .
+
+reo:LIGHTING_DARK_STREET_LIGHTS rdf:type owl:NamedIndividual, reo:LightingCondition ;
+    rdfs:label "Dark - Street Lights"@en .
+
+reo:LIGHTING_DARK_NO_LIGHTS rdf:type owl:NamedIndividual, reo:LightingCondition ;
+    rdfs:label "Dark - No Street Lights"@en .
+
+reo:LIGHTING_DUSK_DAWN rdf:type owl:NamedIndividual, reo:LightingCondition ;
+    rdfs:label "Dusk - Dawn"@en .
+
+reo:LIGHTING_NOT_STATED rdf:type owl:NamedIndividual, reo:LightingCondition ;
+    rdfs:label "Not Stated"@en .
+
+
+#################################################################
+#    PART 13: COLLISION CAUSATION FACTOR CLASS
+#################################################################
+
+reo:CollisionCausationFactor rdf:type owl:Class ;
+    rdfs:label "Collision Causation Factor"@en .
+
+reo:hasPCFCode rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CollisionCausationFactor ;
+    rdfs:range xsd:string ;
+    rdfs:label "PCF code"@en .
+
+reo:hasPCFGroup rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CollisionCausationFactor ;
+    rdfs:range xsd:string ;
+    rdfs:label "PCF group"@en .
+
+reo:hasPCFDescription rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CollisionCausationFactor ;
+    rdfs:range xsd:string ;
+    rdfs:label "PCF description"@en .
+
+reo:hasPCFStatutoryUrl rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CollisionCausationFactor ;
+    rdfs:range xsd:anyURI ;
+    rdfs:label "PCF statutory URL"@en .
+
+reo:PCF_RedSignal rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21453(a,c)"^^xsd:string ;
+    reo:hasPCFDescription "Red signal - driver or bicyclist responsibilities"^^xsd:string ;
+    rdfs:label "Red Signal Violation"@en .
+
+reo:PCF_GreenSignal rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21451(a,b)"^^xsd:string ;
+    reo:hasPCFDescription "Green signal - driver or bicyclist responsibilities"^^xsd:string ;
+    rdfs:label "Green Signal Violation"@en .
+
+reo:PCF_FollowingTooClosely rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21703"^^xsd:string ;
+    reo:hasPCFDescription "Following too closely prohibited"^^xsd:string ;
+    rdfs:label "Following Too Closely"@en .
+
+reo:PCF_UnsafeSpeed rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "22350"^^xsd:string ;
+    reo:hasPCFDescription "Unsafe speed for prevailing conditions"^^xsd:string ;
+    rdfs:label "Unsafe Speed"@en .
+
+reo:PCF_UnsafeTurnLaneChange rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "22107"^^xsd:string ;
+    reo:hasPCFDescription "Unsafe turn or lane change prohibited"^^xsd:string ;
+    rdfs:label "Unsafe Turn or Lane Change"@en .
+
+reo:PCF_WrongTurnPosition rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "22100(a,b)"^^xsd:string ;
+    reo:hasPCFDescription "Turn at intersection from wrong position"^^xsd:string ;
+    rdfs:label "Wrong Turn Position"@en .
+
+reo:PCF_DUIInjury rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "23153(a-g)"^^xsd:string ;
+    reo:hasPCFDescription "Driving under influence causing injury"^^xsd:string ;
+    rdfs:label "DUI Causing Injury"@en .
+
+reo:PCF_RightOfWayLeftTurn rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21801(a,b)"^^xsd:string ;
+    reo:hasPCFDescription "Violation of right-of-way - left turn"^^xsd:string ;
+    rdfs:label "Right-of-Way Violation Left Turn"@en .
+
+reo:PCF_PedestrianInCrosswalk rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21950(a,c)"^^xsd:string ;
+    reo:hasPCFDescription "Driver or bicyclist to yield right-of-way at crosswalks"^^xsd:string ;
+    rdfs:label "Pedestrian Crosswalk Right-of-Way"@en .
+
+reo:PCF_PedestrianOutsideCrosswalk rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21954(a)"^^xsd:string ;
+    reo:hasPCFDescription "Pedestrians must yield right-of-way outside of crosswalks"^^xsd:string ;
+    rdfs:label "Pedestrian Outside Crosswalk"@en .
+
+reo:PCF_BikeThreeFeet rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21760(a-d)"^^xsd:string ;
+    reo:hasPCFDescription "Improper passing of a bicycle - Three Feet for Safety Act"^^xsd:string ;
+    rdfs:label "Three Feet for Safety Act Violation"@en .
+
+reo:PCF_StopSign rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "22450(a)"^^xsd:string ;
+    reo:hasPCFDescription "Failure to stop at STOP sign"^^xsd:string ;
+    rdfs:label "Stop Sign Violation"@en .
+
+reo:PCF_Driveway rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "21804(a,b)"^^xsd:string ;
+    reo:hasPCFDescription "Entering highway from alley or driveway"^^xsd:string ;
+    rdfs:label "Driveway / Alley Entry"@en .
+
+reo:PCF_UnsafeStartBacking rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "22106"^^xsd:string ;
+    reo:hasPCFDescription "Unsafe starting or backing on highway"^^xsd:string ;
+    rdfs:label "Unsafe Starting or Backing"@en .
+
+reo:PCF_Unknown rdf:type owl:NamedIndividual, reo:CollisionCausationFactor ;
+    reo:hasPCFGroup "Unknown"^^xsd:string ;
+    reo:hasPCFDescription "Primary collision factor not determined or not stated"^^xsd:string ;
+    rdfs:label "Unknown PCF"@en .
+
+#################################################################
+#    PART 14: NEW EVENT SUBCLASSES FROM ACCIDENT DATA ANALYSIS
+#################################################################
+
+# ---------------------------------------------------------------------------
+# 14.1 Vehicle-Pedestrian and Vehicle-Bicyclist accident event classes
+# ---------------------------------------------------------------------------
+
+reo:VehiclePedestrianAccidentEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:AccidentEvent ;
+    rdfs:label "Vehicle-Pedestrian Accident Event"@en ;
+    rdfs:comment "A live accident event involving a vehicle and a pedestrian. Subclass of reo:AccidentEvent introduced in REO v1.1 to reflect the significant operational difference between Vehicle-Pedestrian collisions (SWITRS dph_col_grp_description = 'Vehicle-Pedestrian') and vehicle-only collisions. Fleet operators in dense pedestrian areas should treat this event type with elevated safetyWeight regardless of cargo type. In the FleetEventSensitivity matrix, all vehicle classes receive safetyWeight ≥ 0.65 for this event type."@en .
+
+reo:VehicleBicyclistAccidentEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:AccidentEvent ;
+    rdfs:label "Vehicle-Bicyclist Accident Event"@en ;
+    rdfs:comment "A live accident event involving a vehicle and a bicyclist. Subclass of reo:AccidentEvent introduced in REO v1.1 to reflect the Three Feet for Safety Act (CVC 21760) compliance dimension. Particularly relevant for HEAVY_TRUCK and REFRIGERATED_TRUCK fleet operators on corridors with bicycle infrastructure, where the vehicle's physical width creates a non-trivial lane-sharing constraint. Alert priority is PRIORITY_HIGH for vehicles with width > 2.5m."@en .
+
+# ---------------------------------------------------------------------------
+# 14.2 CompoundConditionHazardEvent (UPDATED TO 2D KEY IN v1.4.0)
+# ---------------------------------------------------------------------------
+
+reo:CompoundConditionHazardEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Compound Condition Hazard Event"@en ;
+    rdfs:comment "A synthesized hazard event generated by the Dynamic Risk Monitor when a live reo:WeatherEvent co-occurs with a segment whose uko:compoundConditionRiskMap entry for the current weather × road surface combination exceeds a configurable threshold (default: 1.5× baseline). This event class represents the intersection of a static geographic risk attribute (the historical compound condition multiplier) with a live condition — addressing the ADAS + weather gap identified in the architectural analysis. CompoundConditionHazardEvents are not produced by external Event Feed Connectors; they are synthesized internally by the Dynamic Risk Monitor during monitoring cycles and do not have an reo:externalEventId. They are assigned reo:hasEventSource = reo:SENSOR_INFERRED with a sourceConfidenceScore that reflects the historical data quality of the underlying compoundConditionRiskMap entry. The event's severityScore is computed as: baseWeatherSeverity × compoundConditionMultiplier, capped at 1.0."@en .
+
+reo:baseWeatherEventId rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CompoundConditionHazardEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "base weather event ID"@en ;
+    rdfs:comment "The reo:externalEventId of the live WeatherEvent that triggered synthesis of this CompoundConditionHazardEvent. Used to track the causal chain and to expire the CompoundConditionHazardEvent when the triggering WeatherEvent resolves."@en .
+
+reo:compoundConditionMultiplier rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CompoundConditionHazardEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "compound condition multiplier"@en ;
+    rdfs:comment "The historically-observed accident rate multiplier from uko:compoundConditionRiskMap (or uko:intersectionCompoundConditionRiskMap) for the specific weather × road surface combination present when this event was synthesized. Example: a multiplier of 2.8 means the current conditions are historically associated with 2.8× the baseline accident rate on this segment."@en .
+
+# Format updated to 2D `{weather_1}::{road_surface}`
+reo:compoundConditionKey rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:CompoundConditionHazardEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "compound condition key"@en ;
+    rdfs:comment "The compound condition lookup key that produced the multiplier. Format: '{weather_1}::{road_surface}' (e.g., 'Raining::Wet'). Updated to 2D in v1.4.0 to align with TLP Stage 3 logic. Stored for auditability."@en .
+
+#################################################################
+#    PART 15: NEW DATA PROPERTIES ON EXISTING EVENT CLASSES
+#################################################################
+
+reo:hasCollisionType rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:AccidentEvent ;
+    rdfs:range reo:CollisionType ;
+    rdfs:label "has collision type"@en ;
+    rdfs:comment "Links a live accident event to its collision type classification. Set from real-time feed data (where available) or from historical incident records matched to the same location. Used by the Dynamic Risk Monitor to apply collision-type-specific risk weights."@en .
+
+reo:hasWeatherConditionAtEvent rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:RouteEvent ;
+    rdfs:range reo:WeatherCondition ;
+    rdfs:label "has weather condition at event"@en ;
+    rdfs:comment "The weather condition observed at the event location. Derived from the co-occurring WeatherEvent in the Event Layer (if present) or from the Event Feed Connector's weather metadata. Used to look up the applicable compound condition risk multiplier from uko:compoundConditionRiskMap."@en .
+
+reo:hasRoadSurfaceCondition rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:RouteEvent ;
+    rdfs:range reo:RoadSurfaceCondition ;
+    rdfs:label "has road surface condition"@en ;
+    rdfs:comment "The road surface condition at the event location. May be inferred from weather (raining → wet surface after configurable lag) or supplied by the Event Feed Connector."@en .
+
+reo:hasLightingCondition rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:RouteEvent ;
+    rdfs:range reo:LightingCondition ;
+    rdfs:label "has lighting condition"@en ;
+    rdfs:comment "The lighting condition at the event location and time. Derived from local time + sunrise/sunset computation for the segment's coordinates, or from Event Feed Connector metadata."@en .
+
+reo:hasCollisionCausationFactor rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range reo:CollisionCausationFactor ;
+    rdfs:label "has collision causation factor"@en ;
+    rdfs:comment "Links a historical incident record to its primary collision causation factor (PCF). Used to populate uko:segmentPCFDistribution and uko:intersectionPCFDistribution during the Historical Incident Data Ingestion Pipeline."@en .
+
+#################################################################
+#    PART 16: HISTORICAL INCIDENT RECORD CLASS
+#################################################################
+
+reo:HistoricalIncidentRecord rdf:type owl:Class ;
+    rdfs:label "Historical Incident Record"@en ;
+    rdfs:comment "An archival police-reported vehicle collision record ingested from an official collision database (SWITRS for California, NYPD MV-104 for New York, or equivalent). HistoricalIncidentRecord is distinct from live RouteEvent subclasses: it is a durable historical data point, not an ephemeral event. It is stored in the NebulaGraph GKG trip history subgraph alongside tko:Trip records, linked to uko:RoadSegment and uko:IntersectionNode via reo:affectsSegment and reo:atIntersectionNode. It is never read by the Dynamic Risk Monitor at runtime; it is consumed only by the Historical Incident Data Ingestion Pipeline during Setup and Learning Phase to compute aggregated analytics properties."@en ;
+    rdfs:isDefinedBy <urn:route-event-kg:> .
+
+# Core record identification
+reo:incidentId rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident ID"@en ;
+    rdfs:comment "Source system unique identifier for the collision record. In SWITRS: case_id_pkey. Format varies by jurisdiction. Used as the deduplication key during ingestion."@en .
+
+reo:incidentSourceSystem rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident source system"@en ;
+    rdfs:comment "Identifier of the source collision database. Expected values: 'SWITRS_CA' (California SWITRS via UC Berkeley SafeTREC TIMS), 'NYPD_MV104' (New York City open data), 'OPENDATA_CITY_{cityName}'. Used to apply jurisdiction-specific field mappings during ingestion."@en .
+
+reo:incidentDatetime rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "incident datetime"@en ;
+    rdfs:comment "Date and time of the collision. Maps to SWITRS collision_datetime. Used for temporal analytics (time-of-day and day-of-week patterns)."@en .
+
+reo:incidentYear rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:integer ;
+    rdfs:label "incident year"@en ;
+    rdfs:comment "Calendar year of the collision. Maps to SWITRS accident_year. Used for year-range filtering during analytics computation."@en .
+
+reo:incidentTimeCategory rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident time category"@en ;
+    rdfs:comment "Time-of-day category from SWITRS time_cat field (e.g., '6:01 pm to 10:00 pm'). Used to compute uko:segmentIncidentTimePattern and uko:intersectionTimePattern."@en .
+
+reo:incidentDayOfWeek rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident day of week"@en ;
+    rdfs:comment "Day of week of the collision. Maps to SWITRS day_of_week."@en .
+
+# Location
+reo:incidentLatitude rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "incident latitude"@en ;
+    rdfs:comment "WGS-84 latitude of the collision point. Maps to SWITRS tb_latitude."@en .
+
+reo:incidentLongitude rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "incident longitude"@en ;
+    rdfs:comment "WGS-84 longitude of the collision point. Maps to SWITRS tb_longitude."@en .
+
+reo:incidentPrimaryRoad rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident primary road"@en ;
+    rdfs:comment "Primary road name at the collision location. Maps to SWITRS primary_rd."@en .
+
+reo:incidentSecondaryRoad rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident secondary road"@en ;
+    rdfs:comment "Cross-street name at the collision location. Maps to SWITRS secondary_rd. Null for midblock incidents."@en .
+
+reo:isAtIntersection rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is at intersection"@en ;
+    rdfs:comment "True if the collision occurred at or within 20 feet of an intersection. Derived from SWITRS intersection field ('Intersection <= 20ft' → true; 'Midblock > 20ft' → false). Determines whether the record is matched to a uko:IntersectionNode (true) or a uko:RoadSegment midblock (false)."@en .
+
+reo:cnnIntersectionKey rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "CNN intersection key"@en ;
+    rdfs:comment "San Francisco CNN intersection foreign key from SWITRS cnn_intrsctn_fkey. Populated only for SF records. Used for exact-match spatial linking to uko:IntersectionNode."@en .
+
+reo:cnnSegmentKey rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "CNN segment key"@en ;
+    rdfs:comment "San Francisco CNN segment foreign key from SWITRS cnn_sgmt_fkey. Populated only for midblock SF records. Used for exact-match spatial linking to uko:RoadSegment."@en .
+
+reo:matchConfidence rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "match confidence"@en ;
+    rdfs:comment "Confidence score [0.0–1.0] assigned to the spatial match between this incident record and its linked GKG entity (uko:RoadSegment or uko:IntersectionNode). CNN_KEY match → 1.0; road name pair match → 0.65–0.85; coordinate proximity match → distance-based [0.5–1.0]. Records with matchConfidence < 0.60 are excluded from analytics aggregation."@en .
+
+reo:atIntersectionNode rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range uko:IntersectionNode ;
+    rdfs:label "at intersection node"@en ;
+    rdfs:comment "Links a historical incident record that occurred at an intersection to the matching uko:IntersectionNode in the GKG. Populated by the Historical Incident Data Ingestion Pipeline spatial matching step. Null for midblock records."@en .
+
+# Conditions at time of incident
+reo:incidentWeatherCondition rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range reo:WeatherCondition ;
+    rdfs:label "incident weather condition"@en ;
+    rdfs:comment "Weather condition at the time of the collision. Maps to SWITRS weather_1. Used to compute the compound condition risk map."@en .
+
+reo:incidentRoadSurface rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range reo:RoadSurfaceCondition ;
+    rdfs:label "incident road surface"@en ;
+    rdfs:comment "Road surface condition at the time of the collision. Maps to SWITRS road_surface."@en .
+
+reo:incidentLighting rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range reo:LightingCondition ;
+    rdfs:label "incident lighting"@en ;
+    rdfs:comment "Lighting condition at the time of the collision. Maps to SWITRS lighting."@en .
+
+reo:incidentRoadCondition rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident road condition"@en ;
+    rdfs:comment "Additional road condition notes beyond surface type. Maps to SWITRS road_cond_1 (e.g., 'Obstruction on Roadway', 'No Unusual Condition'). Stored as a string rather than a controlled enumeration due to variability across jurisdictions."@en .
+
+# Collision characteristics
+reo:incidentCollisionType rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range reo:CollisionType ;
+    rdfs:label "incident collision type"@en ;
+    rdfs:comment "Physical collision type. Maps to SWITRS type_of_collision, normalized to reo:CollisionType individuals."@en .
+
+reo:incidentSeverity rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident severity"@en ;
+    rdfs:comment "Collision severity from SWITRS collision_severity field. Values: 'Injury (Complaint of Pain)', 'Injury (Other Visible)', 'Injury (Severe)', 'Fatal', 'Property Damage Only'."@en .
+
+reo:incidentCollisionGroup rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident collision group"@en ;
+    rdfs:comment "DPH collision group description (dph_col_grp_description) from SWITRS. Values: 'Vehicle(s) Only Involved', 'Vehicle-Pedestrian', 'Vehicle-Bicycle', 'Bicycle Only'."@en .
+
+reo:numberKilled rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:integer ;
+    rdfs:label "number killed"@en ;
+    rdfs:comment "Number of fatalities. Maps to SWITRS number_killed."@en .
+
+reo:numberInjured rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:integer ;
+    rdfs:label "number injured"@en ;
+    rdfs:comment "Number of injured parties. Maps to SWITRS number_injured."@en .
+
+reo:motorVehicleInvolvedWith rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "motor vehicle involved with"@en ;
+    rdfs:comment "Object or party the vehicle collided with. Maps to SWITRS mviw (e.g., 'Pedestrian', 'Bicycle', 'Parked Motor Vehicle', 'Fixed Object'). Supplements incidentCollisionGroup for finer-grained classification."@en .
+
+reo:party1Type rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "party 1 type"@en ;
+    rdfs:comment "Type of the first party in the collision. Maps to SWITRS party1_type (Driver, Bicyclist, Pedestrian). Party 1 is typically the at-fault or initiating party."@en .
+
+reo:party2Type rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "party 2 type"@en ;
+    rdfs:comment "Type of the second party in the collision. Maps to SWITRS party2_type."@en .
+
+reo:party1MovementPreAccident rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "party 1 movement pre-accident"@en ;
+    rdfs:comment "Movement of party 1 immediately before the collision. Maps to SWITRS party1_move_pre_acc (e.g., 'Making Left Turn', 'Proceeding Straight', 'Backing'). Used in PCF-movement pattern analytics."@en .
+
+reo:party2MovementPreAccident rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "party 2 movement pre-accident"@en ;
+    rdfs:comment "Movement of party 2 immediately before the collision. Maps to SWITRS party2_move_pre_acc."@en .
+
+reo:controlDevice rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "control device"@en ;
+    rdfs:comment "Traffic control device present at the collision location. Maps to SWITRS control_device ('Functioning', 'None', 'Not Stated'). Intersections with control_device = 'None' have a different PCF profile than signalized intersections."@en .
+
+reo:analysisNeighborhood rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "analysis neighborhood"@en ;
+    rdfs:comment "Neighborhood name from SWITRS analysis_neighborhood field. City-specific administrative unit used for geographic aggregation. Null for jurisdictions that do not supply neighborhood data."@en .
+
+reo:geocodeSource rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "geocode source"@en ;
+    rdfs:comment "Source system used to assign geographic coordinates to the record. Maps to SWITRS geocode_source (e.g., 'SFPD-CROSSROADS'). Used to assess coordinate precision."@en .
+
+#################################################################
+#    PART 17: NEW EVENT SOURCE INDIVIDUAL
+#################################################################
+
+reo:HISTORICAL_POLICE_RECORD rdf:type owl:NamedIndividual, reo:EventSource ;
+    rdfs:label "Historical Police Record"@en ;
+    reo:sourceConfidenceScore "1.0"^^xsd:decimal ;
+    rdfs:comment "Event source for reo:HistoricalIncidentRecord instances ingested from official police collision databases (SWITRS, NYPD MV-104, etc.). Confidence score = 1.0 because these are official government records, not crowdsourced reports. Note: this source is used exclusively for HistoricalIncidentRecord population during the Historical Incident Data Ingestion Pipeline; it is never used as the hasEventSource on live RouteEvent instances."@en .
+
+#################################################################
+#    PART 18: NEW FLEET EVENT SENSITIVITY INSTANCES
+#         (vehicle-pedestrian and vehicle-bicyclist events)
+#################################################################
+
+reo:FES_HeavyTruck_VehiclePedestrian rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:forEventType reo:VehiclePedestrianAccidentEvent ;
+    reo:safetyWeight "0.88"^^xsd:decimal ;
+    reo:etaWeight "0.09"^^xsd:decimal ;
+    reo:costWeight "0.03"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Heavy Truck / Vehicle-Pedestrian Event"@en ;
+    reo:sensitivityRationale "Heavy trucks have poor forward visibility for pedestrians at close range and long stopping distances. A Vehicle-Pedestrian accident event on a heavy truck route triggers maximum safety response with reroute at the lowest risk tier."@en .
+
+reo:FES_RefrigeratedTruck_VehiclePedestrian rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:REFRIGERATED_TRUCK ;
+    reo:forEventType reo:VehiclePedestrianAccidentEvent ;
+    reo:safetyWeight "0.85"^^xsd:decimal ;
+    reo:etaWeight "0.10"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Refrigerated Truck / Vehicle-Pedestrian Event"@en ;
+    reo:sensitivityRationale "Same pedestrian vulnerability profile as HEAVY_TRUCK with slight weight redistribution to ETA (time-sensitive cargo)."@en .
+
+reo:FES_HeavyTruck_VehicleBicyclist rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:forEventType reo:VehicleBicyclistAccidentEvent ;
+    reo:safetyWeight "0.85"^^xsd:decimal ;
+    reo:etaWeight "0.10"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Heavy Truck / Vehicle-Bicyclist Event"@en ;
+    reo:sensitivityRationale "Heavy trucks are governed by CVC 21760 (Three Feet for Safety Act). A vehicle-bicyclist incident on a heavy truck route triggers immediate high-priority alert because the truck's physical width makes three-foot clearance difficult on narrow streets."@en .
+
+reo:FES_PassengerCar_VehiclePedestrian rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:PASSENGER_CAR ;
+    reo:forEventType reo:VehiclePedestrianAccidentEvent ;
+    reo:safetyWeight "0.75"^^xsd:decimal ;
+    reo:etaWeight "0.18"^^xsd:decimal ;
+    reo:costWeight "0.07"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Passenger Car / Vehicle-Pedestrian Event"@en ;
+    reo:sensitivityRationale "Passenger cars have better visibility than heavy trucks; reroute threshold is RISK_MODERATE rather than RISK_LOW. Still a high-priority alert due to scene management delays."@en .
+
+reo:FES_Default_CompoundCondition rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forEventType reo:CompoundConditionHazardEvent ;
+    reo:safetyWeight "0.70"^^xsd:decimal ;
+    reo:etaWeight "0.20"^^xsd:decimal ;
+    reo:costWeight "0.10"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Default / Compound Condition Hazard"@en ;
+    reo:sensitivityRationale "Default sensitivity for CompoundConditionHazardEvent (weather + road condition + lighting compound hazard). High safetyWeight because the compound multiplier indicates historically elevated accident probability. Reroute at RISK_ELEVATED because the underlying weather condition is likely affecting multiple segments simultaneously — selective rerouting is warranted."@en .
+
+###############################################################################
+#    PART 19: OHR WEATHER EVENT TYPES (REO v1.3)
+###############################################################################
+
+# ---------------------------------------------------------------------------
+# 19.1  WindAdvisoryEvent
+# ---------------------------------------------------------------------------
+
+reo:WindAdvisoryEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Wind Advisory Event"@en ;
+    rdfs:comment "A wind advisory, high wind warning, or wind watch issued by NWS or state DOT for a specific highway corridor or geographic zone. Distinct from the general reo:HighWindEvent (which captures wind conditions detected from telematics or sensor data) in that WindAdvisoryEvent is a formally issued government advisory with a named corridor scope. This makes it the authoritative R1 input for the chain_control_probability computation in the OHR model. Source: NWS CAP alert feed, Caltrans Chain Control System."@en .
+
+reo:windAdvisoryType rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:WindAdvisoryEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "wind advisory type"@en ;
+    rdfs:comment "The NWS product code for this advisory. Controlled vocabulary: WIND_ADVISORY (sustained 25–39 mph or gusts 35–57 mph), HIGH_WIND_WATCH (conditions favorable for high winds in next 12–48 hours), HIGH_WIND_WARNING (sustained >= 40 mph or gusts >= 58 mph), EXTREME_WIND_WARNING (gusts >= 115 mph — rare, typically associated with hurricanes). Each type maps to a different R1 contribution weight in the OHR model."@en .
+
+reo:windAdvisorySpeedMph rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:WindAdvisoryEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "wind advisory speed (mph)"@en ;
+    rdfs:comment "Forecast sustained wind speed in miles per hour for this advisory. Used as a continuous feature input to R1 alongside the binary advisory type. Particularly significant for high-profile vehicles (HEAVY_TRUCK, REFRIGERATED_TRUCK) where wind speeds > 40 mph on exposed bridge and pass segments create crosswind rollover risk."@en .
+
+reo:windAdvisoryGustMph rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:WindAdvisoryEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "wind advisory gust speed (mph)"@en ;
+    rdfs:comment "Forecast maximum gust speed in miles per hour. Gust speeds are more operationally significant than sustained speeds for vehicle stability: a gust of 65 mph can destabilize an empty 53-foot trailer even when sustained speeds are 40 mph."@en .
+
+reo:windAdvisoryAffectedHighway rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:WindAdvisoryEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "wind advisory affected highway"@en ;
+    rdfs:comment "Highway identifier and milepost range affected by this wind advisory. Example: 'I-80 MM 80–120 (Truckee to Reno)', 'US-395 Topaz Summit'. Parsed to identify affected GKG uko:RoadSegment URNs via the reo:affectsSegment property."@en .
+
+
+# ---------------------------------------------------------------------------
+# 19.2  IceFormationEvent
+# ---------------------------------------------------------------------------
+
+reo:IceFormationEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Ice Formation Event"@en ;
+    rdfs:comment "Detection or prediction of ice formation on specific road segments, sourced from RWIS (Road Weather Information System) sensor data indicating road surface temperature at or below 32°F combined with moisture. Distinct from the general reo:IcyRoadwayEvent (which is typically crowdsourced or condition-inferred) in that IceFormationEvent is sensor-confirmed or model-predicted at segment granularity. This segment-level precision is required for accurate Corridor Weather Severity Index (CWSI) computation in the OHR Stage 1 Segment Risk Model."@en .
+
+reo:roadSurfaceTemperatureF rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:IceFormationEvent ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "road surface temperature (°F)"@en ;
+    rdfs:comment "Road surface temperature in degrees Fahrenheit at the time of this event, sourced from RWIS sensor or road weather model. The primary discriminator between IceFormationEvent (surface at or below 32°F with moisture) and ExtremeColdEvent (air temperature low but surface may not yet be frozen). Values below 20°F indicate deep freeze conditions that persist despite treatment."@en .
+
+reo:moisturePresent rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:IceFormationEvent ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "moisture present"@en ;
+    rdfs:comment "True if road surface moisture is confirmed by RWIS sensor (resistance or microwave technology), indicating active ice formation conditions. False when surface temperature is below freezing but road is dry — lower R1 contribution because ice has not formed despite cold."@en .
+
+reo:iceFormationSource rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:IceFormationEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "ice formation source"@en ;
+    rdfs:comment "Data source for this ice formation detection. Controlled vocabulary: RWIS_SENSOR (confirmed by Road Weather Information System sensor — highest confidence), ROAD_WEATHER_MODEL (predicted by pavement temperature forecast model — CONFIRMED lifecycle state at 0.8 confidence), FLEET_TELEMATICS (inferred from multiple fleet vehicles reporting low friction on this segment — REPORTED state at 0.6 confidence), CALTRANS_BROADCAST (issued by Caltrans Maintenance via radio — CONFIRMED state)."@en .
+
+reo:treatmentApplied rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:IceFormationEvent ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "treatment applied"@en ;
+    rdfs:comment "True if road maintenance has applied anti-icing or de-icing treatment (salt, brine, sand) to this segment. When true, the R1 contribution is reduced by a configurable factor (default: 0.4× multiplier) because treatment reduces but does not eliminate ice hazard. Populated from DOT maintenance management system broadcast when available."@en .
+
+
+# ---------------------------------------------------------------------------
+# 19.3  ChainControlIssuanceEvent
+# ---------------------------------------------------------------------------
+
+reo:ChainControlIssuanceEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:WeatherEvent ;
+    rdfs:label "Chain Control Issuance Event"@en ;
+    rdfs:comment "A formal chain control or traction requirement issuance by a state DOT for a specific mountain pass or highway segment. This is the live-event counterpart of uko:WeatherConditionalOperationalConstraint, which models the static possibility that chain control can be imposed on a given segment. ChainControlIssuanceEvent records when it WAS issued. The distinction is operationally critical: the static UKO constraint is used at Stage 3 feature augmentation to compute Chain Control Probability; the live REO event triggers immediate R1 elevation and dispatcher alert for any active trip whose AssignedRoute traverses the affected segment. Source: Caltrans CHIS (Chain Control Information System), CDOT, NDOT chain control APIs."@en .
+
+reo:chainControlTier rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:ChainControlIssuanceEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "chain control tier"@en ;
+    rdfs:comment "The traction tier in effect for this issuance. Controlled vocabulary per California Traction Law (Vehicle Code 27465): R1 (one traction device required on drive axle — snow tires or chains), R2 (chains required on all non-exempt vehicles — 4WD/AWD exemption applies), R3 (chains required on ALL vehicles including 4WD/AWD — most severe). Class 8 trucks are typically chain-required at R1 and above. R3 closes most passes to all commercial traffic."@en .
+
+reo:affectedPassName rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:ChainControlIssuanceEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "affected pass name"@en ;
+    rdfs:comment "Human-readable name of the affected mountain pass or highway segment. Examples: 'Donner Pass (I-80 MM 180–195)', 'Echo Summit (US-50 MM 80–90)', 'Eisenhower Tunnel (I-70 MM 213)'. Used to populate the Tier 3 natural-language explanation for the dispatcher."@en .
+
+reo:issuanceTimestamp rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:ChainControlIssuanceEvent ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "issuance timestamp"@en ;
+    rdfs:comment "ISO 8601 timestamp at which the chain control was formally issued by the state DOT. Used to compute how long the requirement has been in effect, which informs the probability that it will remain in force at the projected arrival time of an active trip."@en .
+
+reo:estimatedLiftTimestamp rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:ChainControlIssuanceEvent ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "estimated lift timestamp"@en ;
+    rdfs:comment "Estimated timestamp at which the chain control is expected to be lifted, based on forecast weather clearing. Null when no lift time is forecast (R3 with storm of indefinite duration). Used by the DELAY_DEPARTURE remediation generator to recommend an optimal revised departure time that routes the truck through the pass after chain control lifts."@en .
+
+reo:affectsAllCommercialVehicles rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:ChainControlIssuanceEvent ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "affects all commercial vehicles"@en ;
+    rdfs:comment "True when chain control tier is R2 or higher for commercial vehicles, meaning all Class 6-8 trucks must carry and be prepared to install chains. False for R1 snow tire requirements where some vehicles may be exempt. Used to determine whether the REROUTE or DELAY_DEPARTURE remediation is appropriate: when this is true and the fleet vehicle is not equipped with chains, the segment is effectively impassable and rerouting is required regardless of driver preference."@en .
+
+
+# ---------------------------------------------------------------------------
+# 19.4  DisabledVehicleEvent 
+# ---------------------------------------------------------------------------
+
+reo:DisabledVehicleEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RoadHazardEvent ;
+    rdfs:label "Disabled Vehicle Event"@en ;
+    rdfs:comment "A vehicle that has become disabled on the roadway or shoulder, creating a hazard or obstruction. Sources: Waze hazard category 'Hazard_On_Road_Car_Stopped', Caltrans TMC incident feeds, fleet telematics breakdown reports. Distinct from AccidentEvent (which involves a collision) — a disabled vehicle may be a mechanical failure, flat tire, or fuel exhaustion. Operationally significant for heavy trucks because the wide footprint of a disabled Class 8 trailer can block a lane entirely on two-lane mountain roads."@en .
+
+reo:disabledVehicleClassEstimate rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:DisabledVehicleEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "disabled vehicle class estimate"@en ;
+    rdfs:comment "Estimated class of the disabled vehicle, where determinable from the source report. Controlled vocabulary: PASSENGER_CAR, LIGHT_COMMERCIAL, HEAVY_TRUCK, MOTORCYCLE, UNKNOWN. Heavy truck disablements on mountain roads and narrow highway segments receive elevated R1/R4 contribution because recovery operations (tow truck, wheel chock deployment) can block the roadway for 30–90 minutes."@en .
+
+reo:expectedClearanceMinutes rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:DisabledVehicleEvent ;
+    rdfs:range xsd:integer ;
+    rdfs:label "expected clearance time (minutes)"@en ;
+    rdfs:comment "Estimated time in minutes until the disabled vehicle is removed and the segment returns to normal operation. Derived from historical clearance time distributions by vehicle class and location. Used in R4 (Congestion/Delay Risk) computation: a disabled Class 8 truck on a two-lane mountain segment with 60-minute clearance time has significant ETA impact for any trip routed through that segment."@en .
+
+
+# ---------------------------------------------------------------------------
+# 19.5  FES instances for new event types 
+# ---------------------------------------------------------------------------
+
+reo:FES_HeavyTruck_WindAdvisory rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:forEventType reo:WindAdvisoryEvent ;
+    reo:safetyWeight "0.82"^^xsd:decimal ;
+    reo:etaWeight "0.12"^^xsd:decimal ;
+    reo:costWeight "0.06"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Heavy Truck / Wind Advisory"@en ;
+    reo:sensitivityRationale "High-profile heavy trucks (empty 53-ft trailers) are particularly susceptible to crosswind rollover on exposed bridge decks and mountain pass segments. A HIGH_WIND_WARNING for a segment on the assigned route requires reroute consideration. WIND_ADVISORY triggers monitoring and speed advisory."@en .
+
+reo:FES_RefrigeratedTruck_WindAdvisory rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:REFRIGERATED_TRUCK ;
+    reo:forEventType reo:WindAdvisoryEvent ;
+    reo:safetyWeight "0.80"^^xsd:decimal ;
+    reo:etaWeight "0.14"^^xsd:decimal ;
+    reo:costWeight "0.06"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Refrigerated Truck / Wind Advisory"@en ;
+    reo:sensitivityRationale "Reefer trailers are typically fully loaded and have slightly lower wind instability risk than empty dry vans, but refrigeration unit exposure adds cargo risk if the truck is delayed or forced to idle in extreme wind. ETA weight elevated relative to HEAVY_TRUCK because cargo sensitivity is time-dependent."@en .
+
+reo:FES_HeavyTruck_IceFormation rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:forEventType reo:IceFormationEvent ;
+    reo:safetyWeight "0.90"^^xsd:decimal ;
+    reo:etaWeight "0.07"^^xsd:decimal ;
+    reo:costWeight "0.03"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_LOW ;
+    reo:alertPriority reo:PRIORITY_CRITICAL ;
+    reo:sensitivityLabel "Heavy Truck / Ice Formation"@en ;
+    reo:sensitivityRationale "A sensor-confirmed IceFormationEvent on a Class 8 truck route requires immediate response. Long stopping distances and jackknife risk on ice make this the highest-safety-weight event type for heavy trucks. Reroute threshold is RISK_LOW: even a modest probability of ice formation triggers a reroute recommendation unless the driver is equipped with chains and has confirmed readiness."@en .
+
+reo:FES_HeavyTruck_ChainControl rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:forEventType reo:ChainControlIssuanceEvent ;
+    reo:safetyWeight "0.75"^^xsd:decimal ;
+    reo:etaWeight "0.20"^^xsd:decimal ;
+    reo:costWeight "0.05"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_MODERATE ;
+    reo:alertPriority reo:PRIORITY_HIGH ;
+    reo:sensitivityLabel "Heavy Truck / Chain Control Issuance"@en ;
+    reo:sensitivityRationale "A ChainControlIssuanceEvent on an assigned route requires confirmation that the truck is equipped with chains and the driver is trained to install them. R3 tier implies the truck can proceed with chains — thus safetyWeight is lower than IceFormationEvent and ETAWeight is elevated (chain installation adds 20–45 minutes to route time). When affectsAllCommercialVehicles=true and chains are not confirmed, rerouteThreshold falls to RISK_LOW and the recommended action shifts to REROUTE or DELAY_DEPARTURE."@en .
+
+reo:FES_HeavyTruck_DisabledVehicle rdf:type owl:NamedIndividual, reo:FleetEventSensitivity ;
+    reo:forVehicleClass tko:HEAVY_TRUCK ;
+    reo:forEventType reo:DisabledVehicleEvent ;
+    reo:safetyWeight "0.55"^^xsd:decimal ;
+    reo:etaWeight "0.35"^^xsd:decimal ;
+    reo:costWeight "0.10"^^xsd:decimal ;
+    reo:rerouteThreshold tko:RISK_ELEVATED ;
+    reo:alertPriority reo:PRIORITY_MODERATE ;
+    reo:sensitivityLabel "Heavy Truck / Disabled Vehicle"@en ;
+    reo:sensitivityRationale "A disabled Class 8 truck on a narrow two-lane or single-lane mountain road segment can fully block heavy truck passage for the duration of recovery. ETA impact dominates over safety for this event type. When disabledVehicleClassEstimate=HEAVY_TRUCK on a narrow segment, alertPriority escalates to PRIORITY_HIGH."@en .
+
+#################################################################
+#    REO v1.6.0 EXTENSIONS (coordinated release 2026-06-10)
+#################################################################
+
+# =============================================================================
+# REO v1.6 SECTION A: AIR QUALITY EVENTS
+# (Episodic companion to the static uko:pm25Concentration tract baseline
+#  added in UKO v15.5. The static property carries annual-mean exposure for
+#  equity analysis; this event class carries advisory-grade episodic
+#  elevations - wildfire smoke, Spare the Air days, and the documented
+#  SF-to-Contra-Costa PM2.5 wind-transport pattern affecting the target
+#  geography. Sources: CARB, AirNow, BAAQMD advisories.)
+# =============================================================================
+
+reo:AirQualityEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Air Quality Event"@en ;
+    rdfs:comment "An episodic degraded-air-quality condition or advisory affecting a geographic footprint: wildfire smoke intrusion, regional pollutant transport, stagnation episodes, or agency-issued health advisories. Distinct from the static uko:pm25Concentration baseline: the baseline informs long-run equity exposure analysis, while AirQualityEvent instances inform time-bound conditions - active-mobility advisability (the Active Mobility Safety Score Agent suppresses walking/cycling recommendation scores during heavy-smoke events), school-adjacent analysis windows, and outdoor-exposure-sensitive planner scenarios."@en .
+
+reo:aqiValue rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:AirQualityEvent ;
+    rdfs:range xsd:integer ;
+    rdfs:label "AQI value"@en ;
+    rdfs:comment "US EPA Air Quality Index value reported for the event (0-500 scale)."@en .
+
+reo:pollutantType rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:AirQualityEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "pollutant type"@en ;
+    rdfs:comment "Primary pollutant of the event. Controlled vocabulary: PM25, PM10, OZONE, NO2, SO2, CO."@en .
+
+reo:advisoryLevel rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:AirQualityEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "advisory level"@en ;
+    rdfs:comment "AQI health-advisory category in effect. Controlled vocabulary: MODERATE, UNHEALTHY_SENSITIVE_GROUPS, UNHEALTHY, VERY_UNHEALTHY, HAZARDOUS."@en .
+
+# =============================================================================
+# REO v1.6 SECTION B: PUBLIC SAFETY EVENTS
+# (Sevtsuk/Basu active-mobility safety integration: perceived and actual
+#  security conditions are a measured determinant of pedestrian route choice,
+#  independent of traffic safety. Works with the existing
+#  reo:affectsPedestrianEdge linkage - domain reo:Event - to target
+#  pedestrian-network edges. Consumed by the Active Mobility Safety Score
+#  Agent alongside uko:streetlightCoverage; routing responses remain the
+#  application developer's concern per the established deferral.)
+# =============================================================================
+
+reo:PublicSafetyEvent rdf:type owl:Class ;
+    rdfs:subClassOf reo:RouteEvent ;
+    rdfs:label "Public Safety Event"@en ;
+    rdfs:comment "A security or public-order incident affecting the advisability of traversing a location, principally for pedestrians and cyclists: reported crimes against persons, active police activity, hazardous encampment conditions, or jurisdiction-issued safety advisories. Modeled as a RouteEvent so the standard footprint, validity-window, and severity machinery applies; typically linked to the pedestrian layer via reo:affectsPedestrianEdge rather than to vehicular segments. Historical aggregation of these events feeds the perceived-safety component of active-mobility safety scoring; live instances inform time-bound advisories."@en .
+
+reo:publicSafetyEventType rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:PublicSafetyEvent ;
+    rdfs:range xsd:string ;
+    rdfs:label "public safety event type"@en ;
+    rdfs:comment "Controlled vocabulary: CRIME_AGAINST_PERSON, PROPERTY_CRIME, POLICE_ACTIVITY, HAZARDOUS_CONDITION, SAFETY_ADVISORY."@en .
+
+# =============================================================================
+# REO v1.6 SECTION C: FORMALIZED COLLISION FLAGS ON HISTORICAL INCIDENT RECORD
+# (Closes the four collision-flag items of the Appendix A.4 naming-drift
+#  register, jointly with MLO v1.6. The flags were previously materialized
+#  by HIDIP at Stage 4 as contracted columns referenced by MLO under the
+#  uko: namespace; they are formalized HERE because collision modeling lives
+#  in REO - no uko:Collision class exists. The collision-mode reference
+#  resolves to the existing reo:hasCollisionType / reo:CollisionType
+#  taxonomy; the three booleans below are convenience derivations from the
+#  typed VRU event classes, declared so the schema generator emits them and
+#  the GKG Reasoner Agent can use the MLO-referenced names as literal nGQL
+#  parameters.)
+# =============================================================================
+
+reo:isPedestrianCollision rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is pedestrian collision"@en ;
+    rdfs:comment "True when the collision involved a pedestrian. Derivation: the record's event typing includes reo:VehiclePedestrianAccidentEvent (SWITRS pedestrian-involvement flags at HIDIP Stage 4)."@en .
+
+reo:isBicycleCollision rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is bicycle collision"@en ;
+    rdfs:comment "True when the collision involved a bicyclist. Derivation: the record's event typing includes reo:VehicleBicyclistAccidentEvent."@en .
+
+reo:isVulnerableUserCollision rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is vulnerable road user collision"@en ;
+    rdfs:comment "True when the collision involved any vulnerable road user. Derivation: disjunction over the VRU accident event types (pedestrian OR bicyclist OR other VRU classes such as motorcyclist where the jurisdictional definition includes them), per the Appendix A.4 resolution. Materialized as a convenience boolean because no single REO event class covers the disjunction."@en .
+
+###############################################################################
+#    END OF REO v1.6.0 ONTOLOGY
+###############################################################################

@@ -1,0 +1,1160 @@
+#################################################################
+#
+#    Trip Knowledge Ontology (TKO)
+#    Version 2.2.0 - Axiom-Based Rules
+#
+#    Purpose: Comprehensive ontology for modeling enhanced and annotated trips
+#    supporting multiple use cases including transportation planning and fleet management.
+#    
+#    Key Features:
+#    - Refactors intent-preference mappings into formal OWL axioms
+#    - Imports UKO v8.0.0 explicitly for version compatibility
+#    - Enables automated reasoning and inference
+#
+#    Changes in v2.2.0:
+#    - Renamed tko:MovieTheater → tko:MovieTheaterVisit (avoid collision with uko:MovieTheater)
+#    - Removed tko:derivedFrom (use prov:wasDerivedFrom instead)
+#    - Removed tko:latitude, tko:longitude (inherit from uko:GeographicFeature)
+#
+#    Synapse Partners, LLC
+#
+#################################################################
+
+@prefix : <urn:trip-kg:> .
+@prefix tko: <urn:trip-kg:> .
+@prefix uko: <urn:urban-kg:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+
+<urn:trip-kg:> rdf:type owl:Ontology ;
+    owl:versionIRI <urn:trip-kg:2.2.0> ;
+    owl:imports <urn:urban-kg:8.0.0> ;
+    dcterms:title "Trip Knowledge Ontology (TKO) - Axiom-Based Rules"@en ;
+    dcterms:description "Comprehensive trip ontology enhanced with formal OWL axioms for intent-based route preference inference."@en ;
+    rdfs:comment "Version 2.2.0 - Fixed namespace collisions with UKO v8.0.0"@en .
+
+#################################################################
+#    PART 1: GENERAL TRIP ONTOLOGY - CORE COMPONENTS
+#################################################################
+
+### CORE TRIP CLASSES ###
+
+tko:Trip rdf:type owl:Class ;
+    rdfs:comment "Base class for all trips - a movement between two or more locations"@en .
+
+tko:BaseTrip rdfs:subClassOf tko:Trip ;
+    rdfs:comment "Original trip record from source system before enhancement"@en .
+
+tko:EnhancedTrip rdfs:subClassOf tko:Trip ;
+    rdfs:comment "Trip enriched with additional geospatial and contextual data"@en .
+
+tko:LabeledTrip rdfs:subClassOf tko:EnhancedTrip ;
+    rdfs:comment "Trip with ML-predicted labels and annotations"@en .
+
+tko:Journey rdf:type owl:Class ;
+    rdfs:comment "Collection of linked trips forming a complete travel sequence"@en .
+
+tko:MultimodalTrip rdfs:subClassOf tko:Trip ;
+    rdfs:comment "Trip involving multiple transportation modes"@en .
+
+### Trip Endpoints ###
+
+tko:TripEndpoint rdf:type owl:Class ;
+    rdfs:comment "A geographic point in a trip (origin, destination, or stop)"@en .
+
+tko:Origin rdfs:subClassOf tko:TripEndpoint ;
+    rdfs:comment "Starting point of a trip"@en .
+
+tko:Destination rdfs:subClassOf tko:TripEndpoint ;
+    rdfs:comment "Ending point of a trip"@en .
+
+tko:IntermediateStop rdfs:subClassOf tko:TripEndpoint ;
+    rdfs:comment "Intentional stop during a trip"@en .
+
+tko:ModalityTransition rdfs:subClassOf tko:TripEndpoint ;
+    rdfs:comment "Point where transportation mode changes"@en .
+
+### Route Classes ###
+
+tko:Route rdf:type owl:Class ;
+    rdfs:comment "The path taken during a trip"@en .
+
+tko:ActualRoute rdfs:subClassOf tko:Route ;
+    rdfs:comment "The route actually taken by the traveler"@en .
+
+tko:PlannedRoute rdfs:subClassOf tko:Route ;
+    rdfs:comment "The route originally planned for the trip"@en .
+
+tko:AlternativeRoute rdfs:subClassOf tko:Route ;
+    rdfs:comment "Alternative route options for the trip"@en .
+
+tko:RouteSegment rdf:type owl:Class ;
+    rdfs:comment "Individual segment of a route between two points"@en .
+
+tko:FirstMile rdfs:subClassOf tko:RouteSegment ;
+    rdfs:comment "First segment connecting to main transportation"@en .
+
+tko:LastMile rdfs:subClassOf tko:RouteSegment ;
+    rdfs:comment "Final segment from main transportation to destination"@en .
+
+### Transportation Modalities ###
+
+tko:TravelModality rdf:type owl:Class ;
+    rdfs:comment "Mode of transportation used"@en .
+
+tko:PersonalVehicle rdfs:subClassOf tko:TravelModality ;
+    rdfs:comment "Privately owned vehicle transportation"@en .
+
+tko:Driving rdfs:subClassOf tko:PersonalVehicle .
+tko:Motorcycle rdfs:subClassOf tko:PersonalVehicle .
+
+tko:ActiveMobility rdfs:subClassOf tko:TravelModality ;
+    rdfs:comment "Human-powered transportation modes"@en .
+
+tko:Walking rdfs:subClassOf tko:ActiveMobility .
+tko:Bicycling rdfs:subClassOf tko:ActiveMobility .
+
+tko:SharedMobility rdfs:subClassOf tko:TravelModality ;
+    rdfs:comment "Shared transportation services"@en .
+
+tko:RideHailing rdfs:subClassOf tko:SharedMobility .
+tko:Scooter rdfs:subClassOf tko:SharedMobility .
+tko:BikeShare rdfs:subClassOf tko:SharedMobility .
+
+tko:PublicTransit rdfs:subClassOf tko:TravelModality ;
+    rdfs:comment "Public transportation systems"@en .
+
+tko:Bus rdfs:subClassOf tko:PublicTransit .
+tko:Rail rdfs:subClassOf tko:PublicTransit .
+tko:LightRail rdfs:subClassOf tko:PublicTransit .
+tko:Subway rdfs:subClassOf tko:PublicTransit .
+
+### GENERAL TRIP INTENT HIERARCHY ###
+
+tko:TripIntent rdf:type owl:Class ;
+    rdfs:comment "The purpose or reason for taking a trip"@en .
+
+### Basic Intent Categories ###
+
+tko:Work rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Work-related trips"@en .
+
+tko:Personal rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Personal trips for individual needs"@en .
+
+tko:Social rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Trips for social interaction"@en .
+
+tko:Commercial rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Trips for commercial transactions"@en .
+
+tko:Service rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Trips to obtain services"@en .
+
+tko:Recreation rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Trips for recreational purposes"@en .
+
+tko:Emergency rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Urgent or emergency trips"@en .
+
+### Intent Metadata ###
+
+tko:IntentIndicator rdf:type owl:Class ;
+    rdfs:comment "Observable factors that suggest trip intent"@en .
+
+tko:TimeIndicator rdfs:subClassOf tko:IntentIndicator ;
+    rdfs:comment "Time-based indicators of intent"@en .
+
+tko:LocationIndicator rdfs:subClassOf tko:IntentIndicator ;
+    rdfs:comment "Location-based indicators of intent"@en .
+
+tko:PatternIndicator rdfs:subClassOf tko:IntentIndicator ;
+    rdfs:comment "Behavioral pattern indicators of intent"@en .
+
+### ENVIRONMENTAL CONDITIONS (General) ###
+
+tko:WeatherCondition rdf:type owl:Class ;
+    rdfs:comment "Weather conditions during the trip"@en .
+
+tko:CongestionLevel rdf:type owl:Class ;
+    rdfs:comment "Level of traffic congestion"@en .
+
+### TRIP LABELS (General) ###
+
+tko:TripLabel rdf:type owl:Class ;
+    rdfs:comment "Labels applied to trips for classification and analysis"@en .
+
+### GENERAL OBJECT PROPERTIES ###
+
+tko:hasOrigin rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:Origin .
+
+tko:hasDestination rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:Destination .
+
+tko:hasIntermediateStop rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:IntermediateStop .
+
+tko:hasRoute rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:Route .
+
+tko:hasSegment rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Route ;
+    rdfs:range tko:RouteSegment .
+
+tko:nextSegment rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:RouteSegment ;
+    rdfs:range tko:RouteSegment .
+
+tko:partOfJourney rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:Journey .
+
+tko:chainedWith rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:Trip .
+
+tko:hasPrimaryIntent rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:TripIntent .
+
+tko:hasSecondaryIntent rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:TripIntent .
+
+tko:hasLabel rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:TripLabel .
+
+tko:hasIntentIndicator rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:IntentIndicator .
+
+tko:hasModality rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:TravelModality .
+
+tko:usesModality rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:RouteSegment ;
+    rdfs:range tko:TravelModality .
+
+tko:hasWeatherCondition rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:WeatherCondition .
+
+tko:hasCongestionLevel rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:RouteSegment ;
+    rdfs:range tko:CongestionLevel .
+
+### Note: Use prov:wasDerivedFrom for provenance (EnhancedTrip derived from BaseTrip)
+### The prov prefix is already declared; no need for tko:derivedFrom
+
+tko:hasEnhancementStage rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:EnhancementStage .
+
+### GENERAL DATATYPE PROPERTIES ###
+
+tko:tripId rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range xsd:string .
+
+tko:travelerId rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range xsd:string .
+
+tko:startTime rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range xsd:dateTime .
+
+tko:endTime rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range xsd:dateTime .
+
+tko:duration rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range xsd:duration .
+
+tko:dwellTime rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:IntermediateStop ;
+    rdfs:range xsd:duration .
+
+tko:distance rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range xsd:decimal .
+
+### Note: latitude/longitude inherited from uko:GeographicFeature
+### TripEndpoint rdfs:subClassOf uko:GeographicFeature, so use uko:latitude, uko:longitude
+
+tko:segmentDistance rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:RouteSegment ;
+    rdfs:range xsd:decimal .
+
+tko:averageSpeed rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:RouteSegment ;
+    rdfs:range xsd:decimal .
+
+tko:intentConfidence rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:TripIntent ;
+    rdfs:range xsd:decimal .
+
+tko:isScheduled rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:TripIntent ;
+    rdfs:range xsd:boolean .
+
+tko:isRecurring rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:TripIntent ;
+    rdfs:range xsd:boolean .
+
+tko:labelConfidence rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:TripLabel ;
+    rdfs:range xsd:decimal .
+
+tko:isInferred rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:TripLabel ;
+    rdfs:range xsd:boolean .
+
+#################################################################
+#    PART 2: LOCATION ONTOLOGY INTEGRATION POINTS
+#################################################################
+
+tko:TripEndpoint rdfs:subClassOf uko:GeographicFeature .
+tko:Route rdfs:subClassOf uko:GeographicFeature .
+tko:RouteSegment rdfs:subClassOf uko:GeographicFeature .
+
+tko:atPOI rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:TripEndpoint ;
+    rdfs:range uko:PointOfInterest .
+
+tko:originPOI rdfs:subPropertyOf tko:atPOI ;
+    rdfs:domain tko:Origin ;
+    rdfs:range uko:PointOfInterest .
+
+tko:destinationPOI rdfs:subPropertyOf tko:atPOI ;
+    rdfs:domain tko:Destination ;
+    rdfs:range uko:PointOfInterest .
+
+tko:stopPOI rdfs:subPropertyOf tko:atPOI ;
+    rdfs:domain tko:IntermediateStop ;
+    rdfs:range uko:PointOfInterest .
+
+tko:inArea rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:TripEndpoint ;
+    rdfs:range uko:GeographicFeature .
+
+tko:originArea rdfs:subPropertyOf tko:inArea ;
+    rdfs:domain tko:Origin ;
+    rdfs:range uko:GeographicFeature .
+
+tko:destinationArea rdfs:subPropertyOf tko:inArea ;
+    rdfs:domain tko:Destination ;
+    rdfs:range uko:GeographicFeature .
+
+tko:crossesArea rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Route ;
+    rdfs:range uko:GeographicFeature .
+
+tko:segmentInArea rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:RouteSegment ;
+    rdfs:range uko:GeographicFeature .
+
+tko:POITypeIndicator rdfs:subClassOf tko:LocationIndicator .
+tko:AreaTypeIndicator rdfs:subClassOf tko:LocationIndicator .
+
+#################################################################
+#    PART 3: USE-CASE SPECIFIC EXTENSIONS
+#################################################################
+
+### TRANSPORTATION PLANNING USE CASE ###
+
+tko:TransportationPlanningIntent rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Intent specific to consumer transportation planning use case"@en .
+
+### 1. Business Intent (Spec Section 5.1 #1) ###
+tko:BusinessIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Work and business-related travel intents"@en .
+
+tko:CommuteToWork rdfs:subClassOf tko:BusinessIntent .
+tko:CommuteFromWork rdfs:subClassOf tko:BusinessIntent .
+tko:BusinessMeeting rdfs:subClassOf tko:BusinessIntent .
+tko:BusinessDinner rdfs:subClassOf tko:BusinessIntent .
+tko:CoffeeMeeting rdfs:subClassOf tko:BusinessIntent .
+
+### 2. Health Intent (Spec Section 5.1 #2) ###
+tko:HealthcareIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Healthcare and medical service intents"@en .
+
+tko:DoctorVisit rdfs:subClassOf tko:HealthcareIntent .
+tko:DentistVisit rdfs:subClassOf tko:HealthcareIntent .
+tko:PediatricianVisit rdfs:subClassOf tko:HealthcareIntent .
+tko:HospitalVisit rdfs:subClassOf tko:HealthcareIntent .
+tko:VeterinarianVisit rdfs:subClassOf tko:HealthcareIntent .
+
+### 3. Shopping Intent (Spec Section 5.1 #3) ###
+tko:ShoppingIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Shopping and retail intents"@en .
+
+tko:SpecialtyShopping rdfs:subClassOf tko:ShoppingIntent .
+tko:MallShopping rdfs:subClassOf tko:ShoppingIntent .
+tko:GroceryShopping rdfs:subClassOf tko:ShoppingIntent .
+tko:WeekdayShopping rdfs:subClassOf tko:GroceryShopping .
+tko:WeeklyFamilyShopping rdfs:subClassOf tko:GroceryShopping .
+tko:ShoppingWithCoffeeBreak rdfs:subClassOf tko:GroceryShopping .
+tko:ClubShopping rdfs:subClassOf tko:ShoppingIntent .
+
+### 4. Socializing Intent (Spec Section 5.1 #4) ###
+tko:SocialIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Social interaction and visiting intents"@en .
+
+tko:MeetingFriendsForCoffee rdfs:subClassOf tko:SocialIntent .
+tko:VisitingFamily rdfs:subClassOf tko:SocialIntent .
+tko:MeetingFriends rdfs:subClassOf tko:SocialIntent .
+tko:SocialGathering rdfs:subClassOf tko:SocialIntent .
+
+### 5. Entertainment Intent (Spec Section 5.1 #5) ###
+tko:EntertainmentIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Entertainment and cultural activity intents"@en .
+
+tko:AmusementParkVisit rdfs:subClassOf tko:EntertainmentIntent .
+tko:TheaterVisit rdfs:subClassOf tko:EntertainmentIntent .
+tko:MovieTheaterVisit rdfs:subClassOf tko:EntertainmentIntent .
+tko:ConcertVisit rdfs:subClassOf tko:EntertainmentIntent .
+
+### 6. Dining Intent (Spec Section 5.1 #6) - NEW ###
+tko:DiningIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Restaurant and dining intents"@en .
+
+tko:FastFoodDining rdfs:subClassOf tko:DiningIntent .
+tko:CasualFamilyDining rdfs:subClassOf tko:DiningIntent .
+tko:FormalDining rdfs:subClassOf tko:DiningIntent .
+tko:DiningOut rdfs:subClassOf tko:DiningIntent ;
+    rdfs:comment "General dining out intent"@en .
+
+### 7. Recreation Intent (Spec Section 5.1 #7) ###
+tko:RecreationIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Recreation and fitness intents"@en .
+
+tko:GymVisit rdfs:subClassOf tko:RecreationIntent .
+tko:ParkVisit rdfs:subClassOf tko:RecreationIntent .
+tko:SportsEvent rdfs:subClassOf tko:RecreationIntent .
+
+### 8. Chores and Errands Intent (Spec Section 5.1 #8) - NEW ###
+tko:ChoresAndErrandsIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Household chores and errands intents"@en .
+
+tko:VehicleCharging rdfs:subClassOf tko:ChoresAndErrandsIntent .
+tko:PickUpLaundry rdfs:subClassOf tko:ChoresAndErrandsIntent .
+tko:VehicleCleaning rdfs:subClassOf tko:ChoresAndErrandsIntent .
+tko:VehicleMaintenanceErrand rdfs:subClassOf tko:ChoresAndErrandsIntent .
+tko:KidsToSchool rdfs:subClassOf tko:ChoresAndErrandsIntent .
+
+### 9. Education Intent (Spec Section 5.1 #9) - NEW ###
+tko:EducationIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Education-related travel intents"@en .
+
+tko:SchoolDropOff rdfs:subClassOf tko:EducationIntent ;
+    rdfs:comment "Dropping off children at school"@en .
+
+tko:SchoolPickup rdfs:subClassOf tko:EducationIntent ;
+    rdfs:comment "Picking up children from school"@en .
+
+tko:UniversityCommute rdfs:subClassOf tko:EducationIntent .
+tko:LibraryVisit rdfs:subClassOf tko:EducationIntent .
+
+### 10. Use Public Transportation Intent (Spec Section 5.1 #10) - NEW ###
+tko:UsePublicTransportationIntent rdfs:subClassOf tko:TransportationPlanningIntent ;
+    rdfs:comment "Intent to access and use public transportation - traveler goes to transit stop/station and waits to board"@en .
+
+tko:TransitAccess rdfs:subClassOf tko:UsePublicTransportationIntent ;
+    rdfs:comment "General intent to access any public transit facility"@en .
+
+tko:UseBus rdfs:subClassOf tko:UsePublicTransportationIntent ;
+    rdfs:comment "Intent to board and use bus service"@en .
+
+tko:UseSubway rdfs:subClassOf tko:UsePublicTransportationIntent ;
+    rdfs:comment "Intent to board and use subway/metro service"@en .
+
+tko:UseLightRail rdfs:subClassOf tko:UsePublicTransportationIntent ;
+    rdfs:comment "Intent to board and use light rail service"@en .
+
+tko:UseTrain rdfs:subClassOf tko:UsePublicTransportationIntent ;
+    rdfs:comment "Intent to board and use train service"@en .
+
+### FLEET MANAGEMENT USE CASE ###
+
+tko:FleetTrip rdfs:subClassOf tko:Trip ;
+    rdfs:comment "Trip performed by commercial fleet vehicle"@en .
+
+tko:FleetManagementIntent rdfs:subClassOf tko:TripIntent ;
+    rdfs:comment "Intent specific to fleet management operations"@en .
+
+### Delivery Intent ###
+tko:DeliveryIntent rdfs:subClassOf tko:FleetManagementIntent .
+tko:CustomerDelivery rdfs:subClassOf tko:DeliveryIntent .
+tko:ParcelDelivery rdfs:subClassOf tko:CustomerDelivery .
+tko:FoodDelivery rdfs:subClassOf tko:CustomerDelivery .
+tko:RestaurantDelivery rdfs:subClassOf tko:FoodDelivery .
+tko:GroceryDelivery rdfs:subClassOf tko:CustomerDelivery .
+tko:SpecializedGoodsDelivery rdfs:subClassOf tko:CustomerDelivery .
+
+### Logistics Intent ###
+tko:LogisticsIntent rdfs:subClassOf tko:FleetManagementIntent .
+tko:WarehousePickup rdfs:subClassOf tko:LogisticsIntent .
+tko:WarehouseDelivery rdfs:subClassOf tko:LogisticsIntent .
+tko:InterWarehouseTransfer rdfs:subClassOf tko:LogisticsIntent .
+tko:FreightHauling rdfs:subClassOf tko:LogisticsIntent .
+tko:SupplyChainTransfer rdfs:subClassOf tko:LogisticsIntent .
+tko:LoadingGoodsAtDepot rdfs:subClassOf tko:LogisticsIntent .
+tko:UnloadingGoodsAtDepot rdfs:subClassOf tko:LogisticsIntent .
+
+### Field Service Intent ###
+tko:FieldServiceIntent rdfs:subClassOf tko:FleetManagementIntent .
+tko:TechnicalServices rdfs:subClassOf tko:FieldServiceIntent .
+tko:OnsiteInspection rdfs:subClassOf tko:TechnicalServices .
+tko:EquipmentInstallation rdfs:subClassOf tko:TechnicalServices .
+tko:MaintenanceCall rdfs:subClassOf tko:FieldServiceIntent .
+tko:ScheduledMaintenanceCall rdfs:subClassOf tko:MaintenanceCall .
+tko:RepairCall rdfs:subClassOf tko:FieldServiceIntent .
+tko:UnscheduledRepairCall rdfs:subClassOf tko:RepairCall .
+tko:InstallationService rdfs:subClassOf tko:FieldServiceIntent .
+tko:InspectionService rdfs:subClassOf tko:FieldServiceIntent .
+tko:WasteCollectionService rdfs:subClassOf tko:FieldServiceIntent .
+
+### Fleet Operations Intent ###
+tko:FleetOperationsIntent rdfs:subClassOf tko:FleetManagementIntent .
+tko:StartOfShift rdfs:subClassOf tko:FleetOperationsIntent .
+tko:StartOfShiftFromDepot rdfs:subClassOf tko:StartOfShift .
+tko:EndOfShift rdfs:subClassOf tko:FleetOperationsIntent .
+tko:EndOfShiftToDepot rdfs:subClassOf tko:EndOfShift .
+tko:VehiclePickup rdfs:subClassOf tko:FleetOperationsIntent .
+tko:VehicleDropoff rdfs:subClassOf tko:FleetOperationsIntent .
+tko:IntraDepotMovement rdfs:subClassOf tko:FleetOperationsIntent .
+
+### Vehicle Support Intent ###
+tko:VehicleSupportIntent rdfs:subClassOf tko:FleetManagementIntent .
+tko:VehicleRefueling rdfs:subClassOf tko:VehicleSupportIntent .
+tko:EVCharging rdfs:subClassOf tko:VehicleRefueling .
+tko:Refueling rdfs:subClassOf tko:VehicleRefueling .
+tko:VehicleMaintenance rdfs:subClassOf tko:VehicleSupportIntent .
+tko:ScheduledVehicleMaintenance rdfs:subClassOf tko:VehicleMaintenance .
+tko:UnscheduledRepair rdfs:subClassOf tko:VehicleMaintenance .
+tko:VehicleCleaningService rdfs:subClassOf tko:VehicleMaintenance .
+
+### Driver Personal Needs ###
+tko:DriverPersonalIntent rdfs:subClassOf tko:FleetManagementIntent .
+tko:MealBreak rdfs:subClassOf tko:DriverPersonalIntent .
+tko:RestStop rdfs:subClassOf tko:DriverPersonalIntent .
+tko:PermittedPersonalErrand rdfs:subClassOf tko:DriverPersonalIntent .
+
+### Sales & Client Relations ###
+tko:SalesIntent rdfs:subClassOf tko:FleetManagementIntent .
+tko:ScheduledClientMeeting rdfs:subClassOf tko:SalesIntent .
+tko:RoutedSalesCall rdfs:subClassOf tko:SalesIntent .
+tko:NewCustomerProspecting rdfs:subClassOf tko:SalesIntent .
+tko:ClientEntertainment rdfs:subClassOf tko:SalesIntent .
+tko:ClientQuotation rdfs:subClassOf tko:SalesIntent .
+
+### ELECTRIC VEHICLE EXTENSIONS ###
+
+tko:EVTrip rdfs:subClassOf tko:Trip ;
+    rdfs:comment "Trip performed by electric vehicle"@en .
+
+tko:EVFleetTrip rdfs:subClassOf tko:FleetTrip, tko:EVTrip ;
+    rdfs:comment "Fleet trip using electric vehicle"@en .
+
+tko:ChargingStop rdfs:subClassOf tko:IntermediateStop ;
+    rdfs:comment "Stop specifically for EV charging"@en .
+
+#################################################################
+#    PART 4: ROUTE PREFERENCE FRAMEWORK
+#################################################################
+
+### ROUTE PREFERENCE CLASSES ###
+tko:RoutePreference rdf:type owl:Class ;
+    rdfs:comment "Preference criteria for route selection based on trip intent"@en .
+
+tko:FastestRoute rdfs:subClassOf tko:RoutePreference ;
+    rdfs:comment "Route optimized for minimum travel time"@en .
+
+tko:ShortestRoute rdfs:subClassOf tko:RoutePreference ;
+    rdfs:comment "Route optimized for minimum distance"@en .
+
+tko:SafestRoute rdfs:subClassOf tko:RoutePreference ;
+    rdfs:comment "Route optimized for maximum safety"@en .
+
+tko:ScenicRoute rdfs:subClassOf tko:RoutePreference ;
+    rdfs:comment "Route optimized for scenic value and experience"@en .
+
+tko:CostOptimalRoute rdfs:subClassOf tko:RoutePreference ;
+    rdfs:comment "Route optimized for minimum cost (fuel, tolls)"@en .
+
+tko:EcoFriendlyRoute rdfs:subClassOf tko:RoutePreference ;
+    rdfs:comment "Route optimized for environmental impact"@en .
+
+### ROUTE PREFERENCE OBJECT PROPERTIES ###
+
+tko:hasRoutePreference rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Trip ;
+    rdfs:range tko:RoutePreference ;
+    rdfs:comment "Links a trip to its expected route preference, often inferred from its intent"@en .
+
+tko:actualRouteType rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:Route ;
+    rdfs:range tko:RoutePreference ;
+    rdfs:comment "Actual route type taken by traveler"@en .
+
+#################################################################
+#    PART 5: AXIOM-BASED INTENT-PREFERENCE RULES
+#################################################################
+
+### Defined Trip Classes Based on Intent ###
+
+# Healthcare Trip Classes
+tko:HospitalVisitTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:HospitalVisit ] 
+    ) 
+] .
+
+tko:DoctorVisitTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:DoctorVisit ] 
+    ) 
+] .
+
+tko:DentistVisitTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:DentistVisit ] 
+    ) 
+] .
+
+tko:EmergencyTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:Emergency ] 
+    ) 
+] .
+
+# Business Trip Classes
+tko:CommuteToWorkTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:CommuteToWork ] 
+    ) 
+] .
+
+tko:CommuteFromWorkTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:CommuteFromWork ] 
+    ) 
+] .
+
+tko:BusinessMeetingTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:BusinessMeeting ] 
+    ) 
+] .
+
+tko:BusinessDinnerTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:BusinessDinner ] 
+    ) 
+] .
+
+# Recreation Trip Classes
+tko:ParkVisitTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:ParkVisit ] 
+    ) 
+] .
+
+tko:GymVisitTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:GymVisit ] 
+    ) 
+] .
+
+tko:SportsEventTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:SportsEvent ] 
+    ) 
+] .
+
+tko:TheaterVisitTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:TheaterVisit ] 
+    ) 
+] .
+
+tko:MovieTheaterTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:MovieTheaterVisit ] 
+    ) 
+] .
+
+tko:ConcertVisitTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:ConcertVisit ] 
+    ) 
+] .
+
+# Shopping Trip Classes
+tko:GroceryShoppingTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:GroceryShopping ] 
+    ) 
+] .
+
+tko:MallShoppingTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:MallShopping ] 
+    ) 
+] .
+
+tko:SpecialtyShoppingTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:SpecialtyShopping ] 
+    ) 
+] .
+
+# Social Trip Classes
+tko:VisitingFamilyTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:VisitingFamily ] 
+    ) 
+] .
+
+tko:MeetingFriendsTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:MeetingFriends ] 
+    ) 
+] .
+
+tko:SocialGatheringTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:SocialGathering ] 
+    ) 
+] .
+
+# Dining Trip Classes (NEW)
+tko:DiningOutTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:DiningOut ] 
+    ) 
+] .
+
+# Education Trip Classes (NEW)
+tko:SchoolDropOffTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:SchoolDropOff ] 
+    ) 
+] .
+
+tko:SchoolPickupTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:SchoolPickup ] 
+    ) 
+] .
+
+# Transit Access Trip Classes (NEW)
+tko:TransitAccessTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:TransitAccess ] 
+    ) 
+] .
+
+# Fleet Management Trip Classes
+tko:CustomerDeliveryTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:CustomerDelivery ] 
+    ) 
+] .
+
+tko:ParcelDeliveryTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:ParcelDelivery ] 
+    ) 
+] .
+
+tko:FoodDeliveryTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:FoodDelivery ] 
+    ) 
+] .
+
+tko:RepairCallTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:RepairCall ] 
+    ) 
+] .
+
+tko:MaintenanceCallTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:MaintenanceCall ] 
+    ) 
+] .
+
+tko:WarehousePickupTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:WarehousePickup ] 
+    ) 
+] .
+
+tko:WarehouseDeliveryTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:WarehouseDelivery ] 
+    ) 
+] .
+
+tko:InterWarehouseTransferTrip owl:equivalentClass [ 
+    rdf:type owl:Class ; 
+    owl:intersectionOf ( 
+        tko:Trip 
+        [ rdf:type owl:Restriction ; 
+          owl:onProperty tko:hasPrimaryIntent ; 
+          owl:someValuesFrom tko:InterWarehouseTransfer ] 
+    ) 
+] .
+
+### Intent-to-Preference Axioms ###
+# These axioms state that if a trip belongs to one of the classes
+# defined above, it implies a certain route preference.
+
+# Healthcare Axioms
+tko:HospitalVisitTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:DoctorVisitTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:DentistVisitTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:EmergencyTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+# Business Axioms
+tko:CommuteToWorkTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:CommuteFromWorkTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:BusinessMeetingTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:BusinessDinnerTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ScenicRoute 
+] .
+
+# Recreation Axioms
+tko:ParkVisitTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ScenicRoute 
+] .
+
+tko:GymVisitTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:SportsEventTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:TheaterVisitTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ScenicRoute 
+] .
+
+tko:MovieTheaterTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:ConcertVisitTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ScenicRoute 
+] .
+
+# Shopping Axioms
+tko:GroceryShoppingTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:MallShoppingTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:SpecialtyShoppingTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:CostOptimalRoute 
+] .
+
+# Social Axioms
+tko:VisitingFamilyTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:SafestRoute 
+] .
+
+tko:MeetingFriendsTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ScenicRoute 
+] .
+
+tko:SocialGatheringTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ScenicRoute 
+] .
+
+# Dining Axioms (NEW)
+tko:DiningOutTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ScenicRoute 
+] .
+
+# Education Axioms (NEW)
+tko:SchoolDropOffTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:SafestRoute 
+] .
+
+tko:SchoolPickupTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:SafestRoute 
+] .
+
+# Transit Access Axioms (NEW)
+tko:TransitAccessTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+# Fleet Management Axioms
+tko:CustomerDeliveryTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:ParcelDeliveryTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:FoodDeliveryTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:RepairCallTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:FastestRoute 
+] .
+
+tko:MaintenanceCallTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:ShortestRoute 
+] .
+
+tko:WarehousePickupTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:CostOptimalRoute 
+] .
+
+tko:WarehouseDeliveryTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:CostOptimalRoute 
+] .
+
+tko:InterWarehouseTransferTrip rdfs:subClassOf [ 
+    rdf:type owl:Restriction ; 
+    owl:onProperty tko:hasRoutePreference ; 
+    owl:hasValue tko:CostOptimalRoute 
+] .
+
+
+### END OF TKO ONTOLOGY v2.1.0 - Imports UKO v8.0.0 ###

@@ -1,0 +1,656 @@
+#################################################################
+#
+#    Freight Knowledge Ontology (FKO)
+#    Version 1.2.0 - GeoMetis Over-the-Horizon Risk Model
+#
+#    Purpose: Formal vocabulary for freight and cargo classification,
+#    supporting the OHR (Over-the-Horizon Risk) model's cargo-weighted
+#    risk computation. FKO makes cargo type a first-class analytical
+#    citizen of GeoMetis by providing:
+#
+#    - fko:Commodity class hierarchy (NMFC-aligned, DOT hazmat-aligned)
+#    - fko:HazmatClass enumeration (DOT 49 CFR Part 172 classes)
+#    - fko:TemperatureSensitivityClass enumeration (FDA/USDA cold chain)
+#    - fko:PerishabilityProfile (time-to-spoilage at excursion conditions)
+#    - fko:CargoCTRSWeights (R1–R9 weight vector, ontology-governed)
+#    - fko:FreightLoad (links tko:DispatchedTrip to fko:Commodity)
+#
+#    Design rationale for standalone ontology (vs TKO extension):
+#    1. Cargo domain has independent class hierarchy depth that would
+#       distort TKO's trip-knowledge conceptual focus.
+#    2. Cargo concepts are consumed by Fleet Manager, Fleet Dispatcher,
+#       and future shipper-facing applications — a shared FKO serves
+#       all three without coupling them through TKO.
+#    3. CargoCTRSWeights enables cargo-weighted risk computation to be
+#       ontology-governed: R1–R9 weights are derived at runtime from FKO
+#       rather than hardcoded in model configuration.
+#
+#    Import position in acyclic graph:
+#    FKO imports TKO v8.4.0 because fko:hasFreightLoad has
+#    rdfs:domain tko:DispatchedTrip. TKO does not import FKO:
+#    TKO references fko: terms only in rdfs:comment text, not in
+#    any axiom, so the import is not required at the OWL level.
+#    The acyclic chain is: UKO ← TKO ← FKO ← MLO ← REO.
+#
+#    Synapse Partners, LLC
+#
+#    Change Log:
+#    - v1.2.0: Coordinated release 2026-06-10 (release set: UKO v15.5.0, TKO v8.3.0,
+#              FKO v1.2.0, MLO v1.6.0, REO v1.6.0). Maintenance release: updates the
+#              TKO import pin to v8.3.0 per the pin-to-coordinated-release policy.
+#              No content changes; the FKO vocabulary is primarily exercised by the
+#              deferred fleet/OHR workstream. Header updated to the GeoMetis system
+#              name (formerly SPNSLMAIS).
+#    - v1.1.0: Updated TKO import to v8.2.0 to maintain alignment with the 
+#              latest system-wide graph updates.
+#    - v1.0.0: Initial release. Commodity hierarchy, HazmatClass,
+#              TemperatureSensitivityClass, PerishabilityProfile,
+#              CargoCTRSWeights, FreightLoad.
+#
+#################################################################
+
+@prefix :    <urn:freight-kg:> .
+@prefix fko: <urn:freight-kg:> .
+@prefix tko: <urn:trip-kg:> .
+@prefix uko: <urn:urban-kg:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+
+<urn:freight-kg:> rdf:type owl:Ontology ;
+    owl:versionIRI <urn:freight-kg:1.2.1> ;
+    owl:imports <urn:trip-kg:8.4.0> ;
+    dcterms:title "Freight Knowledge Ontology (FKO) v1.2.1"@en ;
+    dcterms:description "Formal vocabulary for freight and cargo classification supporting the GeoMetis Over-the-Horizon Risk model. Provides ontology-governed cargo-type-dependent CTRS weight computation for the nine OHR risk dimensions. FKO imports TKO v8.4.0 because fko:hasFreightLoad has rdfs:domain tko:DispatchedTrip."@en ;
+    rdfs:comment "Version 1.2.1 — coordinated-release import alignment (TKO v8.4.0, release set 2026-09-19); no new terms. Version 1.2.0 — coordinated-release import alignment (TKO v8.3.0) and GeoMetis rename. Version 1.1.0 — import alignment. Version 1.0.0 introduced Commodity class hierarchy, HazmatClass named-individual enumeration (DOT 49 CFR), TemperatureSensitivityClass enumeration, PerishabilityProfile, CargoCTRSWeights (R1–R9 weight vector), FreightLoad linking tko:DispatchedTrip to fko:Commodity."@en ;
+    dcterms:creator "Synapse Partners, LLC"@en ;
+    dcterms:rights "Confidential and Proprietary to Synapse Partners, LLC"@en .
+
+
+#################################################################
+#    PART 1: COMMODITY CLASS HIERARCHY
+#    Root class with six operational subclasses covering the
+#    cargo types carried by the Fleet Dispatcher Application's
+#    target fleet verticals.
+#################################################################
+
+fko:Commodity rdf:type owl:Class ;
+    rdfs:label "Commodity"@en ;
+    rdfs:comment "Root class for all cargo commodity types in FKO. A Commodity instance represents a category of freight, not an individual shipment. The category determines which CargoCTRSWeights apply and which OHR dimensions are dominant. Individual shipments are represented as fko:FreightLoad instances, which reference a Commodity instance."@en .
+
+# ---------------------------------------------------------------------------
+# 1.1  PerishableCargo
+# ---------------------------------------------------------------------------
+
+fko:PerishableCargo rdf:type owl:Class ;
+    rdfs:subClassOf fko:Commodity ;
+    rdfs:label "Perishable Cargo"@en ;
+    rdfs:comment "Cargo with a finite shelf life that degrades in quality or safety beyond configurable time and temperature thresholds. Includes produce, dairy, meat, seafood, and cut flowers. The dominant OHR dimensions for PerishableCargo loads are R2 (Cargo Integrity), R3 (Driver Fatigue — delays extend cargo exposure), and R4 (Congestion/Delay). Default CargoCTRSWeights assign highest weight to R2."@en .
+
+fko:FreshProduce rdf:type owl:Class ;
+    rdfs:subClassOf fko:PerishableCargo ;
+    rdfs:label "Fresh Produce"@en ;
+    rdfs:comment "Fresh fruits and vegetables. Typical temperature range: 32–50°F depending on commodity. Spoilage time at excursion varies widely: leafy greens may spoil within 2 hours above 45°F; root vegetables tolerate short excursions. FDA FSMA (Food Safety Modernization Act) Sanitary Transportation Rule applies."@en .
+
+fko:DairyProducts rdf:type owl:Class ;
+    rdfs:subClassOf fko:PerishableCargo ;
+    rdfs:label "Dairy Products"@en ;
+    rdfs:comment "Fluid milk, cheese, yogurt, and other dairy. Temperature range: 32–40°F. FDA Grade A Pasteurized Milk Ordinance requirements. Spoilage time at excursion: 4–8 hours above 45°F for fluid milk."@en .
+
+fko:MeatAndPoultry rdf:type owl:Class ;
+    rdfs:subClassOf fko:PerishableCargo ;
+    rdfs:label "Meat and Poultry"@en ;
+    rdfs:comment "Fresh and processed meat, poultry, and pork. USDA FSIS continuous temperature control requirements. Temperature range: 28–40°F. Regulatory compliance with 9 CFR Part 317 (labeling) and continuous cold chain documentation requirements."@en .
+
+fko:FrozenFood rdf:type owl:Class ;
+    rdfs:subClassOf fko:PerishableCargo ;
+    rdfs:label "Frozen Food"@en ;
+    rdfs:comment "Products requiring continuous frozen storage at 0°F or below. Any temperature above 32°F for more than 15 minutes constitutes an excursion. Spoilage is slow (weeks to months at partial thaw) but regulatory compliance requires documentation. R2 weight is high; the primary risk is regulatory non-compliance and customer rejection rather than immediate spoilage."@en .
+
+# ---------------------------------------------------------------------------
+# 1.2  TemperatureSensitiveCargo
+# ---------------------------------------------------------------------------
+
+fko:TemperatureSensitiveCargo rdf:type owl:Class ;
+    rdfs:subClassOf fko:Commodity ;
+    rdfs:label "Temperature Sensitive Cargo"@en ;
+    rdfs:comment "Cargo that requires temperature control but is not perishable in the traditional sense. Includes pharmaceuticals, biologics, medical devices, and specialty chemicals with controlled temperature requirements. FDA GDP (Good Distribution Practice) and WHO GDP guidelines apply. R2 is the dominant dimension; consequence of excursion is often regulatory (product recall, FDA action) rather than immediate physical degradation."@en .
+
+fko:PharmaceuticalCargo rdf:type owl:Class ;
+    rdfs:subClassOf fko:TemperatureSensitiveCargo ;
+    rdfs:label "Pharmaceutical Cargo"@en ;
+    rdfs:comment "Prescription drugs, OTC medications, and active pharmaceutical ingredients (APIs). Temperature ranges vary: standard refrigerated (2–8°C / 36–46°F) for biologics, controlled room temperature (15–25°C / 59–77°F) for most oral solids. USP <1079> and FDA 21 CFR Part 211 requirements. An excursion for a biologic may trigger product recall; chain-of-custody documentation is mandatory."@en .
+
+fko:BiologicsAndVaccines rdf:type owl:Class ;
+    rdfs:subClassOf fko:PharmaceuticalCargo ;
+    rdfs:label "Biologics and Vaccines"@en ;
+    rdfs:comment "Vaccines, blood products, monoclonal antibodies, and other biologics. The most stringent temperature requirements in the cold chain: typically 2–8°C with zero tolerance for freeze (many vaccines are damaged by freezing as well as warming). WHO Vaccine Cold Chain requirements. Any excursion results in quarantine and investigation; cargo value per shipment can exceed $1M USD."@en .
+
+fko:MedicalDevices rdf:type owl:Class ;
+    rdfs:subClassOf fko:TemperatureSensitiveCargo ;
+    rdfs:label "Medical Devices"@en ;
+    rdfs:comment "FDA Class II and III medical devices requiring temperature, humidity, or vibration-controlled transport. Includes implantable devices, diagnostic equipment, and sterile surgical kits. High cargo value and liability exposure dominate R2 and R7 weight assignment."@en .
+
+# ---------------------------------------------------------------------------
+# 1.3  HazmatCargo
+# ---------------------------------------------------------------------------
+
+fko:HazmatCargo rdf:type owl:Class ;
+    rdfs:subClassOf fko:Commodity ;
+    rdfs:label "Hazardous Materials Cargo"@en ;
+    rdfs:comment "Cargo classified as hazardous materials under DOT 49 CFR Part 171–180. Requires placarded transport, hazmat-endorsed CDL driver, and compliance with PHMSA hazmat routing regulations. The dominant OHR dimensions are R1 (Weather-Road — incidents involving hazmat have outsized consequences), R5 (Infrastructure — hazmat route restrictions), and R7 (Security — hazmat theft or diversion risk). The specific DOT class for an instance is recorded as a property value via fko:hasHazmatClass, which ranges over the named individuals of fko:HazmatClass (see Part 2)."@en.
+
+# ---------------------------------------------------------------------------
+# 1.4  HighValueCargo
+# ---------------------------------------------------------------------------
+
+fko:HighValueCargo rdf:type owl:Class ;
+    rdfs:subClassOf fko:Commodity ;
+    rdfs:label "High Value Cargo"@en ;
+    rdfs:comment "Non-hazmat, non-perishable cargo with high monetary value per shipment. Includes consumer electronics, jewelry, currency, precious metals, and branded apparel. The dominant OHR dimensions are R7 (Security/Theft) and R8 (Destination — appointment sensitivity for high-value receivers). R2 weight is elevated for electronics due to humidity and shock sensitivity."@en .
+
+fko:ConsumerElectronics rdf:type owl:Class ;
+    rdfs:subClassOf fko:HighValueCargo ;
+    rdfs:label "Consumer Electronics"@en ;
+    rdfs:comment "Smartphones, laptops, tablets, and related consumer devices. The highest-frequency cargo theft target category in North America (NICB data). R7 is the primary OHR dimension. Temperature and humidity sensitivity secondary to theft risk."@en .
+
+fko:CurrencyAndPrecious rdf:type owl:Class ;
+    rdfs:subClassOf fko:HighValueCargo ;
+    rdfs:label "Currency, Precious Metals, and Valuables"@en ;
+    rdfs:comment "Currency, negotiable instruments, gold, silver, and high-value securities. Requires armored vehicle (tko:ARMORED_VEHICLE) and maximum security protocols. R7 receives maximum possible weight in CargoCTRSWeights. Route predictability is a security liability; rerouting should be the default response to any elevated R7 signal."@en .
+
+fko:PharmaceuticalsHighValue rdf:type owl:Class ;
+    rdfs:subClassOf fko:HighValueCargo, fko:TemperatureSensitiveCargo ;
+    rdfs:label "High-Value Pharmaceuticals"@en ;
+    rdfs:comment "Controlled substances, specialty drugs, and high-cost biologics that are both temperature-sensitive and high-value. Represents the intersection of TemperatureSensitiveCargo and HighValueCargo — both R2 and R7 receive elevated weights. DEA Schedule II-V controlled substance requirements apply where applicable."@en .
+
+# ---------------------------------------------------------------------------
+# 1.5  OversizeCargo
+# ---------------------------------------------------------------------------
+
+fko:OversizeCargo rdf:type owl:Class ;
+    rdfs:subClassOf fko:Commodity ;
+    rdfs:label "Oversize / Overweight Cargo"@en ;
+    rdfs:comment "Cargo that causes the loaded vehicle to exceed standard size or weight limits, requiring special permits. Includes heavy machinery, modular structures, wind turbine components, and oversized construction materials. The dominant OHR dimension is R5 (Infrastructure — bridge weight limits, height restrictions, route permits). R6 (Regulatory — permit compliance) is secondary. Many oversize moves are restricted to daylight hours, making R3 and departure time especially relevant."@en .
+
+fko:HeavyEquipment rdf:type owl:Class ;
+    rdfs:subClassOf fko:OversizeCargo ;
+    rdfs:label "Heavy Equipment"@en ;
+    rdfs:comment "Construction machinery, industrial equipment, and mining vehicles exceeding standard weight limits. Requires pilot car and possibly law enforcement escort for super-loads. R5 is dominant; bridge weight tolerance analysis is mandatory pre-route."@en .
+
+fko:WindEnergyComponents rdf:type owl:Class ;
+    rdfs:subClassOf fko:OversizeCargo ;
+    rdfs:label "Wind Energy Components"@en ;
+    rdfs:comment "Wind turbine blades, nacelles, and tower sections. Among the most route-constrained cargo categories: blades up to 80 meters long require specialized routing analysis. R5 is the dominant dimension; R4 (Congestion/Delay) is elevated due to the operational complexity of multi-axle transport."@en .
+
+# ---------------------------------------------------------------------------
+# 1.6  StandardCargo
+# ---------------------------------------------------------------------------
+
+fko:StandardCargo rdf:type owl:Class ;
+    rdfs:subClassOf fko:Commodity ;
+    rdfs:label "Standard Cargo"@en ;
+    rdfs:comment "General freight with no special handling requirements, hazmat classification, or extreme value/perishability. Dry van general freight, household goods, and non-sensitive industrial materials. No single OHR dimension dominates; CTRS weights reflect balanced risk across R1, R4, and R9. The baseline cargo class against which specialized cargo class weights are calibrated."@en .
+
+fko:GeneralFreight rdf:type owl:Class ;
+    rdfs:subClassOf fko:StandardCargo ;
+    rdfs:label "General Freight"@en ;
+    rdfs:comment "Mixed palletized or loose general merchandise. The most common cargo class by shipment count. Default CTRS weight distribution."@en .
+
+fko:ConstructionMaterials rdf:type owl:Class ;
+    rdfs:subClassOf fko:StandardCargo ;
+    rdfs:label "Construction Materials"@en ;
+    rdfs:comment "Lumber, steel, concrete products, and building materials. Higher R9 weight due to load shift risk on flatbed. R5 marginally elevated for steel coil due to weight concentration."@en .
+
+fko:RetailParcels rdf:type owl:Class ;
+    rdfs:subClassOf fko:StandardCargo ;
+    rdfs:label "Retail Parcels and E-Commerce"@en ;
+    rdfs:comment "LTL and parcel freight for retail and e-commerce fulfillment. R4 and R8 are elevated due to time-window sensitivity and high appointment adherence expectations."@en .
+
+
+#################################################################
+#    PART 2: HAZMAT CLASS ENUMERATION
+#    Named individuals aligned to DOT 49 CFR Part 172.
+#    Used on fko:FreightLoad.hazmatClass for rapid filtering.
+#################################################################
+
+fko:HazmatClass rdf:type owl:Class ;
+    rdfs:label "Hazmat Class"@en ;
+    rdfs:comment "DOT 49 CFR Part 172 hazardous materials class enumeration. Named individuals for rapid filtering and routing constraint lookup. Used on fko:FreightLoad.hazmatClass to specify the applicable DOT class for a specific shipment."@en .
+
+fko:HAZMAT_CLASS_1 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 1 — Explosives"@en ;
+    skos:notation "CLASS_1" .
+
+fko:HAZMAT_CLASS_2_1 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 2.1 — Flammable Gas"@en ;
+    skos:notation "CLASS_2_1" .
+
+fko:HAZMAT_CLASS_2_2 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 2.2 — Non-Flammable Non-Toxic Gas"@en ;
+    skos:notation "CLASS_2_2" .
+
+fko:HAZMAT_CLASS_2_3 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 2.3 — Toxic Gas"@en ;
+    skos:notation "CLASS_2_3" .
+
+fko:HAZMAT_CLASS_3 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 3 — Flammable Liquids"@en ;
+    skos:notation "CLASS_3" .
+
+fko:HAZMAT_CLASS_4_1 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 4.1 — Flammable Solids"@en ;
+    skos:notation "CLASS_4_1" .
+
+fko:HAZMAT_CLASS_4_2 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 4.2 — Spontaneously Combustible"@en ;
+    skos:notation "CLASS_4_2" .
+
+fko:HAZMAT_CLASS_4_3 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 4.3 — Dangerous When Wet"@en ;
+    skos:notation "CLASS_4_3" .
+
+fko:HAZMAT_CLASS_5_1 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 5.1 — Oxidizers"@en ;
+    skos:notation "CLASS_5_1" .
+
+fko:HAZMAT_CLASS_5_2 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 5.2 — Organic Peroxides"@en ;
+    skos:notation "CLASS_5_2" .
+
+fko:HAZMAT_CLASS_6_1 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 6.1 — Toxic Substances"@en ;
+    skos:notation "CLASS_6_1" .
+
+fko:HAZMAT_CLASS_6_2 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 6.2 — Infectious Substances"@en ;
+    skos:notation "CLASS_6_2" .
+
+fko:HAZMAT_CLASS_7 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 7 — Radioactive Materials"@en ;
+    skos:notation "CLASS_7" .
+
+fko:HAZMAT_CLASS_8 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 8 — Corrosives"@en ;
+    skos:notation "CLASS_8" .
+
+fko:HAZMAT_CLASS_9 rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Class 9 — Miscellaneous Hazardous"@en ;
+    skos:notation "CLASS_9" .
+
+fko:HAZMAT_NONE rdf:type owl:NamedIndividual, fko:HazmatClass ;
+    rdfs:label "Non-Hazmat"@en ;
+    rdfs:comment "The load contains no hazardous materials. Used as an explicit non-null value on fko:FreightLoad.hasHazmatClass to distinguish 'confirmed non-hazmat' from 'hazmat class not yet determined'."@en ;
+    skos:notation "NONE" .
+
+
+#################################################################
+#    PART 3: TEMPERATURE SENSITIVITY CLASS ENUMERATION
+#    Named individuals aligned to FDA/USDA cold chain standards
+#    and pharmaceutical USP <1079> guidelines.
+#################################################################
+
+fko:TemperatureSensitivityClass rdf:type owl:Class ;
+    rdfs:label "Temperature Sensitivity Class"@en ;
+    rdfs:comment "Controlled vocabulary for cargo temperature sensitivity level. Determines the temperature tolerance band applied in the OHR R2 (Cargo Integrity Risk) computation and the threshold at which a temperature deviation triggers ld_temperature_excursion = true."@en .
+
+fko:DEEP_FROZEN rdf:type owl:NamedIndividual, fko:TemperatureSensitivityClass ;
+    rdfs:label "Deep Frozen"@en ;
+    rdfs:comment "Required storage temperature: -18°C (0°F) or below. Any temperature above -10°C (14°F) for more than 30 minutes constitutes an excursion. Typical cargo: ice cream, frozen seafood, blood plasma. Reefer unit setpoint must be -18°C or lower. R2 weight in CargoCTRSWeights is set to maximum for this class."@en ;
+    skos:notation "DEEP_FROZEN" .
+
+fko:FROZEN rdf:type owl:NamedIndividual, fko:TemperatureSensitivityClass ;
+    rdfs:label "Frozen"@en ;
+    rdfs:comment "Required storage temperature: -18°C to -1°C (0°F to 30°F). Any temperature above 0°C (32°F) for more than 15 minutes constitutes an excursion. Typical cargo: frozen vegetables, frozen bakery, frozen meat. Standard reefer class for bulk frozen goods."@en ;
+    skos:notation "FROZEN" .
+
+fko:REFRIGERATED rdf:type owl:NamedIndividual, fko:TemperatureSensitivityClass ;
+    rdfs:label "Refrigerated"@en ;
+    rdfs:comment "Required storage temperature: 0°C to 7°C (32°F to 45°F). Excursion threshold: above 10°C (50°F) for more than 60 minutes. Typical cargo: fresh produce, dairy, chilled meat, most pharmaceuticals. The most common reefer temperature class by shipment volume."@en ;
+    skos:notation "REFRIGERATED" .
+
+fko:CONTROLLED_ROOM_TEMP rdf:type owl:NamedIndividual, fko:TemperatureSensitivityClass ;
+    rdfs:label "Controlled Room Temperature"@en ;
+    rdfs:comment "Required storage temperature: 15°C to 25°C (59°F to 77°F), with excursions permissible up to 30°C (86°F) for brief periods per USP <659>. Typical cargo: most oral solid dose pharmaceuticals, some vitamins, cosmetics. Does not require active refrigeration in most climates but does require climate-controlled (not refrigerated) transport in extreme weather."@en .
+
+fko:AMBIENT rdf:type owl:NamedIndividual, fko:TemperatureSensitivityClass ;
+    rdfs:label "Ambient"@en ;
+    rdfs:comment "No active temperature control required. Standard dry van transport. R2 is zero or near-zero for this class (cargo integrity risk is not temperature-related). Applies to StandardCargo, OversizeCargo, and HighValueCargo subclasses that are not temperature-sensitive."@en ;
+    skos:notation "AMBIENT" .
+
+
+#################################################################
+#    PART 4: PERISHABILITY PROFILE
+#    Characterizes the spoilage dynamics of perishable cargo —
+#    how quickly quality degrades at different temperature levels.
+#################################################################
+
+fko:PerishabilityProfile rdf:type owl:Class ;
+    rdfs:label "Perishability Profile"@en ;
+    rdfs:comment "A structured object describing the spoilage dynamics of a PerishableCargo or TemperatureSensitiveCargo subclass under temperature excursion conditions. Used in the OHR R2 (Cargo Integrity Risk) computation to determine the probability of cargo loss given the planned route duration and forecast temperature profile."@en .
+
+fko:hasPerishabilityProfile rdf:type owl:ObjectProperty ;
+    rdfs:domain fko:Commodity ;
+    rdfs:range fko:PerishabilityProfile ;
+    rdfs:label "has perishability profile"@en ;
+    rdfs:comment "Links a fko:Commodity instance to its PerishabilityProfile. Present only for subclasses of PerishableCargo and TemperatureSensitiveCargo. Absent for StandardCargo, OversizeCargo, and non-temperature-sensitive HighValueCargo."@en .
+
+fko:spoilageTimeAtExcursionHours rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:PerishabilityProfile ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "spoilage time at excursion (hours)"@en ;
+    rdfs:comment "Hours until cargo quality degradation becomes commercially significant (reject threshold) when temperature exceeds the tolerance band by the excursionMagnitudeF amount. This is the primary input to R2 computation: if the planned route has a projected delay that pushes the excursion duration above this threshold, R2 is elevated. Example: FreshProduce with tolerance band 32–45°F and excursionMagnitudeF=10 might have spoilageTimeAtExcursionHours=4.0, meaning leafy greens at 55°F for 4+ hours will be rejected by the receiver."@en .
+
+fko:excursionMagnitudeF rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:PerishabilityProfile ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "excursion magnitude (°F above upper tolerance)"@en ;
+    rdfs:comment "The number of degrees Fahrenheit above the upper tolerance band threshold at which the spoilageTimeAtExcursionHours measurement applies. Perishability is a function of both excursion magnitude and duration: a 5°F excursion for 8 hours may be equivalent to a 15°F excursion for 2 hours. The OHR model interpolates between multiple PerishabilityProfile instances at different excursionMagnitudeF values when available."@en .
+
+fko:criticalTemperatureF rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:PerishabilityProfile ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "critical temperature (°F)"@en ;
+    rdfs:comment "Temperature above which cargo deterioration becomes irreversible or results in regulatory violation (not merely commercial rejection) regardless of excursion duration. For vaccines: 8°C (46.4°F). For liquid biologics: often 15°C (59°F). When the route forecast projects the cargo temperature exceeding criticalTemperatureF at any point, R2 is set to CRITICAL regardless of probability calculation."@en .
+
+fko:regulatoryFramework rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:PerishabilityProfile ;
+    rdfs:range xsd:string ;
+    rdfs:label "regulatory framework"@en ;
+    rdfs:comment "The primary regulatory framework governing temperature control for this cargo type. Examples: 'FDA FSMA Sanitary Transportation Rule (21 CFR Part 1)', 'USDA FSIS 9 CFR Part 317', 'USP <1079> Good Storage and Shipping Practices', 'WHO GDP Guidelines', 'DEA 21 CFR Part 1301'. The applicable framework determines documentation requirements and the consequence class of excursion events (recall vs. rejection vs. coaching)."@en .
+
+fko:commodityGroup rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:PerishabilityProfile ;
+    rdfs:range xsd:string ;
+    rdfs:label "commodity group"@en ;
+    rdfs:comment "NMFC (National Motor Freight Classification) commodity group identifier for this cargo type, where applicable. Used to cross-reference NMFC classification for freight bill accuracy and to link to NMFC-based density/packaging requirements. Example: 'NMFC 55000' (fresh fruits and vegetables)."@en .
+
+
+#################################################################
+#    PART 5: CARGO CTRS WEIGHTS
+#    The R1–R9 weight vector governing CTRS computation.
+#    This is the core ontology-governance mechanism: cargo-type-
+#    dependent risk weighting is defined here in FKO, not hardcoded
+#    in model configuration files.
+#################################################################
+
+fko:CargoCTRSWeights rdf:type owl:Class ;
+    rdfs:label "Cargo CTRS Weights"@en ;
+    rdfs:comment "The Composite Trip Risk Score (CTRS) weight vector for a specific cargo class. Contains nine decimal weights (w1–w9) corresponding to OHR dimensions R1–R9, summing to 1.0. The CTRS for a trip is computed as: CTRS = Σ(wN × rN) for N in 1..9, where rN is the calibrated DimensionScore probability for dimension N and wN is the weight from the CargoCTRSWeights instance for the trip's cargo class. Weights are ontology-governed: they are defined here in FKO rather than in model configuration, making them auditable, versionable, and queryable."@en .
+
+fko:hasCargoCTRSWeights rdf:type owl:ObjectProperty ;
+    rdfs:domain fko:Commodity ;
+    rdfs:range fko:CargoCTRSWeights ;
+    rdfs:label "has cargo CTRS weights"@en ;
+    rdfs:comment "Links a fko:Commodity class instance to its CargoCTRSWeights. Every non-abstract Commodity subclass MUST have exactly one CargoCTRSWeights instance. Subclasses inherit their parent's weights unless explicitly overridden."@en .
+
+fko:weightR1 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R1 (Weather-Road)"@en ;
+    rdfs:comment "CTRS weight for R1 (Weather-Road Risk) [0.0–1.0]. Must be ≥ 0 and sum with w2–w9 to 1.0. Elevated for HazmatCargo (incident consequences are severe), OversizeCargo (wind and ice disproportionately affect large loads), and PerishableCargo on mountain pass routes."@en .
+
+fko:weightR2 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R2 (Cargo Integrity)"@en ;
+    rdfs:comment "CTRS weight for R2 (Cargo Integrity Risk). Maximum for PerishableCargo and TemperatureSensitiveCargo (cargo loss is the primary risk). Zero or near-zero for StandardCargo and OversizeCargo."@en .
+
+fko:weightR3 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R3 (Driver Fatigue)"@en ;
+    rdfs:comment "CTRS weight for R3 (Driver Fatigue Risk). Elevated for HazmatCargo (fatigue + hazmat = compounded incident consequence) and long-haul PerishableCargo (delays from fatigue events are cargo-integrity-costly). Baseline for StandardCargo."@en .
+
+fko:weightR4 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R4 (Congestion/Delay)"@en ;
+    rdfs:comment "CTRS weight for R4 (Congestion/Delay Risk). Elevated for PerishableCargo (every delay hour reduces shelf life), RetailParcels (appointment windows are strict), and PharmaceuticalCargo (GDP compliance requires on-time delivery documentation). Baseline for OversizeCargo (delays are expected and built into planning)."@en .
+
+fko:weightR5 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R5 (Infrastructure)"@en ;
+    rdfs:comment "CTRS weight for R5 (Infrastructure Risk). Maximum for OversizeCargo (bridge weight, height, and permit constraints are dominant). Elevated for HazmatCargo Classes 1 and 7 (tunnel and bridge prohibitions). Near-zero for standard passenger-car-sized fleet vehicles."@en .
+
+fko:weightR6 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R6 (Regulatory/Compliance)"@en ;
+    rdfs:comment "CTRS weight for R6 (Regulatory/Compliance Risk). Elevated for HazmatCargo (PHMSA compliance is legally non-negotiable), OversizeCargo (permit compliance), and TemperatureSensitiveCargo (FDA GDP documentation). Baseline for StandardCargo."@en .
+
+fko:weightR7 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R7 (Security/Theft)"@en ;
+    rdfs:comment "CTRS weight for R7 (Security/Theft Risk). Maximum for CurrencyAndPrecious (cargo theft is existential risk). Very high for ConsumerElectronics, PharmaceuticalsHighValue, and HazmatClass6 (toxic diversion risk). Near-zero for ConstructionMaterials and FrozenFood."@en .
+
+fko:weightR8 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R8 (Destination)"@en ;
+    rdfs:comment "CTRS weight for R8 (Destination Risk). Elevated for RetailParcels (consumer appointment windows), PharmaceuticalCargo (hospital delivery scheduling), and BiologicsAndVaccines (administration scheduling constraints). Baseline for bulk freight."@en .
+
+fko:weightR9 rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "weight R9 (Mechanical)"@en ;
+    rdfs:comment "CTRS weight for R9 (Mechanical Risk). Elevated for HazmatClass3 (fuel tanker breakdown creates hazmat release risk) and PerishableCargo on long routes (breakdown extends excursion duration). Baseline for most cargo types."@en .
+
+fko:weightsVersion rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:string ;
+    rdfs:label "weights version"@en ;
+    rdfs:comment "Version identifier for this set of CTRS weights. Increment when weights are recalibrated from new training data. The Configuration Snapshot in the GeoMetis Model Registry records which weightsVersion was in effect for each training batch. Mixing batches trained under different weightsVersions produces inconsistent training signal."@en .
+
+fko:weightsCalibrationDate rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:CargoCTRSWeights ;
+    rdfs:range xsd:date ;
+    rdfs:label "weights calibration date"@en ;
+    rdfs:comment "Date on which these CTRS weights were last calibrated against fleet outcome data. Recalibration is recommended when outcome label distributions shift significantly from the training-time distributions — typically triggered by a major change in fleet composition, cargo mix, or operational geography."@en .
+
+
+# =============================================================================
+# Part 5.1: Default CargoCTRSWeights named individuals
+# One instance per non-abstract Commodity subclass.
+# Weights are calibrated starting values for v1.0; recalibration is expected
+# after the first 6 months of production deployment.
+# All weight vectors sum to 1.00.
+# =============================================================================
+
+fko:weights_StandardCargo rdf:type owl:NamedIndividual, fko:CargoCTRSWeights ;
+    rdfs:label "CTRS Weights — Standard Cargo"@en ;
+    fko:weightR1 "0.20"^^xsd:decimal ;
+    fko:weightR2 "0.02"^^xsd:decimal ;
+    fko:weightR3 "0.18"^^xsd:decimal ;
+    fko:weightR4 "0.15"^^xsd:decimal ;
+    fko:weightR5 "0.10"^^xsd:decimal ;
+    fko:weightR6 "0.12"^^xsd:decimal ;
+    fko:weightR7 "0.08"^^xsd:decimal ;
+    fko:weightR8 "0.08"^^xsd:decimal ;
+    fko:weightR9 "0.07"^^xsd:decimal ;
+    fko:weightsVersion "1.0" ;
+    fko:weightsCalibrationDate "2026-04-01"^^xsd:date ;
+    rdfs:comment "Balanced weights for general dry van freight with no dominant risk dimension. R1 and R3 are the leading dimensions reflecting standard long-haul safety concerns."@en .
+
+fko:weights_FreshProduce rdf:type owl:NamedIndividual, fko:CargoCTRSWeights ;
+    rdfs:label "CTRS Weights — Fresh Produce"@en ;
+    fko:weightR1 "0.14"^^xsd:decimal ;
+    fko:weightR2 "0.30"^^xsd:decimal ;
+    fko:weightR3 "0.16"^^xsd:decimal ;
+    fko:weightR4 "0.20"^^xsd:decimal ;
+    fko:weightR5 "0.05"^^xsd:decimal ;
+    fko:weightR6 "0.05"^^xsd:decimal ;
+    fko:weightR7 "0.02"^^xsd:decimal ;
+    fko:weightR8 "0.05"^^xsd:decimal ;
+    fko:weightR9 "0.03"^^xsd:decimal ;
+    fko:weightsVersion "1.0" ;
+    fko:weightsCalibrationDate "2026-04-01"^^xsd:date ;
+    rdfs:comment "R2 (Cargo Integrity) and R4 (Delay) dominate. Short shelf life makes every hour of delay costly. Motivation for this weight vector: the Scenario 3 Stockton–Reno reefer truck archetype."@en .
+
+fko:weights_PharmaceuticalCargo rdf:type owl:NamedIndividual, fko:CargoCTRSWeights ;
+    rdfs:label "CTRS Weights — Pharmaceutical Cargo"@en ;
+    fko:weightR1 "0.10"^^xsd:decimal ;
+    fko:weightR2 "0.28"^^xsd:decimal ;
+    fko:weightR3 "0.12"^^xsd:decimal ;
+    fko:weightR4 "0.16"^^xsd:decimal ;
+    fko:weightR5 "0.04"^^xsd:decimal ;
+    fko:weightR6 "0.12"^^xsd:decimal ;
+    fko:weightR7 "0.10"^^xsd:decimal ;
+    fko:weightR8 "0.05"^^xsd:decimal ;
+    fko:weightR9 "0.03"^^xsd:decimal ;
+    fko:weightsVersion "1.0" ;
+    fko:weightsCalibrationDate "2026-04-01"^^xsd:date ;
+    rdfs:comment "R2 and R6 elevated relative to produce: regulatory consequence of temperature excursion is high (recall, FDA action). R7 elevated for controlled substances."@en .
+
+fko:weights_HazmatClass3 rdf:type owl:NamedIndividual, fko:CargoCTRSWeights ;
+    rdfs:label "CTRS Weights — Hazmat Class 3 (Flammable Liquids)"@en ;
+    fko:weightR1 "0.28"^^xsd:decimal ;
+    fko:weightR2 "0.00"^^xsd:decimal ;
+    fko:weightR3 "0.18"^^xsd:decimal ;
+    fko:weightR4 "0.08"^^xsd:decimal ;
+    fko:weightR5 "0.14"^^xsd:decimal ;
+    fko:weightR6 "0.14"^^xsd:decimal ;
+    fko:weightR7 "0.06"^^xsd:decimal ;
+    fko:weightR8 "0.04"^^xsd:decimal ;
+    fko:weightR9 "0.08"^^xsd:decimal ;
+    fko:weightsVersion "1.0" ;
+    fko:weightsCalibrationDate "2026-04-01"^^xsd:date ;
+    rdfs:comment "R1 is maximum (fire consequence in accident), R5 elevated (tunnel/bridge restrictions), R6 elevated (PHMSA compliance), R9 elevated (tanker breakdown = hazmat release). R2 is zero (not temperature-sensitive)."@en .
+
+fko:weights_HighValueCargo rdf:type owl:NamedIndividual, fko:CargoCTRSWeights ;
+    rdfs:label "CTRS Weights — High Value Cargo (Consumer Electronics)"@en ;
+    fko:weightR1 "0.15"^^xsd:decimal ;
+    fko:weightR2 "0.05"^^xsd:decimal ;
+    fko:weightR3 "0.15"^^xsd:decimal ;
+    fko:weightR4 "0.10"^^xsd:decimal ;
+    fko:weightR5 "0.05"^^xsd:decimal ;
+    fko:weightR6 "0.08"^^xsd:decimal ;
+    fko:weightR7 "0.28"^^xsd:decimal ;
+    fko:weightR8 "0.08"^^xsd:decimal ;
+    fko:weightR9 "0.06"^^xsd:decimal ;
+    fko:weightsVersion "1.0" ;
+    fko:weightsCalibrationDate "2026-04-01"^^xsd:date ;
+    rdfs:comment "R7 (Security/Theft) is maximum weight. Consumer electronics is the highest-frequency theft target in North America. All other dimensions receive baseline allocation."@en .
+
+fko:weights_OversizeCargo rdf:type owl:NamedIndividual, fko:CargoCTRSWeights ;
+    rdfs:label "CTRS Weights — Oversize/Overweight Cargo"@en ;
+    fko:weightR1 "0.18"^^xsd:decimal ;
+    fko:weightR2 "0.00"^^xsd:decimal ;
+    fko:weightR3 "0.12"^^xsd:decimal ;
+    fko:weightR4 "0.10"^^xsd:decimal ;
+    fko:weightR5 "0.30"^^xsd:decimal ;
+    fko:weightR6 "0.18"^^xsd:decimal ;
+    fko:weightR7 "0.02"^^xsd:decimal ;
+    fko:weightR8 "0.05"^^xsd:decimal ;
+    fko:weightR9 "0.05"^^xsd:decimal ;
+    fko:weightsVersion "1.0" ;
+    fko:weightsCalibrationDate "2026-04-01"^^xsd:date ;
+    rdfs:comment "R5 (Infrastructure) is maximum — bridge weight limits and height restrictions are the dominant risk dimension for oversize moves. R6 (Regulatory) elevated for permit compliance."@en .
+
+
+#################################################################
+#    PART 6: FREIGHT LOAD
+#    The bridge entity linking a tko:DispatchedTrip to its
+#    fko:Commodity and shipment-specific cargo attributes.
+#################################################################
+
+fko:FreightLoad rdf:type owl:Class ;
+    rdfs:label "Freight Load"@en ;
+    rdfs:comment "An individual cargo shipment assignment for a specific tko:DispatchedTrip. FreightLoad is the instance-level counterpart of fko:Commodity (which is the category level). One FreightLoad per DispatchedTrip. FreightLoad carries the shipment-specific attributes: actual weight, declared value, temperature setpoint, hazmat UN number, and the link to the Commodity class whose CargoCTRSWeights and PerishabilityProfile govern the OHR risk computation for this trip."@en .
+
+fko:hasFreightLoad rdf:type owl:ObjectProperty ;
+    rdfs:domain tko:DispatchedTrip ;
+    rdfs:range fko:FreightLoad ;
+    rdfs:label "has freight load"@en ;
+    rdfs:comment "Links a tko:DispatchedTrip to its FreightLoad. Required for all commercial fleet trips. Absent for personal trips, repositioning moves, and empty returns."@en .
+
+fko:hasCommodity rdf:type owl:ObjectProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range fko:Commodity ;
+    rdfs:label "has commodity"@en ;
+    rdfs:comment "Links a FreightLoad to the fko:Commodity class instance representing the type of freight. This link determines the CargoCTRSWeights and PerishabilityProfile applied in the OHR computation."@en .
+
+fko:hasHazmatClass rdf:type owl:ObjectProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range fko:HazmatClass ;
+    rdfs:label "has hazmat class"@en ;
+    rdfs:comment "Links a FreightLoad to its DOT hazmat class named individual. Use fko:HAZMAT_NONE for confirmed non-hazmat loads. Required for all HazmatCargo subclass instances; should be populated for all commercial fleet loads."@en .
+
+fko:hasTemperatureSensitivityClass rdf:type owl:ObjectProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range fko:TemperatureSensitivityClass ;
+    rdfs:label "has temperature sensitivity class"@en ;
+    rdfs:comment "Links a FreightLoad to its temperature sensitivity class named individual. For loads with no temperature requirement, use fko:AMBIENT. Required when tko:CargoProfile.temperatureControlled = true."@en .
+
+fko:loadWeightKg rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "load weight (kg)"@en ;
+    rdfs:comment "Declared cargo weight in kilograms. Used in combination with vehicle tare weight to check uko:hasMaxGVW compliance on candidate route segments during Route Option evaluation."@en .
+
+fko:loadValueUSD rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "declared load value (USD)"@en ;
+    rdfs:comment "Shipper-declared cargo value in USD. Used to assign the cargoValueTier on tko:CargoProfile and to compute the R7 cargo value percentile for the theft risk calculation."@en .
+
+fko:temperatureSetpointF rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "temperature setpoint (°F)"@en ;
+    rdfs:comment "Target cargo compartment temperature in degrees Fahrenheit, as specified in shipper instructions. Used as the center of the temperature tolerance band for R2 computation and ld_temperature_excursion label assignment."@en .
+
+fko:temperatureToleranceBandF rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "temperature tolerance band (±°F)"@en ;
+    rdfs:comment "Acceptable deviation in degrees Fahrenheit above or below the temperatureSetpointF before an excursion is recorded. Example: setpoint 38°F, tolerance 5°F → excursion triggered when temperature exceeds 43°F or drops below 33°F. Sourced from shipper instructions; defaults to the TemperatureSensitivityClass reference band when shipper instructions are absent."@en .
+
+fko:hazmatUnNumber rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range xsd:string ;
+    rdfs:label "hazmat UN number"@en ;
+    rdfs:comment "DOT/UN four-digit identification number for the specific hazardous material. Format: 'UN' followed by four digits (e.g., 'UN1203' for gasoline, 'UN2814' for Category A infectious substance). Required on hazmat shipping papers and placards. Used to look up specific routing restrictions in the DOT Emergency Response Guidebook and PHMSA hazmat routing rules. Null for fko:HAZMAT_NONE loads."@en .
+
+fko:requiresChainOfCustody rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "requires chain of custody"@en ;
+    rdfs:comment "True when the cargo requires formal chain-of-custody documentation throughout transport. Applies to: DEA-scheduled controlled substances (21 CFR Part 1301), FDA biologics and blood products, high-value pharmaceutical products under GDP, and cargo for forensic or legal chain-of-evidence purposes. Influences R6 (Regulatory/Compliance) weight upward when true."@en .
+
+fko:nmfcClassCode rdf:type owl:DatatypeProperty ;
+    rdfs:domain fko:FreightLoad ;
+    rdfs:range xsd:string ;
+    rdfs:label "NMFC class code"@en ;
+    rdfs:comment "National Motor Freight Classification commodity class code for this load. Format: numeric class (50, 55, 60, 65, 70, 77.5, 85, 92.5, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500). Used for freight bill accuracy and to cross-reference NMFC density and packaging requirements. Higher NMFC classes (lower density or fragile) correlate with elevated R2 (Cargo Integrity) contribution from road vibration and handling stress."@en .
+
+
+#################################################################
+#    PART 7: FREIGHT LOAD LINKING PROPERTIES ON DISPATCH DECISION
+#    Convenience properties enabling OHR computation to access
+#    cargo attributes directly from DispatchDecision without
+#    traversing the full Trip→FreightLoad→Commodity subgraph.
+#################################################################
+
+fko:decisionCargoCTRSWeightsRef rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:DispatchDecision ;
+    rdfs:range xsd:string ;
+    rdfs:label "decision cargo CTRS weights reference"@en ;
+    rdfs:comment "URI of the fko:CargoCTRSWeights named individual applicable to this dispatch decision's cargo class. Stored as a string literal on the DispatchDecision to enable rapid CTRS computation without traversing the FreightLoad→Commodity→CargoCTRSWeights subgraph at inference time. Example: 'urn:freight-kg:weights_FreshProduce'."@en .
+
+fko:decisionCargoClass rdf:type owl:DatatypeProperty ;
+    rdfs:domain tko:DispatchDecision ;
+    rdfs:range xsd:string ;
+    rdfs:label "decision cargo class"@en ;
+    rdfs:comment "Short string identifier of the cargo commodity class for this dispatch decision. Drawn from the FKO commodity class hierarchy (e.g., 'FreshProduce', 'HazmatClass3', 'ConsumerElectronics'). Stored directly on DispatchDecision for efficient training batch construction: the Instance Type 4 training pipeline filters overrides by cargo class to detect systematic override patterns for specific freight types."@en .
+
+
+###############################################################################
+#    END OF FKO v1.2.0 ONTOLOGY
+###############################################################################

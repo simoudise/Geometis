@@ -1,0 +1,385 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix uko: <urn:urban-kg:> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# =============================================================================
+# Urban Knowledge Ontology - Hard Braking Events (HBE) Extension
+# =============================================================================
+# Based on Google Research paper:
+# "From Lagging to Leading: Validating Hard Braking Events as High-Density 
+# Indicators of Segment Crash Risk" (January 2026)
+# https://arxiv.org/abs/2601.06327
+#
+# Key insight: HBEs are "leading indicators" of crash risk, occurring at 18x
+# higher density than actual crashes, enabling proactive safety assessment.
+#
+# Copyright (c) 2025 Synapse Partners, LLC
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Classes
+# -----------------------------------------------------------------------------
+
+uko:HardBrakingEvent a owl:Class ;
+    rdfs:subClassOf uko:SafetyEvent ;
+    rdfs:label "Hard Braking Event" ;
+    rdfs:comment "An instance where a vehicle's forward deceleration exceeds -3m/s², interpreted as an evasive maneuver. Serves as a leading indicator of crash risk." ;
+    dcterms:source "Google Research - Hard Braking Events as Indicators of Road Segment Crash Risk (2026)" .
+
+uko:HardBrakingZone a owl:Class ;
+    rdfs:subClassOf uko:SafetyFeature ;
+    rdfs:label "Hard Braking Zone" ;
+    rdfs:comment "A road segment or area with statistically elevated hard braking event frequency, indicating potential safety concerns." .
+
+uko:HBEHighRiskZone a owl:Class ;
+    rdfs:subClassOf uko:HardBrakingZone ;
+    rdfs:label "HBE High Risk Zone" ;
+    rdfs:comment "Road segment with HBE rate in the top 10% for its road type, indicating significantly elevated crash risk." .
+
+uko:HBECriticalZone a owl:Class ;
+    rdfs:subClassOf uko:HardBrakingZone ;
+    rdfs:label "HBE Critical Zone" ;
+    rdfs:comment "Road segment with HBE rate in the top 1% for its road type, indicating critical safety intervention needed." .
+
+uko:MergeConflictZone a owl:Class ;
+    rdfs:subClassOf uko:HardBrakingZone ;
+    rdfs:label "Merge Conflict Zone" ;
+    rdfs:comment "Area near highway ramps or lane merges with elevated HBE rates due to weaving maneuvers." .
+
+uko:QueueBackZone a owl:Class ;
+    rdfs:subClassOf uko:HardBrakingZone ;
+    rdfs:label "Queue Back Zone" ;
+    rdfs:comment "Area where recurring congestion causes frequent hard braking due to sudden speed changes." .
+
+uko:SafetyEvent a owl:Class ;
+    rdfs:subClassOf uko:Event ;
+    rdfs:label "Safety Event" ;
+    rdfs:comment "An event relevant to transportation safety analysis." .
+
+# -----------------------------------------------------------------------------
+# HBE Measurement Properties (Datatype Properties)
+# -----------------------------------------------------------------------------
+
+uko:hbeCount a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:integer ;
+    rdfs:label "HBE Count" ;
+    rdfs:comment "Total number of hard braking events recorded on this segment during the measurement period." .
+
+uko:hbeRate a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Rate" ;
+    rdfs:comment "Hard braking events per million vehicle-miles traveled (VMT) on this segment." .
+
+uko:hbeRatePerKm a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Rate per Kilometer" ;
+    rdfs:comment "Hard braking events per 1000 vehicles per kilometer." .
+
+uko:hbePercentile a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Percentile" ;
+    rdfs:comment "Percentile ranking of HBE rate compared to similar road types (0-100)." .
+
+uko:hbeRiskLevel a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:string ;
+    rdfs:label "HBE Risk Level" ;
+    rdfs:comment "Categorical risk classification based on HBE rate: 'low', 'moderate', 'elevated', 'high', 'critical'." .
+
+uko:hbeMeasurementPeriodStart a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:date ;
+    rdfs:label "HBE Measurement Period Start" ;
+    rdfs:comment "Start date of the HBE measurement period." .
+
+uko:hbeMeasurementPeriodEnd a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:date ;
+    rdfs:label "HBE Measurement Period End" ;
+    rdfs:comment "End date of the HBE measurement period." .
+
+uko:hbeDataSource a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:string ;
+    rdfs:label "HBE Data Source" ;
+    rdfs:comment "Source of HBE data (e.g., 'Google Roads Management Insights', 'Waze', 'INRIX')." .
+
+# -----------------------------------------------------------------------------
+# Individual HBE Event Properties
+# -----------------------------------------------------------------------------
+
+uko:hbeTimestamp a owl:DatatypeProperty ;
+    rdfs:domain uko:HardBrakingEvent ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "HBE Timestamp" ;
+    rdfs:comment "Date and time when the hard braking event occurred." .
+
+uko:hbeDeceleration a owl:DatatypeProperty ;
+    rdfs:domain uko:HardBrakingEvent ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Deceleration" ;
+    rdfs:comment "Peak deceleration rate in m/s² (negative value, threshold is -3 m/s²)." .
+
+uko:hbeInitialSpeed a owl:DatatypeProperty ;
+    rdfs:domain uko:HardBrakingEvent ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Initial Speed" ;
+    rdfs:comment "Vehicle speed in m/s at the start of the hard braking event." .
+
+uko:hbeDuration a owl:DatatypeProperty ;
+    rdfs:domain uko:HardBrakingEvent ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Duration" ;
+    rdfs:comment "Duration of the hard braking event in seconds." .
+
+# -----------------------------------------------------------------------------
+# Predictive Risk Properties
+# -----------------------------------------------------------------------------
+
+uko:predictedCrashRisk a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "Predicted Crash Risk" ;
+    rdfs:comment "Predicted crash probability (0-1) based on HBE-crash correlation model." .
+
+uko:predictedCrashRate a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "Predicted Crash Rate" ;
+    rdfs:comment "Predicted crashes per million VMT based on HBE model." .
+
+uko:riskModelVersion a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:string ;
+    rdfs:label "Risk Model Version" ;
+    rdfs:comment "Version identifier of the HBE-crash prediction model used." .
+
+uko:riskModelConfidence a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "Risk Model Confidence" ;
+    rdfs:comment "Confidence score (0-1) of the crash risk prediction." .
+
+# -----------------------------------------------------------------------------
+# Temporal Pattern Properties
+# -----------------------------------------------------------------------------
+
+uko:hbePeakHour a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:integer ;
+    rdfs:label "HBE Peak Hour" ;
+    rdfs:comment "Hour of day (0-23) with highest HBE frequency on this segment." .
+
+uko:hbePeakDayOfWeek a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:string ;
+    rdfs:label "HBE Peak Day of Week" ;
+    rdfs:comment "Day of week with highest HBE frequency." .
+
+uko:hbeWeekdayRate a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Weekday Rate" ;
+    rdfs:comment "Average HBE rate during weekdays (Mon-Fri)." .
+
+uko:hbeWeekendRate a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE Weekend Rate" ;
+    rdfs:comment "Average HBE rate during weekends (Sat-Sun)." .
+
+uko:hbeAmPeakRate a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE AM Peak Rate" ;
+    rdfs:comment "HBE rate during morning peak hours (typically 7-9 AM)." .
+
+uko:hbePmPeakRate a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "HBE PM Peak Rate" ;
+    rdfs:comment "HBE rate during evening peak hours (typically 4-7 PM)." .
+
+# -----------------------------------------------------------------------------
+# Infrastructure Factor Properties (from regression model)
+# -----------------------------------------------------------------------------
+
+uko:hasRamp a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Has Ramp" ;
+    rdfs:comment "Whether the road segment has an on-ramp or off-ramp (associated with increased HBE/crash risk)." .
+
+uko:cumulativeTurningAngle a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "Cumulative Turning Angle" ;
+    rdfs:comment "Total turning angle in degrees across the segment (higher values indicate curvier roads)." .
+
+uko:laneChangeIndicator a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Lane Change Indicator" ;
+    rdfs:comment "Whether the segment includes a change in number of lanes." .
+
+uko:segmentSlope a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:float ;
+    rdfs:label "Segment Slope" ;
+    rdfs:comment "Average slope/grade of the road segment in percent." .
+
+# -----------------------------------------------------------------------------
+# Object Properties - Relationships
+# -----------------------------------------------------------------------------
+
+uko:hasHBEZone a owl:ObjectProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range uko:HardBrakingZone ;
+    rdfs:label "has HBE Zone" ;
+    rdfs:comment "Links a road segment to an identified hard braking zone." .
+
+uko:hbeOnSegment a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingEvent ;
+    rdfs:range uko:RoadSegment ;
+    rdfs:label "HBE on Segment" ;
+    rdfs:comment "Links a hard braking event to the road segment where it occurred." .
+
+uko:hbeNearIntersection a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingEvent ;
+    rdfs:range uko:Intersection ;
+    rdfs:label "HBE Near Intersection" ;
+    rdfs:comment "Links a hard braking event to a nearby intersection." .
+
+uko:hbeZoneOverlapsHIN a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:HighInjuryNetwork ;
+    rdfs:label "HBE Zone Overlaps HIN" ;
+    rdfs:comment "Indicates that an HBE zone overlaps with a High Injury Network segment." .
+
+uko:hbeZoneNearSchool a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:School ;
+    rdfs:label "HBE Zone Near School" ;
+    rdfs:comment "Links an HBE zone to a nearby school (priority for safety intervention)." .
+
+uko:hbeZoneNearSeniorFacility a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:SeniorCenter ;
+    rdfs:label "HBE Zone Near Senior Facility" ;
+    rdfs:comment "Links an HBE zone to a nearby senior facility." .
+
+uko:hbeZoneInTract a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:CensusTract ;
+    rdfs:label "HBE Zone in Census Tract" ;
+    rdfs:comment "Links an HBE zone to its containing census tract for demographic analysis." .
+
+uko:hbeCorrelatesWithCollision a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:Collision ;
+    rdfs:label "HBE Correlates with Collision" ;
+    rdfs:comment "Links an HBE zone to historical collisions in the same area." .
+
+uko:predictedRiskValidatedBy a owl:ObjectProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range uko:Collision ;
+    rdfs:label "Predicted Risk Validated By" ;
+    rdfs:comment "Links a road segment's predicted risk to actual collision data for validation." .
+
+# -----------------------------------------------------------------------------
+# Cross-Domain Analysis Properties
+# -----------------------------------------------------------------------------
+
+uko:hbeRiskInLowIncomeArea a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:CensusTract ;
+    rdfs:label "HBE Risk in Low Income Area" ;
+    rdfs:comment "Links HBE zones in census tracts with below-median household income (equity analysis)." .
+
+uko:hbeRiskNearTransit a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:TransitStop ;
+    rdfs:label "HBE Risk Near Transit" ;
+    rdfs:comment "Links HBE zones to nearby transit stops (pedestrian safety concern)." .
+
+uko:hbeZoneNearBikeLane a owl:ObjectProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range uko:BikeLane ;
+    rdfs:label "HBE Zone Near Bike Lane" ;
+    rdfs:comment "Links HBE zones to nearby bike infrastructure (cyclist safety concern)." .
+
+# -----------------------------------------------------------------------------
+# Intervention & Countermeasure Properties
+# -----------------------------------------------------------------------------
+
+uko:recommendedIntervention a owl:DatatypeProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range xsd:string ;
+    rdfs:label "Recommended Intervention" ;
+    rdfs:comment "Suggested safety intervention based on HBE patterns (e.g., 'signal timing', 'signage', 'geometric redesign')." .
+
+uko:interventionPriority a owl:DatatypeProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range xsd:integer ;
+    rdfs:label "Intervention Priority" ;
+    rdfs:comment "Priority ranking for safety intervention (1 = highest priority)." .
+
+uko:estimatedCrashReduction a owl:DatatypeProperty ;
+    rdfs:domain uko:HardBrakingZone ;
+    rdfs:range xsd:float ;
+    rdfs:label "Estimated Crash Reduction" ;
+    rdfs:comment "Estimated percentage reduction in crashes if recommended intervention is implemented." .
+
+# -----------------------------------------------------------------------------
+# Data Quality & Provenance
+# -----------------------------------------------------------------------------
+
+uko:hbeDataQuality a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:string ;
+    rdfs:label "HBE Data Quality" ;
+    rdfs:comment "Quality indicator for HBE data: 'high' (high traffic), 'medium', 'low' (sparse traffic)." .
+
+uko:hbeSampleSize a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:integer ;
+    rdfs:label "HBE Sample Size" ;
+    rdfs:comment "Number of vehicle traversals used to calculate HBE metrics." .
+
+uko:hbeLastUpdated a owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "HBE Last Updated" ;
+    rdfs:comment "Timestamp when HBE data was last updated for this segment." .
+
+# =============================================================================
+# Example Usage (commented out)
+# =============================================================================
+#
+# # Road segment with HBE data
+# uko:entity/osm/way/12345 a uko:RoadSegment ;
+#     uko:hbeRate 45.2 ;
+#     uko:hbePercentile 92.5 ;
+#     uko:hbeRiskLevel "high" ;
+#     uko:predictedCrashRisk 0.73 ;
+#     uko:hasRamp true ;
+#     uko:hbeDataSource "Google Roads Management Insights" ;
+#     uko:hasHBEZone uko:entity/hbe_zone/zone_789 .
+#
+# # HBE Zone linked to vulnerable populations
+# uko:entity/hbe_zone/zone_789 a uko:HBEHighRiskZone ;
+#     rdfs:label "Highway 101/880 Merge Zone" ;
+#     uko:hbeZoneNearSchool uko:entity/osm/node/school_456 ;
+#     uko:hbeZoneInTract uko:entity/census/tract/06013301000 ;
+#     uko:hbeZoneOverlapsHIN uko:entity/hin/segment_123 ;
+#     uko:recommendedIntervention "geometric redesign of merge lane" ;
+#     uko:interventionPriority 1 .
+#
+# =============================================================================
