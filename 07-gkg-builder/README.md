@@ -83,3 +83,21 @@ share of households without a vehicle, and household counts below 35,000 dollars
 or more. 116 tracts cover the whole core; none lacks ACS values; the area-weighted population inside the
 core is about 393,000. The Census Data API now requires a key, so Stage 2 reads the Census Bureau's
 table-based summary files instead, which need none.
+
+## Stage 3, places, on the five Contra Costa cities (build 5)
+
+`run_stage3_places.py` loads 28,604 Overture places (release 2026-10-21.0) inside the extent. A place
+gets a UKO 15.5 class when a UKO class name equals its Overture category (25 per cent of places), and
+otherwise through the reviewed crosswalk in `mappings/overture_to_uko_v1.json`. Together the two rules
+classify 85 per cent of places; 12 per cent are left unclassified on purpose (contractors, storage,
+historic sites and other categories that are not trip destinations or have no UKO class); about 3 per
+cent remain, mostly places with no Overture category. The LLM-assisted classifier that v19 names for
+ambiguous categories is not built yet, and the crosswalk needs Evangelos's review.
+
+Gap against v19: section 9.3 Stage 3 says each POI is classified "into the UKO uko:PointOfInterest
+hierarchy", but UKO 15.5 puts restaurants, shops, schools and hospitals under uko:Building, not under
+uko:PointOfInterest, whose subclasses are street furniture and small sites (ATMs, charging stations,
+monuments). Either v19's wording or the UKO hierarchy needs to change.
+
+GTFS (the transit part of Stage 3) waits for a Mobility Database token, and Foursquare OS Places is not
+loaded yet.

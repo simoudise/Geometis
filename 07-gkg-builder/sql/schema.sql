@@ -173,3 +173,25 @@ CREATE OR REPLACE VIEW gkg.segment_within_tract AS
     FROM gkg.road_segment s
     JOIN gkg.census_tract t
       ON t.geofence_id = s.geofence_id AND ST_Contains(t.geom, ST_LineInterpolatePoint(s.geom, 0.5));
+
+-- Stage 3: places from Overture, with the UKO class assigned by rule where one applies.
+CREATE TABLE IF NOT EXISTS gkg.place (
+    geofence_id        text NOT NULL,
+    urn                text NOT NULL,
+    gers_id            text NOT NULL,
+    name               text,
+    basic_category     text,
+    taxonomy_primary   text,
+    taxonomy_hierarchy jsonb,
+    confidence         double precision,
+    operating_status   text,
+    brand              text,
+    uko_class          text,
+    uko_class_via      text,
+    classified_by      text,          -- rule | llm (not built yet) | null
+    in_core            boolean NOT NULL,
+    geom               geometry(Point, 4326) NOT NULL,
+    build_id           integer NOT NULL,
+    PRIMARY KEY (geofence_id, urn)
+);
+CREATE INDEX IF NOT EXISTS place_geom ON gkg.place USING gist (geom);
