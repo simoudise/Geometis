@@ -34,15 +34,15 @@ checks that apply to Stage 1. Raw downloads go to `~/geometis-data/gkg`.
 
 ## Open items and gaps against v19
 
-1. **The five cities.** v19 section 9.3 Stage 1 and the database name Concord as the fifth city;
-   v19's Vision Zero scenario (sections 2 and 7) and the January 2026 builder name Richmond. This
-   build follows section 9.3 and the database. The scenario text needs a decision.
-2. **Segment URNs.** v19's URN example uses the Overture GERS id as the source id, but the next
-   paragraph says GERS ids are not used as vertex ids because about 20 per cent change between
-   releases. This build mints a name-based UUID from the GERS id and the piece's position on it.
-   The URNs repeat exactly for the same release, but a new release can change them. Before the
-   first refresh, the builder needs a URN registry that keeps a URN when a segment's GERS id or
-   geometry still matches.
+1. **The five cities (resolved 3 November 2026).** Evangelos chose Concord over Richmond. The v19
+   Vision Zero scenario now names Concord, matching section 9.3 and the database.
+2. **Segment URNs.** v19 now states that the Knowledge Builder mints the source id of every
+   Overture entity as a UUID, keeps the GERS id as a separate attribute, and keeps a URN registry
+   so that a refresh reuses a URN when the GERS id or the geometry still matches (section on URNs,
+   updated 3 November 2026). This build mints a name-based UUID from the GERS id and the piece's
+   position, so the URNs repeat exactly for the same release. The registry and the refresh rule are
+   not built yet, and v19 leaves the geometry tolerance to the GKG network version, which does not
+   set it yet.
 3. **city2graph.** v19 names city2graph as the Stage 1 tool. It is not installed on the Mac mini;
    this loader uses DuckDB and Shapely instead. Its output follows the same tables either way.
 4. **Elevation.** v19 Stage 1 step 3 asks for elevation from a DEM. No DEM source is pinned and
