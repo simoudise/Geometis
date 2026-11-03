@@ -1,6 +1,6 @@
 # Geofence input for the GKG builder
 
-Task A1 of the City Fingerprint Work Plan. Status: draft for Evangelos's approval, 2 November 2026.
+Task A1 of the City Fingerprint Work Plan. Status: approved by Evangelos Simoudis on 3 November 2026, with both decisions below accepted. We revisit the buffer threshold once the first builds run.
 
 ## Purpose
 
@@ -75,7 +75,7 @@ The January 2026 loaders in `03-gkg-v1/code` select their area in five different
 
 The Mac mini's `geometis` database gets a table `gkg_geofence` that holds the records. The existing city tables and the `all_boundaries` view stay unchanged; the Contra Costa records are built from the same TIGER boundaries that `02-tlp/setup/setup_boundaries.py` downloaded.
 
-## Decisions needed
+## Decisions (accepted 3 November 2026)
 
 1. Approve the buffer test and its 0.5 per cent threshold.
 2. Confirm that the five Contra Costa cities form one union geofence for the graph, with five one-member records for the fingerprint.
