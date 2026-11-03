@@ -1,0 +1,13 @@
+{
+  "geofence_id": "us-ca-contra-costa-5",
+  "name": "Five Contra Costa cities",
+  "state_fips": "06",
+  "members": [
+    {"geoid": "0602252", "name": "Antioch"},
+    {"geoid": "0616000", "name": "Concord"},
+    {"geoid": "0657456", "name": "Pittsburg"},
+    {"geoid": "0657764", "name": "Pleasant Hill"},
+    {"geoid": "0683346", "name": "Walnut Creek"}
+  ],
+  "fingerprint_records": true
+}
