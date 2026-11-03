@@ -33,3 +33,12 @@ STORE_CRS = "EPSG:4326"
 
 # Overture road classes. Classes not listed here (for example "unknown") are treated as vehicular.
 PEDESTRIAN_CLASSES = {"footway", "pedestrian", "steps", "path", "cycleway", "bridleway"}
+
+# URN matching on an Overture refresh (v19, URNs: "within the tolerance recorded in the GKG network version").
+# A segment whose GERS id changed keeps an old URN only if both ends lie within URN_MATCH_END_M of the old
+# segment's ends, the Hausdorff distance is at most URN_MATCH_HAUSDORFF_M, and the length differs by at most
+# URN_MATCH_LENGTH_SHARE; a candidate must be the only old segment that passes. Set 3 November 2026 from the
+# 2026-09-23 to 2026-10-21 comparison for Contra Costa (analysis/release_drift.py).
+URN_MATCH_END_M = 5.0
+URN_MATCH_HAUSDORFF_M = 10.0
+URN_MATCH_LENGTH_SHARE = 0.10

@@ -55,3 +55,22 @@ checks that apply to Stage 1. Raw downloads go to `~/geometis-data/gkg`.
    needed only where a later geofence shows sparse Overture coverage.
 8. **Splitting rule.** Segments split at every connector that more than one segment uses. Nodes
    where only two segments meet are kept and marked `through`.
+
+## Overture release drift, September to October 2026
+
+`analysis/release_drift.py` compared releases 2026-09-23 and 2026-10-21 for the Contra Costa extent
+(vehicular segments only):
+
+- 52,559 of 52,586 October segments (99.95 per cent) kept their GERS id. 15 ids disappeared and 27 appeared.
+- Of the segments that kept their id, 22 changed geometry by more than 1 m (at most 27 m).
+- None of the 27 new segments lies within 10 m of a disappeared segment; the nearest lies 42 m away at the
+  median. The new ids belong to new or redrawn roads, not to renamed copies of old ones. The matching rule
+  (ends within 5 m, Hausdorff at most 10 m, length within 10 per cent) therefore matched none of them, which
+  is the correct result.
+- Overture keeps only recent releases on its public bucket, so a longer interval could not be tested.
+
+Two consequences. First, v19's figure of about 20 per cent GERS churn between releases does not hold for
+transportation segments here: one month changed 0.05 per cent. v19 gives no source for the 20 per cent.
+Second, the URN of a piece also depends on where its parent segment is split, so a new connector on an
+unchanged GERS id changes the URNs of that segment's pieces. The URN registry must match pieces of a
+retained GERS id by geometry as well, not only segments whose GERS id changed.
