@@ -101,3 +101,46 @@ monuments). Either v19's wording or the UKO hierarchy needs to change.
 
 GTFS (the transit part of Stage 3) waits for a Mobility Database token, and Foursquare OS Places is not
 loaded yet.
+
+## Stage 3 transit on the five Contra Costa cities (build 7)
+
+`run_stage3_transit.py` reads GTFS-static from the Mobility Database archive (refresh token in
+`MOBILITY_DB_TOKEN`, from `~/.geometis-env` on the Mac mini). The reference date is Wednesday
+17 April 2024, the month of the first client trip delivery. For each feed whose bounding box touches the
+extent, the loader takes the archived dataset whose calendar covers that date; when none does, it takes the
+nearest one and records the gap. A deprecated feed and the feed it redirects to count as one feed.
+
+| Item | Value |
+|---|---|
+| Feeds loaded | 12 (9 cover 17 April 2024; 3 use the nearest dataset) |
+| Stops inside the extent | 1,639 (1,254 inside the core): 1,389 bus stops, 8 BART stations, 8 platforms, 9 entrances |
+| Routes serving those stops | 61, with 1,537 trips on the service day |
+| Stop times kept | 34,972 |
+| Walksheds | 1,634 (5 stops lie more than 150 m from the walkable network); median area 0.69 km2 |
+| Stops matched to a road segment (uko:connectsToTransit) | 1,627, median distance 5.6 m |
+| Time | 22 s |
+
+### Gaps
+
+1. **April 2024 schedules are missing for the two main bus agencies.** The archive holds County Connection
+   only for 12 November 2023 to 13 January 2024 (95 days before the reference date) and Tri Delta Transit
+   only from 11 August 2024 (116 days after). This build uses those nearest datasets, and each stop's service
+   counts come from a Wednesday inside the dataset's own calendar (10 January 2024 and 14 August 2024).
+   AC Transit (2 stops inside the extent) is 46 days off. Evangelos is deciding whether to fetch the
+   April 2024 versions from Transitland or from the agencies.
+2. **Unserved County Connection stops.** 218 County Connection stops have no departure on 10 January 2024.
+   Only 12 of them lie within 30 m of a served stop, so most are not duplicates; they are probably stops of
+   weekend, school or discontinued routes. They are kept and marked with zero departures.
+3. **Walkshed parameters.** v19 asks for walksheds "using the v15.4 decay parameters", but neither v19 nor
+   UKO 15.5 states the values. This build uses placeholders set in `gkg/config.py`: an 800 m network
+   threshold and exponential decay with beta 0.002 per metre. The walkable network is every vehicular
+   segment except motorways, plus the pedestrian layer, joined at access points.
+4. **Direction of uko:connectsToTransit.** v19 section 9.4 lists the edge as (TransitStop, connectsToTransit,
+   RoadSegment). UKO 15.5 declares the property with domain uko:Road and range uko:TransitStop, the
+   opposite direction. The table `gkg.stop_road` stores the pair without choosing; the graph export must
+   follow one of the two, and v19 or UKO should change to match the other.
+5. **city2graph.** v19 names city2graph for the GTFS graph. The loader reads the GTFS files directly with
+   pandas instead, as Stage 1 does for Overture.
+6. **Feed search by bounding box.** The Mobility Database search returns feeds whose recorded bounding box
+   touches the extent, including some far away (Renfe, Chatham Area Transit). The loader drops every feed
+   with no stop inside the extent, so these do not reach the graph.

@@ -195,3 +195,36 @@ CREATE TABLE IF NOT EXISTS gkg.place (
     PRIMARY KEY (geofence_id, urn)
 );
 CREATE INDEX IF NOT EXISTS place_geom ON gkg.place USING gist (geom);
+
+-- Stage 3 transit (GTFS-static). Stops are kept when they lie inside the extent; routes, agencies and stop
+-- times are kept when they serve such a stop on the service day.
+CREATE TABLE IF NOT EXISTS gkg.transit_agency (
+    geofence_id text NOT NULL, urn text NOT NULL, feed_id text NOT NULL, agency_id text, name text, url text,
+    build_id integer NOT NULL, PRIMARY KEY (geofence_id, urn));
+CREATE TABLE IF NOT EXISTS gkg.transit_route (
+    geofence_id text NOT NULL, urn text NOT NULL, feed_id text NOT NULL, route_id text NOT NULL,
+    short_name text, long_name text, route_type integer, uko_class text, agency_urn text,
+    trips_on_service_day integer, service_day text, build_id integer NOT NULL, PRIMARY KEY (geofence_id, urn));
+CREATE TABLE IF NOT EXISTS gkg.transit_stop (
+    geofence_id text NOT NULL, urn text NOT NULL, feed_id text NOT NULL, stop_id text NOT NULL, name text,
+    uko_class text NOT NULL, location_type integer, parent_urn text, departures_on_service_day integer,
+    route_urns text[], wheelchair_boarding text, in_core boolean NOT NULL, geom geometry(Point, 4326) NOT NULL,
+    build_id integer NOT NULL, PRIMARY KEY (geofence_id, urn));
+CREATE INDEX IF NOT EXISTS transit_stop_geom ON gkg.transit_stop USING gist (geom);
+CREATE TABLE IF NOT EXISTS gkg.transit_stop_time (
+    geofence_id text NOT NULL, stop_urn text NOT NULL, route_urn text NOT NULL, feed_id text NOT NULL,
+    trip_id text NOT NULL, arrival_time text, departure_time text, stop_sequence integer, service_day text,
+    build_id integer NOT NULL);
+CREATE INDEX IF NOT EXISTS transit_stop_time_stop ON gkg.transit_stop_time (geofence_id, stop_urn);
+CREATE TABLE IF NOT EXISTS gkg.service_calendar (
+    geofence_id text NOT NULL, urn text NOT NULL, feed_id text NOT NULL, service_id text NOT NULL,
+    service_day text, build_id integer NOT NULL, PRIMARY KEY (geofence_id, urn));
+CREATE TABLE IF NOT EXISTS gkg.walkshed_area (
+    geofence_id text NOT NULL, urn text NOT NULL, origin_urn text NOT NULL, distance_threshold_m double precision,
+    decay_method text, beta double precision, snap_m double precision, nodes_reached integer,
+    decay_weighted_nodes double precision, area_m2 double precision, geom geometry(Polygon, 4326) NOT NULL,
+    build_id integer NOT NULL, PRIMARY KEY (geofence_id, urn));
+-- uko:connectsToTransit runs from a road to a stop in UKO 15.5 (domain uko:Road, range uko:TransitStop).
+CREATE TABLE IF NOT EXISTS gkg.stop_road (
+    geofence_id text NOT NULL, segment_urn text NOT NULL, stop_urn text NOT NULL, distance_m double precision,
+    build_id integer NOT NULL);

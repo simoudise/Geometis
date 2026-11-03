@@ -42,3 +42,11 @@ PEDESTRIAN_CLASSES = {"footway", "pedestrian", "steps", "path", "cycleway", "bri
 URN_MATCH_END_M = 5.0
 URN_MATCH_HAUSDORFF_M = 10.0
 URN_MATCH_LENGTH_SHARE = 0.10
+
+# Stage 3 transit. The reference date is a Wednesday in April 2024, the month of the first client trip delivery,
+# so that the transit graph matches the trips. v19 asks for walksheds with "the v15.4 decay parameters" but
+# neither v19 nor UKO 15.5 gives their values; the three values below are placeholders until they are set.
+TRANSIT_REFERENCE_DATE = "20240417"
+WALKSHED_THRESHOLD_M = 800.0
+WALKSHED_BETA = 0.002          # exponential decay per metre: weight = exp(-beta * network distance)
+WALKSHED_MAX_SNAP_M = 150.0    # a stop farther than this from the walkable network gets no walkshed
