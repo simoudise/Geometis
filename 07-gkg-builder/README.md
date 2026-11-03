@@ -114,7 +114,7 @@ nearest one and records the gap. A deprecated feed and the feed it redirects to 
 |---|---|
 | Feeds loaded | 12 (9 cover 17 April 2024; 3 use the nearest dataset) |
 | Stops inside the extent | 1,639 (1,254 inside the core): 1,389 bus stops, 8 BART stations, 8 platforms, 9 entrances |
-| Routes serving those stops | 61, with 1,537 trips on the service day |
+| Routes serving those stops | 61, with 1,535 trips on the service day |
 | Stop times kept | 34,972 |
 | Walksheds | 1,634 (5 stops lie more than 150 m from the walkable network); median area 0.69 km2 |
 | Stops matched to a road segment (uko:connectsToTransit) | 1,627, median distance 5.6 m |
