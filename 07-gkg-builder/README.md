@@ -3,8 +3,8 @@
 Loaders that build the GeoMetis knowledge graph for any geofence. Each loader reads one geofence
 record (see `docs/geofence-input-spec.md`) as its only geographic input.
 
-Status, 3 November 2026: the geofence record and Stage 1 (base road network and pedestrian
-multiplex) run on the Mac mini. Stages 2 and 3 follow (task A3).
+Status, 3 November 2026: the geofence record, Stage 1 (base road network and pedestrian
+multiplex) and Stage 2 (Census tracts and ACS) run on the Mac mini. Stage 3 follows (task A3).
 
 ## Run
 
@@ -74,3 +74,12 @@ transportation segments here: one month changed 0.05 per cent. v19 gives no sour
 Second, the URN of a piece also depends on where its parent segment is split, so a new connector on an
 unchanged GERS id changes the URNs of that segment's pieces. The URN registry must match pieces of a
 retained GERS id by geometry as well, not only segments whose GERS id changed.
+
+## Stage 2 on the five Contra Costa cities (build 3)
+
+`run_stage2.py` loads every 2024 TIGER tract that intersects the core, whole, with the share of its area
+inside the core, and attaches ACS 5-year values (2020-2024): population, median household income, the
+share of households without a vehicle, and household counts below 35,000 dollars and at 100,000 dollars
+or more. 116 tracts cover the whole core; none lacks ACS values; the area-weighted population inside the
+core is about 393,000. The Census Data API now requires a key, so Stage 2 reads the Census Bureau's
+table-based summary files instead, which need none.

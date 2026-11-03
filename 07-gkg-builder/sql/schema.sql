@@ -146,3 +146,30 @@ CREATE OR REPLACE VIEW gkg.seg_connects_to AS
     SELECT a.geofence_id, a.urn AS from_segment, b.urn AS to_segment, a.to_node AS via_node
     FROM gkg.road_segment a JOIN gkg.road_segment b
       ON a.geofence_id = b.geofence_id AND a.to_node = b.from_node AND a.urn <> b.urn;
+
+-- Stage 2: Census tracts, kept whole, with the share of each tract's area inside the core.
+CREATE TABLE IF NOT EXISTS gkg.census_tract (
+    geofence_id              text NOT NULL,
+    urn                      text NOT NULL,
+    geoid                    text NOT NULL,
+    share_in_core            double precision NOT NULL,
+    population               double precision,
+    median_household_income  double precision,
+    zero_vehicle_share       double precision,
+    households               double precision,
+    households_below_35k     double precision,
+    households_100k_plus     double precision,
+    acs5_end_year            integer NOT NULL,
+    geom                     geometry(MultiPolygon, 4326) NOT NULL,
+    build_id                 integer NOT NULL,
+    PRIMARY KEY (geofence_id, urn)
+);
+CREATE INDEX IF NOT EXISTS census_tract_geom ON gkg.census_tract USING gist (geom);
+
+-- uko:within: each road segment lies in the tract that contains its midpoint.
+-- Segments in the buffer ring outside every loaded tract get no row.
+CREATE OR REPLACE VIEW gkg.segment_within_tract AS
+    SELECT s.geofence_id, s.urn AS segment_urn, t.urn AS tract_urn
+    FROM gkg.road_segment s
+    JOIN gkg.census_tract t
+      ON t.geofence_id = s.geofence_id AND ST_Contains(t.geom, ST_LineInterpolatePoint(s.geom, 0.5));
