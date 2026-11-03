@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-fl-orlando",
+  "name": "Orlando city",
+  "state_fips": "12",
+  "members": [
+    {
+      "geoid": "1253000",
+      "name": "Orlando"
+    }
+  ],
+  "fingerprint_records": false
+}

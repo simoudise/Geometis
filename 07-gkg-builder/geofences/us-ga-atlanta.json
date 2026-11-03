@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-ga-atlanta",
+  "name": "Atlanta city",
+  "state_fips": "13",
+  "members": [
+    {
+      "geoid": "1304000",
+      "name": "Atlanta"
+    }
+  ],
+  "fingerprint_records": false
+}

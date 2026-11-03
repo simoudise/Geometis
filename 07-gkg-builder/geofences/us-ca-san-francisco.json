@@ -3,7 +3,10 @@
   "name": "San Francisco city",
   "state_fips": "06",
   "members": [
-    {"geoid": "0667000", "name": "San Francisco"}
+    {
+      "geoid": "0667000",
+      "name": "San Francisco"
+    }
   ],
   "fingerprint_records": false
 }

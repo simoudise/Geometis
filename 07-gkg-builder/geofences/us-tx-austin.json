@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-tx-austin",
+  "name": "Austin city",
+  "state_fips": "48",
+  "members": [
+    {
+      "geoid": "4805000",
+      "name": "Austin"
+    }
+  ],
+  "fingerprint_records": false
+}

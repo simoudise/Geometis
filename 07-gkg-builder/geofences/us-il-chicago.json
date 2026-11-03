@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-il-chicago",
+  "name": "Chicago city",
+  "state_fips": "17",
+  "members": [
+    {
+      "geoid": "1714000",
+      "name": "Chicago"
+    }
+  ],
+  "fingerprint_records": false
+}

@@ -1,0 +1,15 @@
+{
+  "name": "US reference set, version 1 (3 November 2026)",
+  "boundary_unit": "principal city Census place (decision 3, 2 November 2026)",
+  "sources": "Waymo metros with public service per The Charge Port robotaxi tracker, verified 25 October 2026",
+  "groups": {
+    "contra_costa": ["0602252", "0616000", "0657456", "0657764", "0683346"],
+    "waymo_public_service": {
+      "Phoenix": "0455000", "San Francisco": "0667000", "Los Angeles": "0644000", "San Diego": "0666000",
+      "Denver": "0820000", "Las Vegas": "3240000", "Atlanta": "1304000", "Austin": "4805000",
+      "Dallas": "4819000", "Houston": "4835000", "San Antonio": "4865000", "Orlando": "1253000",
+      "Tampa": "1271000", "Miami": "1245000", "Nashville-Davidson metropolitan government (balance)": "4752006"
+    },
+    "comparison": {"Boston": "2507000", "Seattle": "5363000", "Chicago": "1714000", "New York": "3651000"}
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-fl-miami",
+  "name": "Miami city",
+  "state_fips": "12",
+  "members": [
+    {
+      "geoid": "1245000",
+      "name": "Miami"
+    }
+  ],
+  "fingerprint_records": false
+}

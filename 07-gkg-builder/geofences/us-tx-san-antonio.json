@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-tx-san-antonio",
+  "name": "San Antonio city",
+  "state_fips": "48",
+  "members": [
+    {
+      "geoid": "4865000",
+      "name": "San Antonio"
+    }
+  ],
+  "fingerprint_records": false
+}

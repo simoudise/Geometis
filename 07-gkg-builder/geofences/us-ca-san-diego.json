@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-ca-san-diego",
+  "name": "San Diego city",
+  "state_fips": "06",
+  "members": [
+    {
+      "geoid": "0666000",
+      "name": "San Diego"
+    }
+  ],
+  "fingerprint_records": false
+}

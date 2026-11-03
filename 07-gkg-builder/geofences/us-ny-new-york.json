@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-ny-new-york",
+  "name": "New York city",
+  "state_fips": "36",
+  "members": [
+    {
+      "geoid": "3651000",
+      "name": "New York"
+    }
+  ],
+  "fingerprint_records": false
+}

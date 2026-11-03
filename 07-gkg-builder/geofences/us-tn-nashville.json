@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-tn-nashville",
+  "name": "Nashville-Davidson metropolitan government (balance) city",
+  "state_fips": "47",
+  "members": [
+    {
+      "geoid": "4752006",
+      "name": "Nashville-Davidson metropolitan government (balance)"
+    }
+  ],
+  "fingerprint_records": false
+}

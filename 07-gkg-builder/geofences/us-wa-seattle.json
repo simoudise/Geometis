@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-wa-seattle",
+  "name": "Seattle city",
+  "state_fips": "53",
+  "members": [
+    {
+      "geoid": "5363000",
+      "name": "Seattle"
+    }
+  ],
+  "fingerprint_records": false
+}

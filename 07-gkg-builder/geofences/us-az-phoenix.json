@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-az-phoenix",
+  "name": "Phoenix city",
+  "state_fips": "04",
+  "members": [
+    {
+      "geoid": "0455000",
+      "name": "Phoenix"
+    }
+  ],
+  "fingerprint_records": false
+}

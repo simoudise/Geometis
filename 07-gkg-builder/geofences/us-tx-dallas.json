@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-tx-dallas",
+  "name": "Dallas city",
+  "state_fips": "48",
+  "members": [
+    {
+      "geoid": "4819000",
+      "name": "Dallas"
+    }
+  ],
+  "fingerprint_records": false
+}

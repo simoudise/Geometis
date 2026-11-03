@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-co-denver",
+  "name": "Denver city",
+  "state_fips": "08",
+  "members": [
+    {
+      "geoid": "0820000",
+      "name": "Denver"
+    }
+  ],
+  "fingerprint_records": false
+}

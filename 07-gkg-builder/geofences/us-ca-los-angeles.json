@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-ca-los-angeles",
+  "name": "Los Angeles city",
+  "state_fips": "06",
+  "members": [
+    {
+      "geoid": "0644000",
+      "name": "Los Angeles"
+    }
+  ],
+  "fingerprint_records": false
+}

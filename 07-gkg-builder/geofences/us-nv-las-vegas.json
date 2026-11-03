@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-nv-las-vegas",
+  "name": "Las Vegas city",
+  "state_fips": "32",
+  "members": [
+    {
+      "geoid": "3240000",
+      "name": "Las Vegas"
+    }
+  ],
+  "fingerprint_records": false
+}

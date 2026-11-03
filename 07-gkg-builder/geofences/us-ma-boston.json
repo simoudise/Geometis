@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-ma-boston",
+  "name": "Boston city",
+  "state_fips": "25",
+  "members": [
+    {
+      "geoid": "2507000",
+      "name": "Boston"
+    }
+  ],
+  "fingerprint_records": false
+}

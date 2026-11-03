@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-tx-houston",
+  "name": "Houston city",
+  "state_fips": "48",
+  "members": [
+    {
+      "geoid": "4835000",
+      "name": "Houston"
+    }
+  ],
+  "fingerprint_records": false
+}

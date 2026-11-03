@@ -1,0 +1,12 @@
+{
+  "geofence_id": "us-fl-tampa",
+  "name": "Tampa city",
+  "state_fips": "12",
+  "members": [
+    {
+      "geoid": "1271000",
+      "name": "Tampa"
+    }
+  ],
+  "fingerprint_records": false
+}
