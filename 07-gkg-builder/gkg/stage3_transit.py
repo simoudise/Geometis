@@ -72,15 +72,24 @@ class MobilityDatabase:
         return json.load(urllib.request.urlopen(req, timeout=120))
 
     def feeds_touching(self, bounds):
+        """Feeds whose bounding box overlaps the extent's box or lies wholly inside it.
+
+        The API's "partially_enclosed" filter leaves out feeds whose box lies completely inside the query
+        box (San Francisco Muni inside the San Francisco extent), so both filters are queried and merged.
+        """
         xmin, ymin, xmax, ymax = bounds
-        out, offset = [], 0
-        while True:
-            page = self.get(f"/gtfs_feeds?limit=100&offset={offset}&dataset_latitudes={ymin:.5f},{ymax:.5f}"
-                            f"&dataset_longitudes={xmin:.5f},{xmax:.5f}&bounding_filter_method=partially_enclosed")
-            out += page
-            if len(page) < 100:
-                return out
-            offset += 100
+        out = {}
+        for method in ("partially_enclosed", "completely_enclosed"):
+            offset = 0
+            while True:
+                page = self.get(f"/gtfs_feeds?limit=100&offset={offset}&dataset_latitudes={ymin:.5f},{ymax:.5f}"
+                                f"&dataset_longitudes={xmin:.5f},{xmax:.5f}&bounding_filter_method={method}")
+                for f in page:
+                    out.setdefault(f["id"], f)
+                if len(page) < 100:
+                    break
+                offset += 100
+        return list(out.values())
 
     def datasets(self, feed_id, after, before):
         return self.get(f"/gtfs_feeds/{feed_id}/datasets?limit=500&downloaded_after={after}T00:00:00Z"

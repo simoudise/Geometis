@@ -21,6 +21,7 @@ BUFFER_START_M = 3000
 BUFFER_STEP_M = 1000
 BUFFER_MAX_M = 30000
 BUFFER_OUTSIDE_THRESHOLD = 0.005  # share of total route length allowed outside the extent
+BUFFER_MAX_SNAP_M = 500.0  # route pairs whose tract point lies farther than this from a road are left out
 
 OSRM_CAR_URL = os.environ.get("GEOMETIS_OSRM_CAR", "http://127.0.0.1:5001")
 OSRM_REGION = "Geofabrik norcal extract on the Mac mini"

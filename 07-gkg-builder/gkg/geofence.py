@@ -83,6 +83,10 @@ def _route(session, a, b):
         return None
     if j.get("code") != "Ok" or not j.get("routes"):
         return None
+    # A point far from any road (an island, open water) snaps to a distant road, and its routes then run far
+    # outside the core for reasons unrelated to how residents travel; such pairs are left out of the test.
+    if max(w.get("distance", 0) for w in j.get("waypoints", [])) > config.BUFFER_MAX_SNAP_M:
+        return "far"
     coords = j["routes"][0]["geometry"]["coordinates"]
     return LineString(coords) if len(coords) >= 2 else None
 
@@ -100,10 +104,12 @@ def buffer_test(core, points, max_pairs=None, seed=20261103):
     print(f"buffer test: {len(points)} tract points, {len(pairs)} pairs", flush=True)
     with requests.Session() as s, ThreadPoolExecutor(8) as ex:
         routes = list(ex.map(lambda p: _route(s, points[p[0]], points[p[1]]), pairs))
-    ok = [transform(_to_metric, r) for r in routes if r is not None]
+    far = sum(1 for r in routes if isinstance(r, str))
+    ok = [transform(_to_metric, r) for r in routes if r is not None and not isinstance(r, str)]
     result = {"tract_points": len(points), "pairs": len(pairs), "routed": len(ok),
+              "pairs_dropped_point_far_from_road": far, "max_snap_m": config.BUFFER_MAX_SNAP_M,
               "threshold": config.BUFFER_OUTSIDE_THRESHOLD, "osrm": config.OSRM_REGION, "steps": []}
-    if len(ok) < 0.9 * max(1, len(pairs)):
+    if len(ok) < 0.9 * max(1, len(pairs) - far):
         result["status"] = "not_run: fewer than 90 per cent of pairs routed (outside the OSRM extract?)"
         return config.BUFFER_START_M, result
     routes_m = shapely.simplify(np.array(ok, dtype=object), 5.0)

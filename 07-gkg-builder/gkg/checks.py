@@ -43,6 +43,9 @@ def _components(edges):
 def run(geofence_id):
     out = {}
     with connect() as conn:
+        # Fresh statistics after a large load, so the planner does not pick nested loops over millions of rows.
+        conn.execute("ANALYZE gkg.road_segment")
+        conn.execute("ANALYZE gkg.osm_crosswalk")
         for name, sql in CHECKS.items():
             out[name] = conn.execute(sql, {"g": geofence_id}).fetchone()[0]
         n, km, core_km = conn.execute(

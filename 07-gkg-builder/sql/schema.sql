@@ -125,6 +125,7 @@ CREATE INDEX IF NOT EXISTS road_segment_geom ON gkg.road_segment USING gist (geo
 CREATE INDEX IF NOT EXISTS intersection_node_geom ON gkg.intersection_node USING gist (geom);
 CREATE INDEX IF NOT EXISTS pedestrian_edge_geom ON gkg.pedestrian_edge USING gist (geom);
 CREATE INDEX IF NOT EXISTS osm_crosswalk_way ON gkg.osm_crosswalk (geofence_id, osm_way_id);
+CREATE INDEX IF NOT EXISTS osm_crosswalk_seg ON gkg.osm_crosswalk (geofence_id, layer, segment_urn);
 CREATE INDEX IF NOT EXISTS road_segment_nodes ON gkg.road_segment (geofence_id, from_node, to_node);
 
 -- Edges are views over the segment table, so that they cost no disk.

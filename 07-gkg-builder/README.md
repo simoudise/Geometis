@@ -166,3 +166,26 @@ Gaps: Boeing builds his graphs from OpenStreetMap through OSMnx; this build uses
 split at different points and include more service roads, so values are comparable across GeoMetis geofences
 but not exactly with Boeing's published city values. Boeing's "drive" network filter is not reproduced
 exactly; excluding service roads and tracks is an approximation.
+
+## San Francisco (task A4, 4 November 2026)
+
+| Stage | Result | Time |
+|---|---|---|
+| Geofence and buffer test | 244 tract points, 10,000 sampled car routes; 367 pairs dropped because a tract point lies more than 500 m from a road (the Farallon Islands tract); 0.0 per cent outside core plus 3,000 m, so the buffer stays at 3,000 m | 19 s |
+| Stage 1 | 61,175 vehicular edges (3,336 km, 2,391 km in the core), 72,482 pedestrian edges, 21,556 access points; OSM crosswalk covers 99.1 per cent of length; 90 components, the largest holding 87 per cent of length (islands and the Presidio and port networks account for the rest); Stage 8 passed | 51 s, 79 s with checks |
+| Stage 2 | 261 tracts, ACS 2020-2024, none missing | 7 s |
+| Stage 3 places | 78,789 places, 87.6 per cent mapped to UKO by rule | 15 s |
+| Stage 3 transit | 18 feeds, 3,849 stops (3,548 in the core), 170 routes, 385,120 stop times; Muni (dataset of 4 March 2024) covers the reference date | 70 s |
+| Stage 6 street pattern | phi 0.369, circuity 1.032, four-way-or-more share 0.426 (network without service roads and tracks) | 2 s |
+
+Whole build: under 4 minutes.
+
+### Problems found and fixed during the San Francisco build
+
+1. **Buffer test and island tracts.** The first run stopped at the 30 km cap: 7 per cent of route length lay outside the core plus 3 km, and the share fell only slowly. Routes to a tract point on the Farallon Islands snap to a road far away. Pairs whose tract point lies more than `BUFFER_MAX_SNAP_M` (500 m) from a road are now left out of the test and counted in the build record.
+2. **Slow Stage 8 check.** With a 30 km extent the crosswalk-coverage check ran for 37 minutes on stale planner statistics. `checks.run` now runs ANALYZE first, and the crosswalk has an index on segment URN.
+3. **Transit feeds wholly inside the extent were missed.** The Mobility Database filter "partially_enclosed" leaves out feeds whose bounding box lies completely inside the query box, so Muni was missing. The loader now queries "completely_enclosed" as well and merges the two. Contra Costa's result did not change.
+
+### Gap
+
+4. **Densities use total area, including water.** The TIGER place polygon for San Francisco covers about 600 km2, most of it bay and ocean, so `intersections_per_km2` and `street_km_per_km2` are far too low for San Francisco. They should divide by land area (TIGER ALAND, or the core clipped to land). Contra Costa's cities have little water, so their values change little; the fix applies to every geofence.
