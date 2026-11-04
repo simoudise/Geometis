@@ -145,7 +145,7 @@ nearest one and records the gap. A deprecated feed and the feed it redirects to 
    touches the extent, including some far away (Renfe, Chatham Area Transit). The loader drops every feed
    with no stop inside the extent, so these do not reach the graph.
 
-## Stage 6 street-pattern measures (build 9)
+## Stage 6 street-pattern measures
 
 `run_stage6_street_pattern.py` computes three measures from Boeing (2019, *Applied Network Science* 4:67) for
 the union and for each of the five one-city fingerprint records: orientation order (phi, 0 for uniform
