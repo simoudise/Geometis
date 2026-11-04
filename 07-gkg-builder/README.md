@@ -171,7 +171,7 @@ exactly; excluding service roads and tracks is an approximation.
 
 | Stage | Result | Time |
 |---|---|---|
-| Geofence and buffer test | 244 tract points, 10,000 sampled car routes; 367 pairs dropped because a tract point lies more than 500 m from a road (the Farallon Islands tract); 0.0 per cent outside core plus 3,000 m, so the buffer stays at 3,000 m | 19 s |
+| Geofence and buffer test | 244 tract points, 10,000 sampled car routes; 367 pairs dropped because a tract point lies more than 500 m from a road (probably the tract that includes the Farallon Islands; not checked); 0.0 per cent outside core plus 3,000 m, so the buffer stays at 3,000 m | 19 s |
 | Stage 1 | 61,175 vehicular edges (3,336 km, 2,391 km in the core), 72,482 pedestrian edges, 21,556 access points; OSM crosswalk covers 99.1 per cent of length; 90 components, the largest holding 87 per cent of length (islands and the Presidio and port networks account for the rest); Stage 8 passed | 51 s, 79 s with checks |
 | Stage 2 | 261 tracts, ACS 2020-2024, none missing | 7 s |
 | Stage 3 places | 78,789 places, 87.6 per cent mapped to UKO by rule | 15 s |
@@ -182,7 +182,7 @@ Whole build: under 4 minutes.
 
 ### Problems found and fixed during the San Francisco build
 
-1. **Buffer test and island tracts.** The first run stopped at the 30 km cap: 7 per cent of route length lay outside the core plus 3 km, and the share fell only slowly. Routes to a tract point on the Farallon Islands snap to a road far away. Pairs whose tract point lies more than `BUFFER_MAX_SNAP_M` (500 m) from a road are now left out of the test and counted in the build record.
+1. **Buffer test and island tracts.** The first run stopped at the 30 km cap: 7 per cent of route length lay outside the core plus 3 km, and the share fell only slowly. Routes to a tract point far from any road (probably on the Farallon Islands) snap to a distant road. Pairs whose tract point lies more than `BUFFER_MAX_SNAP_M` (500 m) from a road are now left out of the test and counted in the build record.
 2. **Slow Stage 8 check.** With a 30 km extent the crosswalk-coverage check ran for 37 minutes on stale planner statistics. `checks.run` now runs ANALYZE first, and the crosswalk has an index on segment URN.
 3. **Transit feeds wholly inside the extent were missed.** The Mobility Database filter "partially_enclosed" leaves out feeds whose bounding box lies completely inside the query box, so Muni was missing. The loader now queries "completely_enclosed" as well and merges the two. Contra Costa's result did not change.
 
