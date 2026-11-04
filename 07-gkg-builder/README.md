@@ -144,3 +144,25 @@ nearest one and records the gap. A deprecated feed and the feed it redirects to 
 6. **Feed search by bounding box.** The Mobility Database search returns feeds whose recorded bounding box
    touches the extent, including some far away (Renfe, Chatham Area Transit). The loader drops every feed
    with no stop inside the extent, so these do not reach the graph.
+
+## Stage 6 street-pattern measures (build 9)
+
+`run_stage6_street_pattern.py` computes three measures from Boeing (2019, *Applied Network Science* 4:67) for
+the union and for each of the five one-city fingerprint records: orientation order (phi, 0 for uniform
+bearings, 1 for a perfect grid), average circuity, and node shares on the simplified graph (segments merged
+through degree-2 nodes). It measures all vehicular segments, and again without service roads and tracks.
+
+| City | phi | Circuity | Dead ends | 3-way | 4-way or more | Intersections per km2 |
+|---|---|---|---|---|---|---|
+| Antioch | 0.166 | 1.077 | 0.174 | 0.632 | 0.194 | 41.1 |
+| Concord | 0.049 | 1.065 | 0.326 | 0.520 | 0.155 | 41.2 |
+| Pittsburg | 0.261 | 1.089 | 0.267 | 0.545 | 0.188 | 31.8 |
+| Pleasant Hill | 0.228 | 1.067 | 0.365 | 0.494 | 0.141 | 60.7 |
+| Walnut Creek | 0.041 | 1.080 | 0.387 | 0.478 | 0.134 | 34.4 |
+
+(Network without service roads and tracks; the build record holds both versions.)
+
+Gaps: Boeing builds his graphs from OpenStreetMap through OSMnx; this build uses Overture segments, which
+split at different points and include more service roads, so values are comparable across GeoMetis geofences
+but not exactly with Boeing's published city values. Boeing's "drive" network filter is not reproduced
+exactly; excluding service roads and tracks is an approximation.
