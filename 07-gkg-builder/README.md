@@ -188,4 +188,8 @@ Whole build: under 4 minutes.
 
 ### Gap
 
-4. **Densities use total area, including water.** The TIGER place polygon for San Francisco covers about 600 km2, most of it bay and ocean, so `intersections_per_km2` and `street_km_per_km2` are far too low for San Francisco. They should divide by land area (TIGER ALAND, or the core clipped to land). Contra Costa's cities have little water, so their values change little; the fix applies to every geofence.
+4. **Densities now use land area (fixed 5 November 2026).** The TIGER place polygon for San Francisco covers about
+   600 km2, most of it bay and ocean. Stage 6 now divides by the member places' TIGER land area (ALAND), and the
+   fields are renamed `intersections_per_km2_land` and `street_km_per_km2_land`. Without service roads and tracks:
+   San Francisco 77.7 intersections and 15.9 street-km per km2 of land (120.9 km2); the five Contra Costa cities
+   40.7 and 9.1 (270.0 km2); Pittsburg changes most among them (45.8 km2 of land in a 51.1 km2 place).

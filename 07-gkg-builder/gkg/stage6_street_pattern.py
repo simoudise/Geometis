@@ -16,6 +16,7 @@ other than 2.
 import json
 import math
 
+import geopandas as gpd
 import numpy as np
 import shapely
 from shapely.ops import transform
@@ -23,7 +24,7 @@ from pyproj import Transformer
 
 from . import config
 from .db import connect
-from .geofence import fetch
+from .geofence import fetch, tiger_zip
 
 _to_m = Transformer.from_crs(config.STORE_CRS, config.METRIC_CRS, always_xy=True).transform
 H_MAX, H_GRID = math.log(36), math.log(4)
@@ -87,7 +88,7 @@ def simplify(idx, a, fr, to):
     return np.array(edges, dtype=float), np.array(list(kept.values()))
 
 
-def measures(seg, core, exclude):
+def measures(seg, core, exclude, land_km2=None):
     a, fr, to, cls = seg
     mask = shapely.contains_xy(core, a[:, 4], a[:, 5])
     if exclude:
@@ -102,6 +103,9 @@ def measures(seg, core, exclude):
     bearing = (np.degrees(np.arctan2(x1 - x0, y1 - y0)) + 360.0) % 360.0
     h, phi = orientation(bearing[ok], length[ok])
     area_km2 = transform(_to_m, core).area / 1e6
+    # Densities divide by land area (TIGER ALAND of the member places), because place polygons can include
+    # large water areas (San Francisco's covers about 600 km2, most of it bay and ocean).
+    dens_km2 = land_km2 or area_km2
     return {
         "segments": int(len(idx)), "simplified_edges": int(len(e)),
         "length_km": round(float(a[idx, 6].sum()) / 1000, 1),
@@ -110,8 +114,9 @@ def measures(seg, core, exclude):
         "nodes": int(len(d)), "share_dead_end": round(float((d == 1).sum()) / len(d), 4),
         "share_three_way": round(float((d == 3).sum()) / len(d), 4),
         "share_four_way_plus": round(float((d >= 4).sum()) / len(d), 4),
-        "intersections_per_km2": round(float((d >= 3).sum()) / area_km2, 1),
-        "street_km_per_km2": round(float(a[idx, 6].sum()) / 1000 / area_km2, 2),
+        "intersections_per_km2_land": round(float((d >= 3).sum()) / dens_km2, 1),
+        "street_km_per_km2_land": round(float(a[idx, 6].sum()) / 1000 / dens_km2, 2),
+        "land_area_km2": round(dens_km2, 1),
         "core_area_km2": round(area_km2, 1),
     }
 
@@ -122,16 +127,23 @@ def run(geofence_id):
         ids = [geofence_id] + [r[0] for r in conn.execute(
             "SELECT geofence_id FROM gkg.geofence WHERE graph_geofence_id = %s AND geofence_id <> %s "
             "ORDER BY 1", (geofence_id, geofence_id)).fetchall()]
+        members = dict(conn.execute("SELECT geofence_id, members FROM gkg.geofence WHERE geofence_id = ANY(%s)",
+                                    (ids,)).fetchall())
         names = dict(conn.execute("SELECT geofence_id, name FROM gkg.geofence WHERE geofence_id = ANY(%s)",
                                   (ids,)).fetchall())
         seg = load(conn, geofence_id)
     out = {"method": "Boeing (2019), Applied Network Science 4:67; segments whose midpoint lies in the core",
            "records": {}}
+    aland = {}
+    for st in sorted({m[:2] for ms in members.values() for m in ms}):
+        t = gpd.read_file(f"zip://{tiger_zip('place', st)}", ignore_geometry=True)
+        aland.update(dict(zip(t["GEOID"], t["ALAND"].astype(float))))
     for gid in ids:
         core, _, _ = fetch(gid)
         shapely.prepare(core)
-        out["records"][gid] = {"name": names[gid], "all_vehicular": measures(seg, core, False),
-                               "without_service_and_track": measures(seg, core, True)}
+        land = sum(aland.get(m, 0.0) for m in members[gid]) / 1e6 or None
+        out["records"][gid] = {"name": names[gid], "all_vehicular": measures(seg, core, False, land),
+                               "without_service_and_track": measures(seg, core, True, land)}
     with connect() as conn:
         build_id = conn.execute(
             "INSERT INTO gkg.build (geofence_id, stage, builder_version, source_versions, stats, finished, status) "
