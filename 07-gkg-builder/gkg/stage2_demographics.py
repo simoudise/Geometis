@@ -2,7 +2,7 @@
 
 Input: one stored geofence record. Every tract that intersects the core is loaded whole, not
 clipped, with the share of its area that lies inside the core (geofence input spec, stage table).
-ACS 5-year values come from the Census Bureau API; the release used is recorded with the build.
+Each tract's share inside the core is measured on land (TIGER AREAWATER removed). ACS 5-year values come from the Census Bureau's summary files; the release used is recorded with the build.
 """
 import json
 
@@ -98,6 +98,15 @@ def run(geofence_id):
     core_m = transform(_to_metric, core)
     shapely.prepare(core_m)
     tract_counties = sorted({g[:5] for g in tracts["GEOID"]})
+    # Shares are computed on land only: TIGER tract and place polygons include bay and ocean water, which would
+    # otherwise count as tract area outside (or inside) the core.
+    water = []
+    for c in tract_counties:
+        w = gpd.read_file(f"zip://{tiger_zip('areawater', c)}").to_crs(config.METRIC_CRS)
+        water.append(shapely.union_all(shapely.make_valid(w.geometry.values)))
+    water_m = shapely.union_all(water) if water else None
+    if water_m is not None:
+        shapely.prepare(water_m)
     acs_year, acs = fetch_acs(states[0], set(tract_counties))
     print(f"ACS 5-year release ending {acs_year}: {len(acs)} tracts returned", flush=True)
 
@@ -112,6 +121,8 @@ def run(geofence_id):
         for geoid, geom in zip(tracts["GEOID"], tracts.geometry):
             g = shapely.make_valid(geom)
             gm = transform(_to_metric, g)
+            if water_m is not None and gm.intersects(water_m):
+                gm = gm.difference(water_m)
             share = gm.intersection(core_m).area / gm.area if gm.area > 0 else 0.0
             a = acs.get(geoid)
             if a is None:

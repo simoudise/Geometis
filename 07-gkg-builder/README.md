@@ -193,3 +193,7 @@ Whole build: under 4 minutes.
    fields are renamed `intersections_per_km2_land` and `street_km_per_km2_land`. Without service roads and tracks:
    San Francisco 77.7 intersections and 15.9 street-km per km2 of land (120.9 km2); the five Contra Costa cities
    40.7 and 9.1 (270.0 km2); Pittsburg changes most among them (45.8 km2 of land in a 51.1 km2 place).
+5. **Tract shares on land (fixed 5 November 2026).** Stage 2 now removes TIGER AREAWATER from each tract before
+   computing its share inside the core. San Francisco's population weighted by share stays at 830,235, because
+   every San Francisco tract lies wholly inside the city; the change matters for tracts split by a shoreline
+   boundary.
