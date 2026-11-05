@@ -15,7 +15,10 @@ from pyproj import Geod
 from shapely.geometry import Point
 from shapely.ops import substring
 
-from . import config
+from pyproj import Transformer
+from shapely.ops import transform
+
+from . import config, urn_registry
 from .db import connect, copy_rows
 from .geofence import fetch
 
@@ -25,6 +28,72 @@ URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")  # fixed namespace fo
 
 def mint(kind, *parts):
     return f"urn:urban-kg:{kind}:overture:{uuid.uuid5(URN_NS, '|'.join(str(p) for p in parts))}"
+
+
+_to_m = Transformer.from_crs(config.STORE_CRS, config.METRIC_CRS, always_xy=True).transform
+
+
+def assign_urns(conn, geofence_id, layer, kind, pieces):
+    """URN for each piece: reuse through the URN registry when an earlier build of this geofence exists.
+
+    Returns (list of URNs aligned with pieces, list of registry rows, lineage rows, retired URNs, summary).
+    """
+    table = "road_segment" if layer == "vehicular" else "pedestrian_edge"
+    release = config.OVERTURE_RELEASE
+    keys = [f"{s['id']}|{fa:.6f}|{fb:.6f}" for s, ca, cb, fa, fb, g in pieces]
+    prev = conn.execute(
+        f"SELECT t.urn, t.gers_id, t.gers_from_frac, t.gers_to_frac, ST_AsBinary(t.geom), "
+        f"b.source_versions->>'overture' FROM gkg.{table} t JOIN gkg.build b USING (build_id) "
+        f"WHERE t.geofence_id = %s", (geofence_id,)).fetchall()
+    known = dict(conn.execute("SELECT piece_key, urn FROM gkg.urn_registry WHERE kind = %s "
+                              "AND retired_release IS NULL AND piece_key = ANY(%s)", (kind, keys)).fetchall())
+    prev_release = prev[0][5] if prev else None
+    lineage, retired = [], []
+    if not prev:
+        urns = [known.get(k) or mint(kind, *k.split("|")) for k in keys]
+        how = ["kept" if k in known else "minted" for k in keys]
+    else:
+        old = [urn_registry.Piece(f"{g}|{fa:.6f}|{fb:.6f}", g, transform(_to_m, shapely.from_wkb(w)), u)
+               for u, g, fa, fb, w, _ in prev]
+        new = [urn_registry.Piece(k, s["id"], transform(_to_m, g)) for k, (s, ca, cb, fa, fb, g) in zip(keys, pieces)]
+        a = urn_registry.assign(old, new, release, kind=kind)
+        used = {o.urn for o in old}
+        urns, how = [], []
+        for k in keys:
+            st = a.status[k]
+            if k in known:
+                u, st = known[k], "kept"
+            elif st in ("kept", "rematched"):
+                u = a.urns[k]
+            else:
+                # Split, merge and added pieces get the usual deterministic URN, unless that URN already named
+                # an earlier piece; then the release is added so a new entity never takes an old entity's URN.
+                u = mint(kind, *k.split("|"))
+                if u in used:
+                    u = mint(kind, *k.split("|"), release)
+            urns.append(u)
+            how.append(st)
+        remap = {a.urns[k]: u for k, u in zip(keys, urns)}
+        lineage = [(o, remap.get(n, n), r) for o, n, r in a.lineage]
+        retired = a.retired if prev_release != release else []
+    reg_rows = [(u, kind, k.split("|")[0], k, release, release, None, h, json.dumps(
+        {"end_m": config.URN_MATCH_END_M, "hausdorff_m": config.URN_MATCH_HAUSDORFF_M,
+         "length_share": config.URN_MATCH_LENGTH_SHARE})) for u, k, h in zip(urns, keys, how)]
+    summary = dict(Counter(how), retired=len(retired), lineage=len(lineage), previous_release=prev_release)
+    return urns, reg_rows, lineage, retired, summary
+
+
+def write_registry(conn, reg_rows, lineage, retired, release):
+    conn.execute("CREATE TEMP TABLE IF NOT EXISTS _reg (LIKE gkg.urn_registry) ON COMMIT DROP")
+    conn.execute("TRUNCATE _reg")
+    copy_rows(conn, "_reg", ["urn", "kind", "gers_id", "piece_key", "release_first", "release_last",
+                             "retired_release", "how_assigned", "tolerance"], reg_rows)
+    conn.execute("""INSERT INTO gkg.urn_registry SELECT DISTINCT ON (urn) * FROM _reg
+                    ON CONFLICT (urn) DO UPDATE SET release_last = EXCLUDED.release_last, retired_release = NULL""")
+    if retired:
+        conn.execute("UPDATE gkg.urn_registry SET retired_release = %s WHERE urn = ANY(%s)", (release, retired))
+    for o, n, r in lineage:
+        conn.execute("INSERT INTO gkg.urn_lineage VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING", (o, n, r, release))
 
 
 def extract(geofence_id, extent):
@@ -164,6 +233,13 @@ def run(geofence_id):
             "VALUES (%s, 'stage1', %s, %s) RETURNING build_id",
             (geofence_id, config.BUILDER_VERSION,
              json.dumps({"overture": config.OVERTURE_RELEASE, "geofence": rec["source_versions"]}))).fetchone()[0]
+        piece_urns, urn_stats = {}, {}
+        for layer, kind in [("vehicular", "RoadSegment"), ("pedestrian", "PedestrianNetworkEdge")]:
+            urns, reg_rows, lineage, retired, summ = assign_urns(conn, geofence_id, layer, kind, pieces[layer])
+            piece_urns[layer] = urns
+            urn_stats[layer] = summ
+            write_registry(conn, reg_rows, lineage, retired, config.OVERTURE_RELEASE)
+        print(f"URN assignment: {json.dumps(urn_stats)}", flush=True)
         for t in ["road_segment", "intersection_node", "pedestrian_edge", "pedestrian_node", "access_point",
                   "osm_crosswalk"]:
             conn.execute(f"DELETE FROM gkg.{t} WHERE geofence_id = %s", (geofence_id,))
@@ -180,8 +256,7 @@ def run(geofence_id):
                 node_urn[layer][c] = mint(node_kind[layer], c)
             edge_rows, xw_rows = [], []
             kind = "RoadSegment" if layer == "vehicular" else "PedestrianNetworkEdge"
-            for s, ca, cb, fa, fb, g in pieces[layer]:
-                urn = mint(kind, s["id"], f"{fa:.6f}", f"{fb:.6f}")
+            for (s, ca, cb, fa, fb, g), urn in zip(pieces[layer], piece_urns[layer]):
                 length = GEOD.geometry_length(g)
                 in_core = bool(core.intersects(g))
                 surface = _first_value(s["road_surface"])
@@ -236,6 +311,7 @@ def run(geofence_id):
                   ["geofence_id", "urn", "intersection_node", "pedestrian_node", "geom", "build_id"], ap_rows)
         stats["access_points"] = len(ap_rows)
         stats["pieces_outside_extent_dropped"] = dropped
+        stats["urn_assignment"] = urn_stats
         conn.execute("UPDATE gkg.build SET stats = %s WHERE build_id = %s", (json.dumps(stats), build_id))
         conn.commit()
     return build_id, stats

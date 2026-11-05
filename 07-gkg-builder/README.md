@@ -218,6 +218,15 @@ On real data (`analysis/urn_refresh_test.py`, whole vehicular segments as pieces
 The two splits are segments that kept their GERS id but were shortened, with the rest of the road carried by a
 new segment; the earlier drift analysis counted them among the 22 retained segments whose geometry changed.
 
-Not done yet: Stage 1 still mints URNs directly from the GERS id and split fractions. The next step is to make
-Stage 1 call the registry when a previous release is loaded for the same extent, and to write `gkg.urn_registry`
-rows at every build.
+Stage 1 now calls the registry (`assign_urns` in `gkg/stage1_road_network.py`). It reads the previous build of the
+same geofence, runs the five rules against the new pieces, reuses any URN the global registry already holds for a
+piece, and writes `gkg.urn_registry` and `gkg.urn_lineage` rows at every build. A new, split or merged piece gets
+the usual deterministic URN unless that URN already named an earlier piece, in which case the release is added to
+it. Rebuilding Contra Costa and San Francisco on release 2026-10-21.0 kept every URN (89,695 and 61,175 road
+segments; 24,310 and 72,482 pedestrian edges), and every stop-to-road link from Stage 3 still resolves (1,627 of
+1,627 and 3,828 of 3,828).
+
+Open: (a) the first registry rows for these two geofences say `kept` rather than `minted`, because a previous build
+already existed; (b) a full Stage 1 refresh across releases has not run yet, because the September 2026 connectors
+were never cached; the next Overture release will be the first real test; (c) node URNs still come straight from
+Overture connector ids, which the drift analysis found stable, but they are not yet in the registry.
