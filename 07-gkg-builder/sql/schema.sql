@@ -229,3 +229,15 @@ CREATE TABLE IF NOT EXISTS gkg.walkshed_area (
 CREATE TABLE IF NOT EXISTS gkg.stop_road (
     geofence_id text NOT NULL, segment_urn text NOT NULL, stop_urn text NOT NULL, distance_m double precision,
     build_id integer NOT NULL);
+
+-- URN registry (gkg/urn_registry.py). One row per URN ever issued for an Overture-derived entity, with the
+-- releases in which it was first and last present, and lineage rows for splits and merges.
+CREATE TABLE IF NOT EXISTS gkg.urn_registry (
+    urn text PRIMARY KEY, kind text NOT NULL, gers_id text, piece_key text NOT NULL,
+    release_first text NOT NULL, release_last text NOT NULL, retired_release text,
+    how_assigned text NOT NULL,             -- minted | kept | rematched | split | merge | added
+    tolerance jsonb);
+CREATE INDEX IF NOT EXISTS urn_registry_key ON gkg.urn_registry (piece_key);
+CREATE TABLE IF NOT EXISTS gkg.urn_lineage (
+    old_urn text NOT NULL, new_urn text NOT NULL, relation text NOT NULL, release text NOT NULL,
+    PRIMARY KEY (old_urn, new_urn));

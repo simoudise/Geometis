@@ -197,3 +197,27 @@ Whole build: under 4 minutes.
    computing its share inside the core. San Francisco's population weighted by share stays at 830,235, because
    every San Francisco tract lies wholly inside the city; the change matters for tracts split by a shoreline
    boundary.
+
+## URN registry (5 November 2026)
+
+`gkg/urn_registry.py` assigns URNs to a new Overture release from the previous one, in five rules: same piece
+and geometry within tolerance keeps its URN; otherwise a unique geometric match keeps the old URN; an old piece
+covered end to end by a chain of new pieces is a split; a new piece covering a chain of old pieces is a merge;
+the rest are retired or added. Splits and merges mint new URNs and write lineage rows (`gkg.urn_lineage`).
+The tolerances are the ones in `gkg/config.py` (ends 5 m, Hausdorff 10 m, length 10 per cent, unique candidate).
+`python -m gkg.urn_registry` runs a synthetic self-test of every rule, including an ambiguous match that must
+not reuse a URN.
+
+On real data (`analysis/urn_refresh_test.py`, whole vehicular segments as pieces, Contra Costa extent):
+
+| Releases | Old | New | Kept | Rematched | Split (new pieces) | Merge | Added | Retired | Time |
+|---|---|---|---|---|---|---|---|---|---|
+| 2026-09-23.1 to 2026-10-21.0 | 52,574 | 52,586 | 52,557 | 0 | 4 (from 2 old) | 0 | 25 | 15 | 2.8 s |
+| 2026-09-23.0 to 2026-09-23.1 | 52,574 | 52,574 | 52,574 | 0 | 0 | 0 | 0 | 0 | 2.8 s |
+
+The two splits are segments that kept their GERS id but were shortened, with the rest of the road carried by a
+new segment; the earlier drift analysis counted them among the 22 retained segments whose geometry changed.
+
+Not done yet: Stage 1 still mints URNs directly from the GERS id and split fractions. The next step is to make
+Stage 1 call the registry when a previous release is loaded for the same extent, and to write `gkg.urn_registry`
+rows at every build.
