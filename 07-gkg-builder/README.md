@@ -249,10 +249,11 @@ Share of road length in the core whose end-to-end grade exceeds 8 per cent:
 | motorway | 1.2% | 1.5% |
 
 Gaps:
-1. **`max_abs_grade` is not trustworthy on bridges, overpasses and ramps.** A DEM follows the ground, so a
-   freeway on a structure picks up the drop to the street below: 29 per cent of Contra Costa motorway segments and
-   41 per cent of San Francisco's show a 20 m step above 8 per cent, which is not physically possible. Use the
-   end-to-end `grade` until bridges and tunnels are flagged from Overture's road flags and their grades replaced
-   by a straight line between their ends.
+1. **Bridges and tunnels.** A DEM follows the ground, so a road on a structure picks up the drop to the street
+   below. Pieces that Overture flags as bridge or tunnel are now marked (`is_bridge`, `is_tunnel`; 540 bridge and
+   106 tunnel pieces in Contra Costa) and their `max_abs_grade` is the end-to-end grade. Motorway segments with a
+   20 m step above 8 per cent fell from 28.6 to 13.4 per cent in Contra Costa and from 40.8 to 9.1 per cent in San
+   Francisco. The remainder are mostly embankments and ramps next to structures, which the DEM also misreads; use
+   the end-to-end `grade` for motorways and ramps.
 2. **DEM resolution.** 10 m cells smooth short steep blocks; 3DEP 1 m lidar exists for much of the Bay Area and
    would sharpen grades in San Francisco, at a much larger download.
