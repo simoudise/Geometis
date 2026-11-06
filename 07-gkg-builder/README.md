@@ -230,3 +230,29 @@ Open: (a) the first registry rows for these two geofences say `kept` rather than
 already existed; (b) a full Stage 1 refresh across releases has not run yet, because the September 2026 connectors
 were never cached; the next Overture release will be the first real test; (c) node URNs still come straight from
 Overture connector ids, which the drift analysis found stable, but they are not yet in the registry.
+
+## Elevation and grade (6 November 2026)
+
+`run_stage1_elevation.py` samples the USGS 3DEP 1/3 arc-second DEM (about 10 m) at every node and every 20 m along
+every segment, and writes node elevation, segment end elevations, the signed end-to-end grade and the largest
+grade between 20 m samples. Four tiles (1.5 GB) cover both geofences. Contra Costa took 310 s including the tile
+download; San Francisco 25 s. Every node and segment received a value.
+
+Share of road length in the core whose end-to-end grade exceeds 8 per cent:
+
+| Class | Contra Costa | San Francisco |
+|---|---|---|
+| residential | 8.3% | 20.1% |
+| tertiary | 4.3% | 12.8% |
+| secondary | 1.8% | 6.5% |
+| primary | 0.6% | 2.3% |
+| motorway | 1.2% | 1.5% |
+
+Gaps:
+1. **`max_abs_grade` is not trustworthy on bridges, overpasses and ramps.** A DEM follows the ground, so a
+   freeway on a structure picks up the drop to the street below: 29 per cent of Contra Costa motorway segments and
+   41 per cent of San Francisco's show a 20 m step above 8 per cent, which is not physically possible. Use the
+   end-to-end `grade` until bridges and tunnels are flagged from Overture's road flags and their grades replaced
+   by a straight line between their ends.
+2. **DEM resolution.** 10 m cells smooth short steep blocks; 3DEP 1 m lidar exists for much of the Bay Area and
+   would sharpen grades in San Francisco, at a much larger download.
