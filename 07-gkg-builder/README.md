@@ -341,3 +341,36 @@ with layer `rail`. It runs after Stage 1; Stage 1 now deletes only its own cross
 Gap against UKO 15.5: the ontology has rail routes (uko:RailRoute, uko:SubwayRoute, uko:LightRailRoute) but no class
 for a piece of rail track. The URN kind `RailSegment` is provisional until UKO adds a class, which the next UKO release
 should do. Rail segments have no node table yet; their ends are Overture connector ids.
+
+## Stage 4, crashes from TIMS (10 November 2026)
+
+`run_stage4_crashes.py` loads TIMS (UC Berkeley SafeTREC's geocoded SWITRS) exports for Contra Costa County and San
+Francisco, 2015 to mid-2026, downloaded by Evangelos on 10 November 2026, into `gkg.tims_crash` (84,114 injury
+crashes, 82,034 with a TIMS point). TIMS holds injury crashes only. Each crash inside a geofence extent is attached
+to the nearest non-service road segment within 50 m and, if SWITRS marks it as an intersection crash, to the nearest
+intersection node (degree 3 or more) within 50 m (`gkg.crash_attachment`). `gkg.segment_crash_stats` counts crashes
+per segment and per intersection for 2019-2023, 2021-2025 and 2015-2025: all, fatal, severe, killed or severely
+injured, pedestrian, bicycle, motorcycle. Segment counts leave out crashes attached to an intersection.
+
+| | Contra Costa | San Francisco |
+|---|---|---|
+| Crashes in extent | 23,729 | 39,669 |
+| Attached | 23,721 | 39,614 |
+| Attached to an intersection | 6,364 | 20,104 |
+| Median distance to segment | 1.5 m | 1.1 m |
+| Intersections / segments with a crash, 2021-2025 | 1,240 / 2,691 | 2,870 / 3,822 |
+
+Name check: the segment name contains the first word of the officer's primary road for 89 per cent of mid-block
+crashes off state highways in both geofences. Most misses are spelling (OHARA against O'Hara, CANADA against Cañada,
+direction prefixes such as "S/B") or unnamed Overture pieces. For intersection crashes the share is about 50 per cent,
+as expected, because the nearest segment is often the cross street. For state-highway crashes the share is 2 to 3 per
+cent because officers write route numbers and many Overture freeway pieces carry no name.
+
+Gaps:
+1. **Nearest is not always right on freeways.** A crash on a freeway can attach to a parallel ramp or frontage road
+   within 50 m. The next step chooses, among segments within 50 m, the one whose name or route number matches the
+   officer's road (normalized spelling, primary or secondary road), and falls back to the nearest.
+2. **2026 is partial and provisional.** It is excluded from the count windows.
+3. **High Injury Network flags.** v19 Stage 4 asks for them. The method (crash density per mile with a severity
+   weight, as cities publish it) is not chosen yet.
+4. **Exposure.** Counts are not yet divided by traffic volume; Phase 3 route risk needs exposure.
