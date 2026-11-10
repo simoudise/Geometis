@@ -126,8 +126,16 @@ nearest one and records the gap. A deprecated feed and the feed it redirects to 
    only for 12 November 2023 to 13 January 2024 (95 days before the reference date) and Tri Delta Transit
    only from 11 August 2024 (116 days after). This build uses those nearest datasets, and each stop's service
    counts come from a Wednesday inside the dataset's own calendar (10 January 2024 and 14 August 2024).
-   AC Transit (2 stops inside the extent) is 46 days off. Evangelos is deciding whether to fetch the
-   April 2024 versions from Transitland or from the agencies.
+   AC Transit (2 stops inside the extent) is 46 days off.
+   **Checked 10 November 2026 (job 082): the nearest versions stand in for April 2024.** Job 082 compared every
+   Mobility Database version from late 2023 to 2026 on a representative Wednesday. County Connection barely changed:
+   the December 2023 and March 2025 schedules run 915 and 918 weekday trips on the same 42 routes, the median route
+   keeps exactly its trip count, and 99.3 per cent of stops lie within 30 m of a stop in the other version (summer
+   versions drop the 16 school routes). Tri Delta Transit's August 2024 version is identical to its March 2025 version;
+   the system redesign came in August 2025. The agency's notice for the 11 August 2024 change lists only removed trips on
+   routes 200X, 300X, 383, 384 and 385, with no stop or alignment changes, so the build keeps every April 2024 stop
+   and undercounts April departures slightly on those five routes. No Transitland purchase is needed. The Transitland
+   nationwide stops-and-routes snapshot Evangelos downloaded is licensed for non-commercial use only and is not used.
 2. **Unserved County Connection stops.** 218 County Connection stops have no departure on 10 January 2024.
    Only 12 of them lie within 30 m of a served stop, so most are not duplicates; they are probably stops of
    weekend, school or discontinued routes. They are kept and marked with zero departures.
