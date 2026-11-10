@@ -58,9 +58,10 @@ link distance. Aggregates only.
 
 Findings:
 1. **Vendor link ends lie exactly on OSM way geometry.** The median distance from a link end to the graph is 0.0 m in
-   every mode. Raw device positions would scatter by several metres; points that sit on the way line were placed by a
-   router or map matcher. This is further evidence for the Phase 0 finding that the vendor's routes are computed, and
-   it means entry and exit fractions can be read straight off the graph for about 91 to 97 per cent of links.
+   every mode. Raw device positions would scatter by several metres, so the vendor placed these points on the map,
+   either by routing or by map-matching observed positions. This finding alone does not tell the two apart; the Phase 0
+   evidence (identical route interiors for repeated trips, timing at fixed speeds) is what points to routing. It does
+   mean entry and exit fractions can be read straight off the graph for about 91 to 97 per cent of links.
 2. **The remaining 3 to 9 per cent** have an end more than 15 m from the 2026 graph line. The likely cause is way
    geometry edited between the vendor's 2024 OSM and the October 2026 Overture release (half of the resolved ways
    changed version). These links need a geometric fallback: match the link to the graph by shape, not by way id.
