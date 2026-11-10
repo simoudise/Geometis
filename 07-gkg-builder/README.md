@@ -322,3 +322,22 @@ Statewide, 44% of 2016 crashes and 22% of 2024 crashes have no coordinates. The 
 crash by primary road, secondary road, direction and distance. CCRS alone therefore cannot place most crashes in
 Antioch, Pittsburg or San Francisco. The two ways to fill the gap are TIMS (UC Berkeley's geocoded SWITRS, which
 needs Evangelos to register) or geocoding the road-name fields against the graph's own street names.
+
+## Rail layer (10 November 2026)
+
+`run_stage1_rail.py` loads Overture transportation segments of subtype `rail` into `gkg.rail_segment`, split at
+shared connectors, with URNs from the URN registry (kind `RailSegment`) and crosswalk rows in `gkg.osm_crosswalk`
+with layer `rail`. It runs after Stage 1; Stage 1 now deletes only its own crosswalk layers on a rebuild.
+
+| | Contra Costa | San Francisco |
+|---|---|---|
+| Rail pieces | 1,489 | 1,658 |
+| Subway (BART) | 103.7 km | 84.2 km |
+| Light rail | 31.7 km | 120.8 km |
+| Standard gauge | 275.5 km | 158.6 km |
+| Tram | none | 35.0 km |
+| Class unknown | 154.6 km | 50.3 km |
+
+Gap against UKO 15.5: the ontology has rail routes (uko:RailRoute, uko:SubwayRoute, uko:LightRailRoute) but no class
+for a piece of rail track. The URN kind `RailSegment` is provisional until UKO adds a class, which the next UKO release
+should do. Rail segments have no node table yet; their ends are Overture connector ids.

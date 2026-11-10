@@ -31,4 +31,12 @@ Findings:
 4. **Walking links without a way id.** About 10 per cent of walking links carry no way id. These need the
    geometric fallback.
 
-Next: entry and exit fractions on each URN from the link end coordinates (on the Mac mini only), and the rail layer.
+### Rerun with the rail layer (job 085, 10 November 2026)
+
+After Stage 1 gained a rail layer (`gkg/stage1_rail.py`, job 084), BART links resolve: 99.5 per cent of BART links and
+100 per cent of their way-bearing distance map to rail segment URNs. Trips that combine bus and BART now resolve
+99.8 per cent of their distance on average (was 54 per cent), and BART-only trips 100 per cent (was 12 per cent).
+Way-bearing distance that does not resolve fell from 106,641 km to 10,257 km. The 656 `transit_rail` links (Amtrak)
+still do not resolve; they are too few to matter for now and are left as an open item.
+
+Next: entry and exit fractions on each URN from the link end coordinates (on the Mac mini only).

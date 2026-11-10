@@ -38,7 +38,7 @@ def assign_urns(conn, geofence_id, layer, kind, pieces):
 
     Returns (list of URNs aligned with pieces, list of registry rows, lineage rows, retired URNs, summary).
     """
-    table = "road_segment" if layer == "vehicular" else "pedestrian_edge"
+    table = {"vehicular": "road_segment", "pedestrian": "pedestrian_edge", "rail": "rail_segment"}[layer]
     release = config.OVERTURE_RELEASE
     keys = [f"{s['id']}|{fa:.6f}|{fb:.6f}" for s, ca, cb, fa, fb, g in pieces]
     prev = conn.execute(
@@ -240,9 +240,11 @@ def run(geofence_id):
             urn_stats[layer] = summ
             write_registry(conn, reg_rows, lineage, retired, config.OVERTURE_RELEASE)
         print(f"URN assignment: {json.dumps(urn_stats)}", flush=True)
-        for t in ["road_segment", "intersection_node", "pedestrian_edge", "pedestrian_node", "access_point",
-                  "osm_crosswalk"]:
+        for t in ["road_segment", "intersection_node", "pedestrian_edge", "pedestrian_node", "access_point"]:
             conn.execute(f"DELETE FROM gkg.{t} WHERE geofence_id = %s", (geofence_id,))
+        # The rail layer (stage1_rail) keeps its own crosswalk rows.
+        conn.execute("DELETE FROM gkg.osm_crosswalk WHERE geofence_id = %s AND layer IN ('vehicular', 'pedestrian')",
+                     (geofence_id,))
 
         node_urn = {"vehicular": {}, "pedestrian": {}}
         node_kind = {"vehicular": "IntersectionNode", "pedestrian": "PedestrianNetworkNode"}

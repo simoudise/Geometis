@@ -97,6 +97,26 @@ CREATE TABLE IF NOT EXISTS gkg.pedestrian_edge (
     PRIMARY KEY (geofence_id, urn)
 );
 
+-- Rail track pieces (Overture segments of subtype rail), so that rail trip legs can be conflated.
+-- UKO 15.5 has rail routes but no class for rail track; the URN kind RailSegment is provisional.
+CREATE TABLE IF NOT EXISTS gkg.rail_segment (
+    geofence_id         text NOT NULL,
+    urn                 text NOT NULL,
+    gers_id             text NOT NULL,
+    gers_from_frac      double precision NOT NULL,
+    gers_to_frac        double precision NOT NULL,
+    from_connector      text NOT NULL,
+    to_connector        text NOT NULL,
+    rail_class          text,
+    name                text,
+    length_m            double precision NOT NULL,
+    in_core             boolean NOT NULL,
+    geom                geometry(LineString, 4326) NOT NULL,
+    build_id            integer NOT NULL,
+    PRIMARY KEY (geofence_id, urn)
+);
+CREATE INDEX IF NOT EXISTS rail_segment_geom ON gkg.rail_segment USING gist (geom);
+
 -- An access point is an Overture connector shared by the vehicular and the pedestrian layer.
 CREATE TABLE IF NOT EXISTS gkg.access_point (
     geofence_id          text NOT NULL,
