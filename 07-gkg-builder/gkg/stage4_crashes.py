@@ -11,9 +11,12 @@ Attachment rule (per crash with a TIMS point):
      within INTERSECTION_SNAP_M.
   2. Every crash also gets the nearest vehicular segment within SEGMENT_SNAP_M, excluding service roads, so that
      segment counts can include or exclude intersection crashes.
-  3. Name check: the share of attached crashes whose segment name contains the first word of the officer's
-     primary road (after removing direction prefixes) measures how often the nearest segment is the right street.
-Crashes on state highways are attached the same way; TIMS has already placed them by Caltrans postmile.
+     Among segments within SEGMENT_SNAP_M the choice prefers, in order: a segment whose name matches the
+     officer's primary or secondary road (first word after normalizing spelling and dropping direction prefixes);
+     for a state-highway crash on the mainline (SWITRS location type H), a motorway or trunk segment that is not a
+     ramp; for a ramp crash (location type R), a ramp (subclass link); then the nearest segment.
+  3. Name check: the share of attached crashes whose chosen segment name matches the primary road measures how
+     often the attachment lands on the officer's street.
 """
 import csv
 import json
@@ -27,7 +30,7 @@ from .db import connect, copy_rows
 INTERSECTION_SNAP_M = 50.0
 SEGMENT_SNAP_M = 50.0
 CRASH_COLS = ["CASE_ID", "ACCIDENT_YEAR", "COLLISION_DATE", "COLLISION_TIME", "JURIS", "CITY", "COUNTY",
-              "PRIMARY_RD", "SECONDARY_RD", "DISTANCE", "DIRECTION", "INTERSECTION", "STATE_HWY_IND", "STATE_ROUTE",
+              "PRIMARY_RD", "SECONDARY_RD", "DISTANCE", "DIRECTION", "INTERSECTION", "STATE_HWY_IND", "STATE_ROUTE", "LOCATION_TYPE", "RAMP_INTERSECTION",
               "COLLISION_SEVERITY", "NUMBER_KILLED", "NUMBER_INJURED", "COUNT_SEVERE_INJ", "TYPE_OF_COLLISION",
               "PEDESTRIAN_ACCIDENT", "BICYCLE_ACCIDENT", "MOTORCYCLE_ACCIDENT", "TRUCK_ACCIDENT", "LIGHTING",
               "PRIMARY_COLL_FACTOR", "PCF_VIOL_CATEGORY", "POINT_X", "POINT_Y", "LATITUDE", "LONGITUDE"]
@@ -36,9 +39,10 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS gkg.tims_crash (
     case_id text PRIMARY KEY, accident_year int, collision_date date, collision_time text, juris text, city text,
     county text, primary_rd text, secondary_rd text, distance_ft double precision, direction text,
-    intersection boolean, state_hwy boolean, state_route text, severity int, killed int, injured int,
+    intersection boolean, state_hwy boolean, state_route text, location_type text, ramp_intersection text, severity int, killed int, injured int,
     severe_injured int, collision_type text, pedestrian boolean, bicycle boolean, motorcycle boolean, truck boolean,
     lighting text, pcf text, pcf_category text, geom geometry(Point, 4326), source_file text, tims_download date);
+ALTER TABLE gkg.tims_crash ADD COLUMN IF NOT EXISTS location_type text, ADD COLUMN IF NOT EXISTS ramp_intersection text;
 CREATE INDEX IF NOT EXISTS tims_crash_geom ON gkg.tims_crash USING gist (geom);
 CREATE TABLE IF NOT EXISTS gkg.crash_attachment (
     geofence_id text NOT NULL, case_id text NOT NULL, segment_urn text, segment_snap_m double precision,
@@ -76,7 +80,7 @@ def load_tims(folder, download_date):
                 d = r["COLLISION_DATE"]
                 rows.append((r["CASE_ID"], _i(r["ACCIDENT_YEAR"]), d if d else None, r["COLLISION_TIME"], r["JURIS"],
                              r["CITY"], r["COUNTY"], r["PRIMARY_RD"], r["SECONDARY_RD"], _f(r["DISTANCE"]) or 0.0,
-                             r["DIRECTION"], _b(r["INTERSECTION"]), _b(r["STATE_HWY_IND"]), r["STATE_ROUTE"],
+                             r["DIRECTION"], _b(r["INTERSECTION"]), _b(r["STATE_HWY_IND"]), r["STATE_ROUTE"], r["LOCATION_TYPE"], r["RAMP_INTERSECTION"],
                              _i(r["COLLISION_SEVERITY"]), _i(r["NUMBER_KILLED"]), _i(r["NUMBER_INJURED"]),
                              _i(r["COUNT_SEVERE_INJ"]), r["TYPE_OF_COLLISION"], _b(r["PEDESTRIAN_ACCIDENT"]),
                              _b(r["BICYCLE_ACCIDENT"]), _b(r["MOTORCYCLE_ACCIDENT"]), _b(r["TRUCK_ACCIDENT"]),
@@ -89,12 +93,13 @@ def load_tims(folder, download_date):
                 conn.execute(stmt)
         conn.execute("CREATE TEMP TABLE _c (LIKE gkg.tims_crash) ON COMMIT DROP")
         cols = ["case_id", "accident_year", "collision_date", "collision_time", "juris", "city", "county",
-                "primary_rd", "secondary_rd", "distance_ft", "direction", "intersection", "state_hwy", "state_route",
+                "primary_rd", "secondary_rd", "distance_ft", "direction", "intersection", "state_hwy", "state_route", "location_type", "ramp_intersection",
                 "severity", "killed", "injured", "severe_injured", "collision_type", "pedestrian", "bicycle",
                 "motorcycle", "truck", "lighting", "pcf", "pcf_category", "geom", "source_file", "tims_download"]
         n = copy_rows(conn, "_c", cols, rows)
         conn.execute("DELETE FROM gkg.tims_crash WHERE case_id IN (SELECT case_id FROM _c)")
-        conn.execute("INSERT INTO gkg.tims_crash SELECT DISTINCT ON (case_id) * FROM _c ORDER BY case_id, source_file DESC")
+        cl = ", ".join(cols)
+        conn.execute(f"INSERT INTO gkg.tims_crash ({cl}) SELECT DISTINCT ON (case_id) {cl} FROM _c ORDER BY case_id, source_file DESC")
         total = conn.execute("SELECT count(*), count(geom) FROM gkg.tims_crash").fetchone()
         conn.commit()
     return {"rows_read": n, "crashes_in_table": total[0], "with_point": total[1]}
@@ -104,26 +109,43 @@ def run(geofence_id):
     """Attach crashes inside the geofence extent to segments and intersection nodes; write per-entity counts."""
     p = {"g": geofence_id, "ns": INTERSECTION_SNAP_M, "ss": SEGMENT_SNAP_M}
     sql = [
+        # First word of a street name after removing accents, punctuation, travel-direction and compass prefixes:
+        # "S/B KIRKER PASS RD" -> KIRKER, "O'Hara Avenue" -> OHARA, "Cañada Valley Road" -> CANADA.
+        """CREATE OR REPLACE FUNCTION gkg.road_key(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $f$
+             SELECT coalesce(split_part(regexp_replace(regexp_replace(regexp_replace(
+               translate(upper(coalesce(t, '')), 'ÁÉÍÓÚÑÜ''.', 'AEIOUNU'),
+               '^([NSEW]/B|NB|SB|EB|WB) ', ''), '^(N|S|E|W|NORTH|SOUTH|EAST|WEST) ', ''), '[^A-Z0-9 ]', '', 'g'),
+               ' ', 1), '')
+           $f$""",
         "DELETE FROM gkg.crash_attachment WHERE geofence_id = %(g)s",
         """CREATE TEMP TABLE _in AS SELECT c.* FROM gkg.tims_crash c JOIN gkg.geofence g ON g.geofence_id = %(g)s
            WHERE c.geom IS NOT NULL AND ST_Intersects(c.geom, g.extent)""",
         """INSERT INTO gkg.crash_attachment (geofence_id, case_id, segment_urn, segment_snap_m, node_urn, node_snap_m,
                                             name_match, build_id)
            SELECT %(g)s, c.case_id, s.urn, s.d, n.urn, n.d,
-                  CASE WHEN s.urn IS NULL OR coalesce(c.primary_rd, '') = '' THEN NULL
-                       ELSE upper(coalesce(s.name, '')) LIKE '%%' || split_part(regexp_replace(upper(c.primary_rd),
-                            '^(N|S|E|W|NORTH|SOUTH|EAST|WEST) ', ''), ' ', 1) || '%%' END,
+                  CASE WHEN s.urn IS NULL OR gkg.road_key(c.primary_rd) = '' THEN NULL
+                       ELSE gkg.road_key(s.name) = gkg.road_key(c.primary_rd) END,
                   %(b)s
            FROM _in c
            LEFT JOIN LATERAL (SELECT r.urn, r.name, ST_Distance(r.geom::geography, c.geom::geography) d
                               FROM gkg.road_segment r
                               WHERE r.geofence_id = %(g)s AND coalesce(r.road_classification, '') <> 'service'
+                                -- Bounding-box prefilter in degrees so the spatial index is used (0.001 deg is
+                                -- at least 88 m at these latitudes), then the exact distance in metres.
+                                AND r.geom && ST_Expand(c.geom, 0.001)
                                 AND ST_DWithin(r.geom::geography, c.geom::geography, %(ss)s)
-                              ORDER BY r.geom <-> c.geom LIMIT 1) s ON true
+                              ORDER BY CASE
+                                WHEN gkg.road_key(r.name) <> '' AND gkg.road_key(r.name) IN
+                                     (gkg.road_key(c.primary_rd), gkg.road_key(c.secondary_rd)) THEN 0
+                                WHEN c.state_hwy AND c.location_type = 'H'
+                                     AND r.road_classification IN ('motorway', 'trunk')
+                                     AND coalesce(r.subclass, '') <> 'link' THEN 0
+                                WHEN c.location_type = 'R' AND r.subclass = 'link' THEN 0
+                                ELSE 1 END, r.geom <-> c.geom LIMIT 1) s ON true
            LEFT JOIN LATERAL (SELECT i.urn, ST_Distance(i.geom::geography, c.geom::geography) d
                               FROM gkg.intersection_node i
                               WHERE c.intersection AND i.geofence_id = %(g)s AND i.degree >= 3
-                                AND ST_DWithin(i.geom::geography, c.geom::geography, %(ns)s)
+                                AND i.geom && ST_Expand(c.geom, 0.001) AND ST_DWithin(i.geom::geography, c.geom::geography, %(ns)s)
                               ORDER BY i.geom <-> c.geom LIMIT 1) n ON true""",
         """CREATE TABLE IF NOT EXISTS gkg.segment_crash_stats (
                geofence_id text, urn text, entity text, year_from int, year_to int, crashes int, fatal int,

@@ -360,16 +360,26 @@ injured, pedestrian, bicycle, motorcycle. Segment counts leave out crashes attac
 | Median distance to segment | 1.5 m | 1.1 m |
 | Intersections / segments with a crash, 2021-2025 | 1,240 / 2,691 | 2,870 / 3,822 |
 
-Name check: the segment name contains the first word of the officer's primary road for 89 per cent of mid-block
-crashes off state highways in both geofences. Most misses are spelling (OHARA against O'Hara, CANADA against Cañada,
-direction prefixes such as "S/B") or unnamed Overture pieces. For intersection crashes the share is about 50 per cent,
-as expected, because the nearest segment is often the cross street. For state-highway crashes the share is 2 to 3 per
-cent because officers write route numbers and many Overture freeway pieces carry no name.
+Attachment choice (job 089). Among segments within 50 m, the loader prefers a segment whose name matches the
+officer's primary or secondary road (first word after removing accents, punctuation and direction prefixes such as
+"S/B"); for a state-highway crash on the mainline (SWITRS location type H), a motorway or trunk segment that is not a
+ramp; for a ramp crash (type R), a ramp; and otherwise the nearest segment. Result:
+
+| | Contra Costa | San Francisco |
+|---|---|---|
+| Mid-block crashes off state highways: segment name matches the primary road | 91.4% | 89.9% |
+| Intersection crashes off state highways: segment name matches the primary road | 57.7% | 53.3% |
+| State-highway mainline crashes (type H) on a motorway or trunk segment | 98.5% | 98.4% |
+| State-highway ramp crashes (type R) on a mainline segment | 2.0% | 2.3% |
+
+Intersection crashes match less often by design: the chosen segment may be the cross street, and those crashes count
+against the intersection node. State-highway crashes cannot be checked by name, because officers write route numbers
+and Stage 1 does not keep Overture's route references; the class check above stands in for it.
 
 Gaps:
-1. **Nearest is not always right on freeways.** A crash on a freeway can attach to a parallel ramp or frontage road
-   within 50 m. The next step chooses, among segments within 50 m, the one whose name or route number matches the
-   officer's road (normalized spelling, primary or secondary road), and falls back to the nearest.
+1. **CCRS cross-check not possible by id.** The open CHP records (CCRS) use a different crash id from SWITRS
+   CASE_ID (0 matches on Collision Id, 2 on Report Number), so the two sources' coordinates cannot be compared crash by
+   crash without a date, time and street match. Not done yet.
 2. **2026 is partial and provisional.** It is excluded from the count windows.
 3. **High Injury Network flags.** v19 Stage 4 asks for them. The method (crash density per mile with a severity
    weight, as cities publish it) is not chosen yet.
