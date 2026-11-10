@@ -257,3 +257,60 @@ Gaps:
    the end-to-end `grade` for motorways and ramps.
 2. **DEM resolution.** 10 m cells smooth short steep blocks; 3DEP 1 m lidar exists for much of the Bay Area and
    would sharpen grades in San Francisco, at a much larger download.
+
+## Stage 5, speed limits (10 November 2026)
+
+`run_stage5_speed.py` gives every vehicular segment a speed limit in mph (`speed_limit_mph`) and records where the
+value came from (`speed_limit_source`). The first source that has a value wins:
+
+1. `posted`: Overture's unconditional maximum speed from Stage 1, converted to mph.
+2. `statutory`: California Vehicle Code prima facie limits, 25 mph on residential and living streets (22352(a)(2))
+   and 15 mph in alleys (22352(a)(1)(C)). The class stands in for the code's residence-district test.
+3. `class_median`: the median posted value of the same road class in the same geofence, when at least 30 segments
+   of that class carry a posted value.
+4. `none`: no value.
+
+OpenStreetMap maxspeed is not a separate source. Job 061 (6 November) matched OSM maxspeed to every segment through
+the crosswalk: no segment had an OSM value without an Overture value, and the two differ by more than 0.6 mph on 42
+of 6,760 Contra Costa segments and 86 of 13,191 San Francisco segments. Overture builds the field from OSM. Job 078
+dropped the ad hoc columns and table from that check.
+
+Share of vehicular length by source:
+
+| Source | Contra Costa | San Francisco |
+|---|---|---|
+| posted | 9.4% | 23.9% |
+| statutory | 38.1% | 36.8% |
+| class_median | 11.9% | 12.3% |
+| none | 40.5% | 26.9% |
+
+Almost all of the `none` length is service roads (driveways, parking aisles) and Overture class `unknown`.
+
+Gaps:
+1. **Unclassified roads in Contra Costa.** The class median is 15 mph, from 51 posted segments. That value probably
+   comes from roads in parks, campuses and parking areas, and it now applies to 92 km of unclassified road. San
+   Francisco's median for the class is 25 mph. A rule that ignores private and parking roads would fix this.
+2. **Statutory limits.** A residential street outside a residence district (as the code defines it) can carry a
+   higher limit. Nothing in the graph tests the district rule.
+3. **Speeds are not travel speeds.** v19 Stage 5 asks for modeled speed percentiles. This step supplies only the
+   posted layer the model starts from; the model itself is not built.
+
+## Stage 4 crash source: CCRS check (10 November 2026)
+
+The California Highway Patrol publishes the California Crash Reporting System (CCRS) crash tables for 2016 to 2026
+on data.ca.gov as public-domain CSV files, with Latitude and Longitude columns. Job 079 counted, per city and year,
+the crashes whose coordinates fall in the Bay Area:
+
+| City | 2016 | 2019 | 2021 | 2024 |
+|---|---|---|---|---|
+| Antioch | 8% | 16% | 39% | 38% |
+| Concord | 11% | 33% | 90% | 89% |
+| Pittsburg | 13% | 17% | 40% | 46% |
+| Pleasant Hill | 4% | 89% | 98% | 95% |
+| Walnut Creek | 13% | 38% | 49% | 53% |
+| San Francisco | 25% | 28% | 29% | 35% |
+
+Statewide, 44% of 2016 crashes and 22% of 2024 crashes have no coordinates. The rest of each record locates the
+crash by primary road, secondary road, direction and distance. CCRS alone therefore cannot place most crashes in
+Antioch, Pittsburg or San Francisco. The two ways to fill the gap are TIMS (UC Berkeley's geocoded SWITRS, which
+needs Evangelos to register) or geocoding the road-name fields against the graph's own street names.
