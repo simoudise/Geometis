@@ -23,7 +23,11 @@ G = "us-ca-san-francisco"
 
 
 def key(conn, s):
-    return conn.execute("SELECT gkg.road_key(%s)", (s,)).fetchone()[0]
+    # "Embarcadero" and "The Embarcadero" must give the same key, so a leading "The" is dropped first.
+    return conn.execute("SELECT gkg.road_key(regexp_replace(%s, '^[Tt]he ', ''))", (s,)).fetchone()[0]
+
+
+KEY_SQL = "gkg.road_key(regexp_replace(coalesce(name, ''), '^[Tt]he ', ''))"
 
 
 def shortest(adj, a, b):
@@ -77,20 +81,33 @@ def main(inp, out):
     with psycopg.connect("dbname=geometis") as conn:
         res = []
         for r in rows:
-            k, kf, kt = key(conn, r["street"]), key(conn, r["from_st"]), key(conn, r["to_st"])
+            # A corridor along several streets lists them separated by "/" (for example Evans/Hunters Point/Innes).
+            ks = [key(conn, x) for x in r["street"].split("/")]
+            kf, kt = key(conn, r["from_st"]), key(conn, r["to_st"])
             segs = conn.execute(
-                """SELECT urn, from_node, to_node, length_m FROM gkg.road_segment
-                   WHERE geofence_id = %s AND gkg.road_key(name) = %s AND coalesce(road_classification,'') <> 'service'""",
-                (G, k)).fetchall()
+                f"""SELECT urn, from_node, to_node, length_m FROM gkg.road_segment
+                   WHERE geofence_id = %s AND {KEY_SQL} = ANY(%s) AND coalesce(road_classification,'') <> 'service'""",
+                (G, ks)).fetchall()
             adj = defaultdict(list)
             for urn, a, b, l in segs:
                 adj[a].append((b, l, urn))
                 adj[b].append((a, l, urn))
             def ends(kx):
-                return [n for (n,) in conn.execute(
-                    """SELECT DISTINCT s.from_node FROM gkg.road_segment s WHERE s.geofence_id = %(g)s AND gkg.road_key(s.name) = %(kx)s
-                       UNION SELECT DISTINCT s.to_node FROM gkg.road_segment s WHERE s.geofence_id = %(g)s AND gkg.road_key(s.name) = %(kx)s""",
+                shared = [n for (n,) in conn.execute(
+                    f"""SELECT DISTINCT s.from_node FROM gkg.road_segment s WHERE s.geofence_id = %(g)s AND {KEY_SQL.replace('name', 's.name')} = %(kx)s
+                       UNION SELECT DISTINCT s.to_node FROM gkg.road_segment s WHERE s.geofence_id = %(g)s AND {KEY_SQL.replace('name', 's.name')} = %(kx)s""",
                     {"g": G, "kx": kx}).fetchall() if n in adj]
+                if shared:
+                    return shared
+                # No shared node (the limit street stops short, or meets through a ramp or alley): use the corridor
+                # street's nodes within 60 m of the limit street, nearest first.
+                return [n for (n,) in conn.execute(
+                    f"""SELECT i.urn FROM gkg.intersection_node i
+                        JOIN LATERAL (SELECT min(ST_Distance(i.geom::geography, s.geom::geography)) d FROM gkg.road_segment s
+                                      WHERE s.geofence_id = %(g)s AND {KEY_SQL.replace('name', 's.name')} = %(kx)s
+                                        AND s.geom && ST_Expand(i.geom, 0.001)) x ON true
+                        WHERE i.geofence_id = %(g)s AND i.urn = ANY(%(nodes)s) AND x.d <= 60 ORDER BY x.d""",
+                    {"g": G, "kx": kx, "nodes": list(adj)}).fetchall()]
             A, B = ends(kf), ends(kt)
             best = None
             for a in A[:20]:
@@ -102,6 +119,18 @@ def main(inp, out):
                    "street_segments": len(segs), "from_nodes": len(A), "to_nodes": len(B)}
             if best:
                 d, (sp, npath) = best
+                # Divided streets have one segment per direction; the path follows one. Add the corridor street's
+                # segments that run alongside the path (both ends within 30 m of it) and their end nodes, so crashes
+                # attached to the other carriageway count too.
+                extra = conn.execute(
+                    f"""WITH p AS (SELECT ST_Union(geom) g FROM gkg.road_segment WHERE geofence_id = %(g)s AND urn = ANY(%(sp)s))
+                        SELECT s.urn, s.from_node, s.to_node FROM gkg.road_segment s, p
+                        WHERE s.geofence_id = %(g)s AND {KEY_SQL.replace('name', 's.name')} = ANY(%(ks)s) AND NOT s.urn = ANY(%(sp)s)
+                          AND ST_DWithin(ST_StartPoint(s.geom)::geography, p.g::geography, 30)
+                          AND ST_DWithin(ST_EndPoint(s.geom)::geography, p.g::geography, 30)""",
+                    {"g": G, "sp": sp, "ks": ks}).fetchall()
+                sp = sp + [e[0] for e in extra]
+                npath = list(set(npath) | {e[1] for e in extra} | {e[2] for e in extra})
                 c = window_counts(conn, sp, npath, int(r["completed_year"]), int(r["completed_month"]))
                 row.update(located=True, corridor_m=round(d), segments=len(sp), nodes=len(npath),
                            crashes_before=c[0], crashes_after=c[1], ksi_before=c[2], ksi_after=c[3],

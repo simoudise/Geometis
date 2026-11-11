@@ -99,3 +99,21 @@ frequency. The HSM baseline then becomes "EB expected crashes times the Clearing
 better but is not required to run the test, and a volume-free SPF built from graph context is closer to candidate claim
 6 than an AADT SPF would be. Decision needed: run the volume-free design now, request SF-CHAMP volumes from SFCTA in
 parallel, or wait for purchased volumes.
+
+## Corridor placement, second pass (job 099, 11 November 2026)
+
+Three fixes to `locate_projects.py`: a leading "The" is dropped before name matching ("Embarcadero" now matches "The
+Embarcadero"); when a limit street shares no node with the corridor street, the corridor street's nodes within 60 m of
+the limit street are used; and segments of the corridor street that run alongside the path (both ends within 30 m of
+it) are added, so that both carriageways of a divided street count. A corridor along several streets lists them
+separated by "/" (Evans Avenue/Hunters Point Boulevard/Innes Avenue).
+
+27 of 30 corridors are now placed. Still not placed: 3rd Street (Berry to Terry Francois), Indiana Street (24th to
+Cesar Chavez) and Beale Street (Market to Natoma); these need manual end points. The divided-street fix explains the
+low Embarcadero counts: The Embarcadero (Mission to Broadway) went from 7 to 27 crashes before, and Market Street from
+188 to 279.
+
+Crude count on the 27 placed corridors: 1,346 injury crashes before, 1,061 after; the citywide trend predicts 1,157
+after, so the corridors ran 8.3 per cent below it. Killed or severely injured: 110 to 96. Pedestrian or cyclist
+involved: 694 to 414. The same caveats as before apply: no correction for regression to the mean, the whole city as
+the comparison group, and no citywide comparison for the pedestrian and cyclist counts.
