@@ -53,3 +53,26 @@ Findings:
    before-after count would credit the pandemic to the projects.
 3. **SFMTA has published its own before-after results** for these programs (2022 Safe Streets Evaluation). They are a
    second check on our observed effects, not a replacement for them.
+
+## Corridors on the graph and a first crude count (job 098, 11 November 2026)
+
+`locate_projects.py` places each completed quick-build corridor on the San Francisco graph (street-name segments on the
+shortest path between the intersections with the two limit streets) and counts TIMS injury crashes attached to those
+segments and nodes in the 36 months before and after the completion month. The Embarcadero (Bay to North Point, Mission
+to Harrison) is split into its two pieces, giving 30 rows; scopes come from the December 2021 and December 2022
+updates.
+
+23 of 30 corridors were placed. The seven not placed are 3rd Street (Berry to Terry Francois), Howard Street
+(Embarcadero to 3rd), Indiana Street, Alemany Boulevard, Beale Street, Brannan Street and the Evans/Hunters Point/Innes
+corridor. In each case a limit street's name did not match a graph name (for example "Embarcadero" against "The
+Embarcadero") or the corridor runs along more than one street; these need name aliases or manual end points.
+
+On the 23 placed corridors: 998 injury crashes before and 829 after. Citywide injury crashes in the same windows predict
+862 after, so the corridors ran 3.8 per cent below the citywide trend. Killed-or-severely-injured crashes went from 76
+to 74. Crashes involving a pedestrian or cyclist went from 528 to 326.
+
+This is a crude comparison, not the Phase 5 result. It ignores regression to the mean (SFMTA chose these corridors
+because they had many crashes), it uses all of San Francisco as the comparison group rather than similar untreated
+streets, and the pedestrian and cyclist counts have no citywide comparison yet. The empirical Bayes estimate with safety
+performance functions replaces it. Two placements also need checking: the Embarcadero pieces show 0 to 7 crashes, which
+is low for that street, so crashes there may be attaching to a parallel segment.
