@@ -384,3 +384,28 @@ Gaps:
 3. **High Injury Network flags.** v19 Stage 4 asks for them. The method (crash density per mile with a severity
    weight, as cities publish it) is not chosen yet.
 4. **Exposure.** Counts are not yet divided by traffic volume; Phase 3 route risk needs exposure.
+
+## Stage 3, building footprints (11 November 2026)
+
+`run_stage3_buildings.py` loads Overture building footprints (theme buildings, release 2026-10-21.0) inside the extent
+into `gkg.building`, and links each place to the smallest footprint that contains it (`gkg.place_building`). TLP Stage 2
+attribution scores places on footprint containment (v19 section 10.3.2), and two of the Phase 2 reference sets need
+footprints.
+
+| | Contra Costa | San Francisco |
+|---|---|---|
+| Buildings in extent | 185,356 | 190,638 |
+| Buildings in core | 122,584 | 162,866 |
+| Buildings with no Overture subtype | 171,098 (92%) | 172,582 (91%) |
+| Buildings with subtype residential | 10,637 | 14,575 |
+| Places inside a footprint | 19,001 of 28,604 (66%) | 59,149 of 78,789 (75%) |
+| Core footprints holding exactly one place | 2,130 | 7,141 |
+
+Gaps:
+1. **Building use is mostly unknown.** Overture gives a subtype for only 8 to 9 per cent of footprints, so "residential"
+   cannot be read from Overture for most homes. Home anchors and the residence class that v19 protects (section 10.3.2)
+   need another source: county assessor parcels with land-use codes (public for Contra Costa and San Francisco), or a
+   rule from the footprint (no place inside, small area, inside a residential zone). Decision needed.
+2. **Places outside footprints.** A third of Contra Costa places lie outside any footprint (gas stations, parks, places
+   geocoded to the street). Attribution must fall back to distance for them.
+3. **Building URNs** are minted from the GERS id and the release and are not in the URN registry yet.
