@@ -117,3 +117,22 @@ Crude count on the 27 placed corridors: 1,346 injury crashes before, 1,061 after
 after, so the corridors ran 8.3 per cent below it. Killed or severely injured: 110 to 96. Pedestrian or cyclist
 involved: 694 to 414. The same caveats as before apply: no correction for regression to the mean, the whole city as
 the comparison group, and no citywide comparison for the pedestrian and cyclist counts.
+
+## Traffic calming devices (job 100, 11 November 2026)
+
+`traffic_calming.sql` loads SFMTA's traffic calming layer, keeps devices installed 2018 to 2022 and marked Complete
+(490; 477 with an install month), places each on the nearest San Francisco segment of the named street within 50 m
+(449 devices on 441 segments), and counts injury crashes attached to those segments (not to intersections) in the 36
+months before and after the earliest installation on each segment.
+
+| Measure | Segments | Crashes before | Crashes after | After expected from the citywide trend |
+|---|---|---|---|---|
+| Speed hump | 220 | 17 | 7 | 15 |
+| Speed cushion | 198 | 27 | 24 | 26 |
+| Raised crosswalk or speed table | 23 | 3 | 4 | 2 |
+| All | 441 | 47 | 35 | 43 |
+
+Finding: these streets carry very few injury crashes (47 in three years across 441 segments), so the devices cannot
+support a test on their own, even grouped by measure; the confidence intervals would span any plausible effect. The
+quick-build corridors (1,346 crashes before) carry the Phase 5 test. The devices can join a pooled estimate for
+residential streets, or be dropped.
