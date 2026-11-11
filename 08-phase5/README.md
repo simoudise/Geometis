@@ -76,3 +76,26 @@ because they had many crashes), it uses all of San Francisco as the comparison g
 streets, and the pedestrian and cyclist counts have no citywide comparison yet. The empirical Bayes estimate with safety
 performance functions replaces it. Two placements also need checking: the Embarcadero pieces show 0 to 7 crashes, which
 is low for that street, so crashes there may be attaching to a parallel segment.
+
+## Traffic volumes: what is available (11 November 2026)
+
+Highway Safety Manual safety performance functions predict crashes from traffic volume (AADT), so both the HSM baseline
+and a standard empirical Bayes estimate need a volume for every treated and comparison segment. The public sources found:
+
+- **SFMTA traffic counts, 1993-2015** (PDF of counts at selected locations): old and sparse; no counts after 2015.
+- **Caltrans traffic census:** state highways only.
+- **SFCTA SF-CHAMP model volumes:** modeled volumes on every link, available on request from SFCTA's Model Data Service
+  Bureau (data@sfcta.org). The page states no fee and no terms for private firms; a request must say what the data is
+  for.
+- **Community Telraam sensors:** a few streets only.
+- **Commercial:** INRIX Volume Profiles (already in the INRIX request), StreetLight, and Replica (a competitor).
+
+There is no trip panel for San Francisco, so the City Data exposure used in Contra Costa does not exist there.
+
+Design that needs no volumes. Empirical Bayes needs an expected crash frequency for a site, not volume as such. A
+negative binomial model fitted to crash counts on untreated segments, with graph attributes as predictors (road class,
+lanes, speed limit, grade, intersection density, transit stops, land use near the segment), gives that expected
+frequency. The HSM baseline then becomes "EB expected crashes times the Clearinghouse CMF". Volume would make both
+better but is not required to run the test, and a volume-free SPF built from graph context is closer to candidate claim
+6 than an AADT SPF would be. Decision needed: run the volume-free design now, request SF-CHAMP volumes from SFCTA in
+parallel, or wait for purchased volumes.
