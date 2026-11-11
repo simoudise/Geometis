@@ -72,5 +72,35 @@ Findings:
    are short links between parking and the street; the vendor may measure them to a point inside a parking lot or
    building. Open item.
 
-Next: write the conflated links (trip, link, URN, entry and exit fractions) for all April trips into a Tier 3 table on
-the Mac mini, with the fallback for the links in finding 2.
+## Step 3: conflation of all April 2024 links (job 091, 10 November 2026)
+
+`conflate_april.sql` writes `tlp.link_conflation` on the Mac mini (Tier 3: it holds trip ids and stays there). Each row
+is one piece of a vendor link on one URN, with entry and exit fractions in the direction of travel and the method used.
+The "way" method splits a link across the URN pieces of its OSM way when both link ends lie within 15 m of the merged way
+line; the "fallback" method takes the nearest piece of a layer that suits the mode when both ends lie within 30 m of it.
+The job took 26 minutes and wrote 69.2 million rows (64.2 million by way, 5.1 million by fallback); free disk on the Mac
+mini fell from 184 GB to 144 GB. Every entry and exit fraction lies in [0, 1].
+
+| Vendor mode | Links | Matched | Of matched: by way | Of matched: by fallback | URN pieces per matched link |
+|---|---|---|---|---|---|
+| driving | 23,157,804 | 99.0% | 91.1% | 8.9% | 1.37 |
+| transit_bus | 16,873,772 | 99.1% | 88.6% | 11.4% | 1.51 |
+| transit_walking | 4,805,261 | 99.0% | 92.0% | 8.0% | 1.56 |
+| walking | 1,711,900 | 97.5% | 86.6% | 13.4% | 1.43 |
+| cycling | 945,386 | 98.5% | 89.6% | 10.4% | 1.51 |
+| transit_subway (BART) | 824,682 | 99.7% | 50.8% | 49.2% | 1.03 |
+| driving_walking | 327,530 | 100% | 94.0% | 6.0% | 1.34 |
+| transitwait | 161,207 | not conflated (no extent) | | | |
+| transit_rail | 656 | 0% | | | |
+
+Gaps:
+1. **Fallback gives one URN per link.** That is right for short links but wrong for long ones. BART links are long
+   (station to station) and half of them fall back, so most BART fallback rows cover only one rail piece of a link that
+   spans many. The fallback should route along the layer between the two projected ends (shortest path on the rail or
+   road graph) and write every piece on the way. The same applies to the longer road links among the 9 to 13 per cent
+   that fall back.
+2. **Why half the BART links fall back.** Either their ends lie more than 15 m from the 2026 rail lines or their ways do not
+   merge into a single line (stations, crossovers). To check before fixing gap 1.
+3. **transit_rail (Amtrak, 656 links) and transitwait** are not conflated. transitwait has no extent; Amtrak is too small to
+   matter now.
+4. **Disk.** The table and its index use about 40 GB. June will need as much again; check free space before running it.
