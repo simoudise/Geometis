@@ -111,3 +111,31 @@ Gaps:
 3. **transit_rail (Amtrak, 656 links) and transitwait** are not conflated. transitwait has no extent; Amtrak is too small to
    matter now.
 4. **Disk.** The table and its index use about 40 GB. June will need as much again; check free space before running it.
+
+## Endpoint attribution: where the April trip ends lie (job 095, 11 November 2026)
+
+Before building attribution (candidate claim 2), job 095 measured where April trip destinations lie, on a 5 per cent
+sample of trips (21,637), against the graph's road and path network, building footprints and places. Aggregates only.
+
+| Trip mode | Trips | Inside a building footprint | Median distance to the network | Within 1 m of the network | Median distance to the nearest place |
+|---|---|---|---|---|---|
+| multimodal (mostly driving + walking, and transit) | 13,223 | 0.2% | 0.0 m | 98.4% | 56 m |
+| walking | 4,329 | 24.2% | 12.9 m | 6.4% | 68 m |
+| transit_walking | 1,748 | 0.2% | 0.0 m | 98.7% | 81 m |
+| driving | 1,431 | 14.0% | 16.7 m | 5.0% | 83 m |
+| cycling | 906 | 18.2% | 9.8 m | 7.9% | 70 m |
+
+Findings:
+1. **Multimodal and transit trips end on the network, not at the place.** Their destinations sit on a road or path line
+   (98 per cent within 1 m) and almost never inside a footprint. Their end point is where the vendor's route stops, so
+   footprint containment cannot score them, and attribution has to work from distance, dwell and time alone.
+2. **Single-mode trips end off the network.** Walking, driving and cycling destinations lie a median 10 to 17 m from the
+   network and 14 to 24 per cent fall inside a footprint, which looks like a device position, possibly with privacy
+   jitter. These are the trips where containment can help.
+3. **Two of the planned reference sets need rethinking.** (a) Transit-access ends: the vendor builds transit legs from
+   GTFS, so walk ends at a boarded stop coincide with the GTFS stop position, and nearest-stop attribution would be right
+   by construction; the test would be circular, as the Phase 0 transit-access reference set was. (b) Single-place
+   footprints: the plan selects these "by footprint geometry alone, so the test does not reuse the features the
+   attribution method scores", but v19 section 10.3.2 scores footprint containment, so the method and the reference set
+   share that feature. Either containment is removed from the method for this test, or the reference set needs another
+   source of truth. Decisions needed from Evangelos before attribution v0 is built.
