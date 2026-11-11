@@ -94,13 +94,20 @@ mini fell from 184 GB to 144 GB. Every entry and exit fraction lies in [0, 1].
 | transit_rail | 656 | 0% | | | |
 
 Gaps:
-1. **Fallback gives one URN per link.** That is right for short links but wrong for long ones. BART links are long
-   (station to station) and half of them fall back, so most BART fallback rows cover only one rail piece of a link that
-   spans many. The fallback should route along the layer between the two projected ends (shortest path on the rail or
-   road graph) and write every piece on the way. The same applies to the longer road links among the 9 to 13 per cent
-   that fall back.
-2. **Why half the BART links fall back.** Either their ends lie more than 15 m from the 2026 rail lines or their ways do not
-   merge into a single line (stations, crossovers). To check before fixing gap 1.
+1. **Fallback gives one URN per link, which suits most fallback links (jobs 092-093).** On a 10 per cent sample of trips,
+   fallback links are short (median 14 to 78 m by mode; 90th percentile 50 to 302 m), their ends lie on the chosen URN
+   (median offset 0.0 to 4.8 m), and for driving, bus and BART the span on the URN averages 94 to 98 per cent of the
+   vendor's distance. The exception is the long tail: links over 200 m are 5 to 11 per cent of driving, bus and BART
+   fallback links but carry 20 to 45 per cent of their fallback distance, and a single URN cannot hold them. These need
+   a routed fallback (shortest path on the layer graph between the two projected ends). pgRouting is not installed on
+   the Mac mini; the routed fallback would use pgRouting (a Homebrew install) or a SciPy shortest-path step. Overall it
+   affects about 0.5 per cent of links and 2 to 4 per cent of link distance, so it is deferred behind endpoint
+   attribution.
+2. **Why half the BART links fall back (job 092).** The cause is the referenced way, not the rail layer: 99.5 per cent of
+   BART fallback links have an end more than 15 m from their own way's line (half between 250 and 500 m), yet their ends
+   lie on some rail piece (median offset 0.0 m). The likeliest explanation is that BART ways were split between 2024 and
+   2026: the old way id stays with one part of the track, and links on the split-off part now point at a way that no
+   longer covers them. The nearest-piece fallback handles these correctly because the links are short (median 78 m).
 3. **transit_rail (Amtrak, 656 links) and transitwait** are not conflated. transitwait has no extent; Amtrak is too small to
    matter now.
 4. **Disk.** The table and its index use about 40 GB. June will need as much again; check free space before running it.
