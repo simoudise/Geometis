@@ -178,6 +178,7 @@ pairs whose trips all follow one interior link sequence.
 | | June | 0.877 | 0.857 | 0.840 |
 | | peak | 0.894 | 0.874 | 0.856 |
 | | off-peak | 0.863 | 0.842 | 0.824 |
+| Driving legs of driving+driving_walking trips (job 110) | all | 0.999 | 0.999 | 1.000 |
 | Walking legs of transit trips (positive control) | all | 0.999 | 0.999 | 1.000 |
 
 Reading, by the review's rules: the positive control (legs built by the vendor's trip planner from GTFS) gives one
@@ -185,7 +186,10 @@ sequence almost always, so the test detects planner output. Driving-only routes 
 of pairs, falling slowly with distance. That is neither least-cost routing between origin and destination (which would
 give about 99 per cent everywhere) nor dense observation (which would give low shares). It fits least-cost filling
 between intermediate observed positions, or observed driving with strong habits; this test does not separate those two.
-Pooling April and June lowers the share, so some second sequences probably come from map differences between the
+The driving legs of "driving+driving_walking" trips (38 per cent of trips) give one sequence for 99.9 to 100 per cent
+of pairs in every bin and month, the same as the planner-built control: those routes are computed between origin and
+destination by a least-cost router. Driving-only trips (7 per cent) are the only driving trips whose routes carry any
+information beyond their two ends. Pooling April and June lowers the share for driving-only trips, so some second sequences probably come from map differences between the
 months, not from different behaviour.
 
 Limits: the review's condition that the graph offers a second path no more than 1.3 times longer was not applied
