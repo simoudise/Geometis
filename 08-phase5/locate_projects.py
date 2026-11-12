@@ -5,7 +5,9 @@ For each corridor:
   1. Candidate segments: San Francisco road segments whose name has the same key as the corridor street
      (gkg.road_key: first word after removing accents, punctuation and direction prefixes), service roads excluded.
   2. End nodes: intersection nodes that touch a candidate segment and a segment named like the from street (or the to
-     street). Among the candidate end-node pairs, the pair joined by the shortest path along candidate segments wins.
+     street). When the two streets share no node, the corridor street's node nearest the limit street stands in, up to
+     MAX_GAP_M away, and the output records the gap. Among the candidate end-node pairs, the pair joined by the
+     shortest path along candidate segments wins.
   3. Corridor: the segments and nodes on that shortest path.
   4. Crashes: TIMS injury crashes attached (Stage 4) to those segments or nodes, in the 36 months before the completion
      month and the 36 months after it (the completion month itself is left out), with the same counts for all of San
@@ -28,6 +30,9 @@ def key(conn, s):
 
 
 KEY_SQL = "gkg.road_key(regexp_replace(coalesce(name, ''), '^[Tt]he ', ''))"
+
+# Largest distance in meters between a limit street and the corridor street's nearest node when the two share no node.
+MAX_GAP_M = 150
 
 
 def shortest(adj, a, b):
@@ -83,7 +88,11 @@ def main(inp, out):
         for r in rows:
             # A corridor along several streets lists them separated by "/" (for example Evans/Hunters Point/Innes).
             ks = [key(conn, x) for x in r["street"].split("/")]
-            kf, kt = key(conn, r["from_st"]), key(conn, r["to_st"])
+            # Optional columns from_st_map and to_st_map name the street to match in the map when the limit street
+            # named in the project list has since been renamed or realigned (Mission Rock moved the junction of
+            # Terry A. Francois Boulevard and 3rd Street; the new street there is Toni Stone Crossing).
+            kf = key(conn, r.get("from_st_map") or r["from_st"])
+            kt = key(conn, r.get("to_st_map") or r["to_st"])
             segs = conn.execute(
                 f"""SELECT urn, from_node, to_node, length_m FROM gkg.road_segment
                    WHERE geofence_id = %s AND {KEY_SQL} = ANY(%s) AND coalesce(road_classification,'') <> 'service'""",
@@ -93,22 +102,31 @@ def main(inp, out):
                 adj[a].append((b, l, urn))
                 adj[b].append((a, l, urn))
             def ends(kx):
+                """Return (candidate end nodes, gap in meters). The gap is 0 when the limit street meets the corridor
+                street at a shared node."""
                 shared = [n for (n,) in conn.execute(
                     f"""SELECT DISTINCT s.from_node FROM gkg.road_segment s WHERE s.geofence_id = %(g)s AND {KEY_SQL.replace('name', 's.name')} = %(kx)s
                        UNION SELECT DISTINCT s.to_node FROM gkg.road_segment s WHERE s.geofence_id = %(g)s AND {KEY_SQL.replace('name', 's.name')} = %(kx)s""",
                     {"g": G, "kx": kx}).fetchall() if n in adj]
                 if shared:
-                    return shared
-                # No shared node (the limit street stops short, or meets through a ramp or alley): use the corridor
-                # street's nodes within 60 m of the limit street, nearest first.
-                return [n for (n,) in conn.execute(
-                    f"""SELECT i.urn FROM gkg.intersection_node i
+                    return shared, 0
+                # No shared node. In the map the limit street can stop short of the corridor street (Natoma Street ends
+                # about 110 m from Beale Street, 24th Street about 85 m from Indiana Street), or meet it through a ramp
+                # or alley. Use the corridor street's node nearest the limit street, if it lies within MAX_GAP_M, plus any
+                # node no more than 15 m farther away. Keeping only the nearest nodes stops the shortest-path step from
+                # picking a node part way along the corridor and cutting the corridor short. The gap goes to the output
+                # so that a reader can see which corridors rest on this rule.
+                near = conn.execute(
+                    f"""SELECT i.urn, x.d FROM gkg.intersection_node i
                         JOIN LATERAL (SELECT min(ST_Distance(i.geom::geography, s.geom::geography)) d FROM gkg.road_segment s
                                       WHERE s.geofence_id = %(g)s AND {KEY_SQL.replace('name', 's.name')} = %(kx)s
-                                        AND s.geom && ST_Expand(i.geom, 0.001)) x ON true
-                        WHERE i.geofence_id = %(g)s AND i.urn = ANY(%(nodes)s) AND x.d <= 60 ORDER BY x.d""",
-                    {"g": G, "kx": kx, "nodes": list(adj)}).fetchall()]
-            A, B = ends(kf), ends(kt)
+                                        AND s.geom && ST_Expand(i.geom, 0.003)) x ON true
+                        WHERE i.geofence_id = %(g)s AND i.urn = ANY(%(nodes)s) AND x.d <= %(mx)s ORDER BY x.d""",
+                    {"g": G, "kx": kx, "nodes": list(adj), "mx": MAX_GAP_M}).fetchall()
+                if not near:
+                    return [], None
+                return [n for n, d in near if d <= near[0][1] + 15], round(near[0][1])
+            (A, gap_from), (B, gap_to) = ends(kf), ends(kt)
             best = None
             for a in A[:20]:
                 for b in B[:20]:
@@ -116,7 +134,9 @@ def main(inp, out):
                     if d is not None and (best is None or d < best[0]):
                         best = (d, path)
             row = {**{k2: r[k2] for k2 in ["corridor", "street", "from_st", "to_st", "completed_year", "completed_month", "scope"]},
-                   "street_segments": len(segs), "from_nodes": len(A), "to_nodes": len(B)}
+                   "from_st_map": r.get("from_st_map") or "", "to_st_map": r.get("to_st_map") or "",
+                   "street_segments": len(segs), "from_nodes": len(A), "to_nodes": len(B),
+                   "from_gap_m": gap_from, "to_gap_m": gap_to}
             if best:
                 d, (sp, npath) = best
                 # Divided streets have one segment per direction; the path follows one. Add the corridor street's

@@ -68,7 +68,7 @@ corridor. In each case a limit street's name did not match a graph name (for exa
 Embarcadero") or the corridor runs along more than one street; these need name aliases or manual end points.
 
 On the 23 placed corridors: 998 injury crashes before and 829 after. Citywide injury crashes in the same windows predict
-862 after, so the corridors ran 3.8 per cent below the citywide trend. Killed-or-severely-injured crashes went from 76
+862 after, so the corridors ran 3.8 percent below the citywide trend. Killed-or-severely-injured crashes went from 76
 to 74. Crashes involving a pedestrian or cyclist went from 528 to 326.
 
 This is a crude comparison, not the Phase 5 result. It ignores regression to the mean (SFMTA chose these corridors
@@ -114,7 +114,7 @@ low Embarcadero counts: The Embarcadero (Mission to Broadway) went from 7 to 27 
 188 to 279.
 
 Crude count on the 27 placed corridors: 1,346 injury crashes before, 1,061 after; the citywide trend predicts 1,157
-after, so the corridors ran 8.3 per cent below it. Killed or severely injured: 110 to 96. Pedestrian or cyclist
+after, so the corridors ran 8.3 percent below it. Killed or severely injured: 110 to 96. Pedestrian or cyclist
 involved: 694 to 414. The same caveats as before apply: no correction for regression to the mean, the whole city as
 the comparison group, and no citywide comparison for the pedestrian and cyclist counts.
 
@@ -136,3 +136,30 @@ Finding: these streets carry very few injury crashes (47 in three years across 4
 support a test on their own, even grouped by measure; the confidence intervals would span any plausible effect. The
 quick-build corridors (1,346 crashes before) carry the Phase 5 test. The devices can join a pooled estimate for
 residential streets, or be dropped.
+
+## Corridor placement, third pass: all 30 placed (jobs 101 and 102, 12 November 2026)
+
+The three corridors left over had limit streets that do not meet the corridor street in the map. Natoma Street ends
+about 110 m short of Beale Street, and 24th Street ends about 85 m short of Indiana Street. Terry A. Francois Boulevard
+no longer meets 3rd Street at all: the Mission Rock development moved the old junction, and its nearest point to 3rd
+Street is now 1.2 km to the south.
+
+Two changes to `locate_projects.py`:
+
+- When the two streets share no node, the corridor street's node nearest the limit street now stands in, up to 150 m
+  away (previously 60 m). The script keeps only that node and nodes no more than 15 m farther away, so the shortest-path
+  step cannot pick a node part way along the corridor. The output records the gap in `from_gap_m` and `to_gap_m`.
+- Optional columns `from_st_map` and `to_st_map` in the corridor list name the street to match in the map when the
+  listed limit street was renamed or moved. 3rd Street (Berry to Terry Francois) uses Toni Stone Crossing, the new
+  street that the Port of San Francisco's Mission Rock street-naming resolution describes as running "from Terry A.
+  Francois Boulevard to 3rd Street". Without that column, the nearest-node rule ran the corridor 1.5 km south to the
+  far end of Terry A. Francois Boulevard; with it, the corridor is 274 m long.
+
+Four corridors rest on a stand-in end node: Indiana Street (85 m gap at 24th Street), Beale Street (108 m at Natoma
+Street), Alemany Boulevard (44 m at Putnam Street, placed in the second pass) and 3rd Street (through the column above).
+
+Crude count on all 30 corridors: 1,364 injury crashes before, 1,073 after. The citywide trend predicts 1,172 after, so
+the corridors ran 8.4 percent below it. Killed or severely injured: 111 to 97. Pedestrian or cyclist involved: 705 to
+418. The caveats from the second pass still apply: no correction for regression to the mean, the whole city as the
+comparison group, and no citywide comparison for the pedestrian and cyclist counts. The three new corridors are short
+and add few crashes (3rd Street 6 to 10, Indiana Street 6 to 0, Beale Street 6 to 2).
