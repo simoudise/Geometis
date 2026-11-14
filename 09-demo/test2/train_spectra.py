@@ -1,7 +1,7 @@
 """Train SPECTRA v0 on one fold's source graph, embed source and target entities, and measure position leakage.
 
 python train_spectra.py EXPORTDIR NETMETRICSDIR FOLDSDIR OUTDIR --fold F --variant S-pub|S-full --seed N
-       [--epochs 20] [--max-steps 0] [--device mps]
+       [--epochs 20] [--max-steps 0] [--device cpu]
 Writes OUTDIR/<fold>/<variant>/seed<N>/: emb_<type>_<role>.npy (transferable vector z_T, float16, M4),
 keys_<type>_<role>.parquet (geofence_id, urn), train_log.json (losses, seconds per epoch, leakage probe, config).
 Only source labels from 2015-2019 are read, and only in S-full (L_aux, M17). Held-out labels are never read here.
@@ -73,7 +73,7 @@ def main():
     for a in ("exportdir", "netdir", "foldsdir", "outdir"): ap.add_argument(a)
     ap.add_argument("--fold", required=True); ap.add_argument("--variant", default="S-pub", choices=["S-pub", "S-full"])
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--epochs", type=int, default=20)
-    ap.add_argument("--max-steps", type=int, default=0); ap.add_argument("--device", default="mps")
+    ap.add_argument("--max-steps", type=int, default=0); ap.add_argument("--device", default="cpu")
     a = ap.parse_args()
     device = torch.device(a.device if (a.device != "mps" or torch.backends.mps.is_available()) else "cpu")
     torch.manual_seed(a.seed); rng = np.random.default_rng(a.seed)

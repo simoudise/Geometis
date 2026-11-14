@@ -1,7 +1,7 @@
 """Test 2 graph baselines B4: a supervised relational graph network (R-GCN) and an unsupervised GraphSAGE.
 
 python baselines_gnn.py EXPORTDIR NETMETRICSDIR FOLDSDIR OUTDIR --fold F --model rgcn|rgcn-eq|sage --seed N
-       [--epochs 20] [--device mps]
+       [--epochs 20] [--device cpu]
 Writes OUTDIR/<fold>/<model>/seed<N>/ in the same layout as train_spectra.py (emb_<type>_<role>.npy,
 keys_<type>_<role>.parquet, train_log.json), so that evaluate.py --method EMB or EMB+B2 reads them unchanged and
 every feature set feeds the same head class (docs/test-plan-2026-11.md, Test 2, "Feature sets compared").
@@ -81,7 +81,7 @@ def main():
     for a in ("exportdir", "netdir", "foldsdir", "outdir"): ap.add_argument(a)
     ap.add_argument("--fold", required=True); ap.add_argument("--model", required=True, choices=["rgcn", "rgcn-eq", "sage"])
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--epochs", type=int, default=20)
-    ap.add_argument("--device", default="mps")
+    ap.add_argument("--device", default="cpu")
     a = ap.parse_args()
     device = torch.device(a.device if (a.device != "mps" or torch.backends.mps.is_available()) else "cpu")
     torch.manual_seed(a.seed); rng = np.random.default_rng(a.seed)

@@ -30,10 +30,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 14, 2026, 12:40 Pacific (update this section at every handoff)
+## State on November 14, 2026, 13:25 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 135,
-status lane s153.
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 139,
+status lane s155.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
@@ -53,20 +53,25 @@ Done:
 - No held-out label has been read by any evaluation. Rule kept: no held-out evaluation until every method's
   configuration is fixed.
 
-Running or waiting:
-- Job 135: SPECTRA timing on fold f1 (S-pub 3 epochs, S-full 1 epoch), output in test2-spectra-timing.
-  Its log appears only at the end (grep buffers it).
-- Evangelos: decision on the template count (30 recommended, 40 as the margin option).
-- Evangelos: his 15 templates in the Sheet "Test 1 question templates (Evangelos)"
+- SPECTRA timing (jobs 135, 136, 139; profiling 137, 138): CPU is faster than MPS on this graph; S-full 74 s per
+  epoch on CPU for fold 1. Estimate about 2 days for all Test 2 training on the Mac mini (change log, Nov 14).
+  Tile cache added. B4 baselines written (baselines_gnn.py: rgcn, rgcn-eq, sage), tested on synthetic data.
+
+Waiting on Evangelos:
+- Template count (30 recommended, 40 as the margin option).
+- Compute decision (Mac mini recommended; plan's four-day rule also points to the Mac mini).
+- No objection yet recorded to the proposed M13 leakage rule: trained relational block passes if its position
+  R-squared does not exceed the untrained control's. Record it in the change log before the first real run.
+- His 15 templates in the Sheet "Test 1 question templates (Evangelos)"
   (https://claude.ai/artifact/XSwwaWghxUitpkHonAxcJQ), to become templates_evangelos.py with author "evangelos".
 
 Next steps, in order:
-1. Read job 135; compute the time per run (seconds per epoch times epochs) and the total for about 150 runs;
-   report to Evangelos and recommend Mac mini or GCP.
-2. Write the B4 baselines (supervised R-GCN with Poisson loss; unsupervised GraphSAGE) on the same tiles and fold
-   graphs as SPECTRA, and the S-full equal-supervision variants of B2 and B4 (2015-2019 counts as extra targets).
-3. Fix every method's tuning space; then run evaluate.py fold by fold (Contra Costa folds first, San Francisco
-   last), and the block bootstrap and pass rules.
+1. Write tune.py: for each network (S-pub, S-full, rgcn, sage) and fold, 8 configurations from a fixed space and
+   seed; each trial trains, then scores B-style heads by 5-fold source spatial-block CV (evaluate.py's tuning code
+   on source rows only); pick the best. Record the spaces in the change log before running.
+2. Run tuning, then 5 seeds per network per fold, Contra Costa folds first, San Francisco last; rgcn-eq for the
+   equal-supervision comparison.
+3. Only then run evaluate.py on held-out folds for every method, the block bootstrap and the pass rules.
 4. When Evangelos's templates arrive: implement them, generate the full pool with a new seed excluding pilot
    fillings, freeze templates, reference code, drop rule and parser by hash, then run the full Test 1.
 
