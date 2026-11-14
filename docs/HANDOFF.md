@@ -11,6 +11,7 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - Never handle Evangelos's logins or keys. He enters keys himself.
 - Outside language-model APIs see only material that is not client data. Tests 1 and 2 use public data only.
 - Any output derived from CITYDATA trips carries "Powered by CITYDATA.ai". CITYDATA trips are for demonstration only.
+- At each natural break, update the GeoMetis project files `docs/HANDOFF.md` and `docs/test-plan-2026-11.md` (Projects tool) from the repository. Whenever these files change, also upload them to the Drive folder SPECTRA (id 1sVqDDaxsgCCcM_BD-cT4yya6CJ7DQew6) with the date and time in the title, add "SUPERSEDED - " to the titles of the older copies there, and give Evangelos the Drive links.
 
 ## Where things are
 
