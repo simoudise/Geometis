@@ -55,6 +55,30 @@ def summarize(outdir):
                  + tot["cache_write"] * price["cache_write"]) / 1e6
             cost = f", ${c:.2f} total, ${c/max(n,1):.3f} per run"
         print(f"{arm}: {n} runs, {lim} hit the step limit, tokens {tot}{cost}")
+        steps(d, price)
+
+def steps(d, price, top=5):
+    """Slowest and most expensive steps of one arm, from the per-call records loop.py writes (model_calls and
+    the seconds of each tool call). Runs written before those records existed are skipped."""
+    mc, tc = [], []
+    for f in os.listdir(d):
+        o = json.load(open(os.path.join(d, f)))
+        for c in o.get("model_calls", []):
+            usd = ((c["input"] * price["in"] + c["output"] * price["out"] + c["cache_read"] * price["cache_read"]
+                    + c["cache_write"] * price["cache_write"]) / 1e6) if len(price) == 4 else None
+            mc.append({**c, "qid": o["qid"], "run": o["run"], "usd": usd})
+        for c in o.get("ledger", []):
+            if "seconds" in c: tc.append({"qid": o["qid"], "run": o["run"], "step": c["step"], "tool": c["tool"], "seconds": c["seconds"]})
+    if not mc: return
+    ms = sum(c["seconds"] for c in mc); ts = sum(c["seconds"] for c in tc)
+    print(f"  {len(mc)} model calls, {ms:.0f} s (mean {ms/len(mc):.1f} s); {len(tc)} tool calls, {ts:.0f} s (mean {ts/max(len(tc),1):.1f} s)")
+    fmt = lambda c: f"{c['qid']} r{c['run']} step {c['step']}"
+    print("  slowest model calls: " + "; ".join(f"{fmt(c)} {c['seconds']:.1f} s, {c['output']} output tokens" for c in sorted(mc, key=lambda c: -c["seconds"])[:top]))
+    if mc[0]["usd"] is not None:
+        print("  most expensive model calls: " + "; ".join(f"{fmt(c)} ${c['usd']:.3f} ({c['input']} in, {c['cache_read']} cache read, {c['cache_write']} cache write, {c['output']} out)"
+                                                         for c in sorted(mc, key=lambda c: -c["usd"])[:top]))
+    if tc:
+        print("  slowest tool calls: " + "; ".join(f"{fmt(c)} {c['tool']} {c['seconds']:.1f} s" for c in sorted(tc, key=lambda c: -c["seconds"])[:top]))
 
 if __name__ == "__main__":
     main()

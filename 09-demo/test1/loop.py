@@ -166,6 +166,7 @@ def answer(arm, qid, question, run=1, outdir=None):
     msgs = [{"role": "user", "content": [{"type": "text", "text": question}]}]
     ledger, t0, usage = [], time.time(), {"input": 0, "cache_read": 0, "cache_write": 0, "output": 0}
     final, hit_limit = None, False
+    model_calls = []  # per model call: step, seconds and tokens (timing record only)
     sysp = system_prompt(arm, conn)
     for step in range(MAX_STEPS):
         last = step == MAX_STEPS - 1
@@ -177,17 +178,22 @@ def answer(arm, qid, question, run=1, outdir=None):
         # reads the earlier conversation from the cache instead of paying full input price again.
         send = msgs[:-1] + [{"role": msgs[-1]["role"], "content": [dict(b) for b in msgs[-1]["content"]]}]
         send[-1]["content"][-1]["cache_control"] = {"type": "ephemeral"}
+        tc = time.time()
         r = client.messages.create(model=MODEL, max_tokens=4000, system=[{"type": "text", "text": sysp, "cache_control": {"type": "ephemeral"}}], messages=send, **kw)
         u = r.usage
         usage["input"] += u.input_tokens; usage["output"] += u.output_tokens
         usage["cache_read"] += getattr(u, "cache_read_input_tokens", 0) or 0
         usage["cache_write"] += getattr(u, "cache_creation_input_tokens", 0) or 0
+        model_calls.append({"step": step, "seconds": round(time.time() - tc, 2), "input": u.input_tokens,
+                            "output": u.output_tokens, "cache_read": getattr(u, "cache_read_input_tokens", 0) or 0,
+                            "cache_write": getattr(u, "cache_creation_input_tokens", 0) or 0})
         msgs.append({"role": "assistant", "content": [b.model_dump() for b in r.content]})
         calls = [b for b in r.content if b.type == "tool_use"]
         if not calls:
             final = "\n".join(b.text for b in r.content if b.type == "text"); break
         results = []
         for c in calls:
+            tt = time.time()
             if c.name == "sql":
                 res = run_sql(conn, c.input.get("query", ""))
             else:
@@ -195,7 +201,7 @@ def answer(arm, qid, question, run=1, outdir=None):
                     res = network_path(conn, **c.input)
                 except TypeError as e:
                     res = {"error": f"bad arguments: {e}"}
-            ledger.append({"step": step, "tool": c.name, "input": c.input, "result": res})
+            ledger.append({"step": step, "tool": c.name, "input": c.input, "result": res, "seconds": round(time.time() - tt, 2)})
             results.append({"type": "tool_result", "tool_use_id": c.id, "content": json.dumps(res, default=str)[:12000]})
         msgs.append({"role": "user", "content": results})
     if conn is not None:
@@ -203,7 +209,7 @@ def answer(arm, qid, question, run=1, outdir=None):
     m = re.findall(r"^\s*ANSWER:\s*(.+?)\s*$", final or "", re.M)
     out = {"qid": qid, "arm": arm, "run": run, "model": MODEL, "question": question, "answer": final,
            "answer_line": m[-1] if m else None, "tool_calls": len(ledger), "hit_step_limit": hit_limit,
-           "seconds": round(time.time() - t0, 1), "usage": usage, "ledger": ledger}
+           "seconds": round(time.time() - t0, 1), "usage": usage, "ledger": ledger, "model_calls": model_calls}
     d = outdir or os.path.join(HERE, "runs", arm); os.makedirs(d, exist_ok=True)
     json.dump(out, open(os.path.join(d, f"{qid}_r{run}.json"), "w"), indent=1, default=str)
     return out
