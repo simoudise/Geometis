@@ -166,6 +166,9 @@ class Graph:
                 ok = ~np.isnan(ix)
                 y[ix[ok].astype(int)] = l.crashes_2015_2019.values[ok]  # L_aux window only (M17)
                 self.labels[t] = y
+                if labels == "with_target":  # source 2021-2025 counts, for supervised baselines (B4) only
+                    y2 = np.zeros_like(y); y2[ix[ok].astype(int)] = l.crashes_2021_2025.values[ok]
+                    self.labels.setdefault("target_window", {})[t] = y2
         segdf = pd.concat([pd.read_parquet(os.path.join(exportdir, gf, "segment.parquet"), columns=["urn", "length_m"]).assign(geofence_id=gf) for gf in GEOFENCES])
         ix = self.index["segment"].reindex(pd.MultiIndex.from_arrays([segdf.geofence_id, segdf.urn])).values
         ok = ~np.isnan(ix)
@@ -182,6 +185,18 @@ class Graph:
         """Core tiles: 2 km squares holding at least one entity, in a fixed order."""
         k = np.unique(np.floor(self.all_xy / size).astype(np.int64), axis=0)
         return [tuple(r) for r in k]
+
+    def cached(self, tile, size, halo, device):
+        """Subgraph and tensors of one tile, built once per run and reused every epoch. The cache changes how
+        batches are assembled, not what they contain."""
+        if not hasattr(self, "_cache"): self._cache = {}
+        if tile not in self._cache:
+            sub = self.subgraph(tile, size, halo)
+            feats, shapes, locs, edges, xys = build_batch(self, sub, device)
+            raw = {t: np.concatenate([g[sub[t]["ids"]] for g in self.types[t]["groups"].values()]
+                                     + [self.types[t]["shape"][sub[t]["ids"]]], 1) for t in sub}
+            self._cache[tile] = (sub, feats, shapes, locs, edges, xys, raw)
+        return self._cache[tile]
 
     def subgraph(self, tile, size=2000.0, halo=750.0):
         """Induced subgraph of entities within the tile plus a halo. Returns local indices per type and core masks."""

@@ -45,7 +45,7 @@ def embed(enc, G, device, w):
         for tile in G.tiles(CONFIG["tile_m"]):
             sub = G.subgraph(tile, CONFIG["tile_m"], CONFIG["halo_m"])
             if not any(sub[t]["core"].any() for t in ("segment", "node")): continue
-            feats, shapes, locs, edges, _ = S.build_batch(G, sub, device)
+            sub, feats, shapes, locs, edges, _, _ = G.cached(tile, CONFIG["tile_m"], CONFIG["halo_m"], device)
             r, _ = enc(S.assemble(feats, shapes), edges)
             for t in ("segment", "node"):
                 c = torch.from_numpy(sub[t]["core"]).to(device)
@@ -93,10 +93,9 @@ def main():
     for ep in range(a.epochs):
         te = time.time(); losses = []
         for ti in rng.permutation(len(tiles)):
-            sub = Gs.subgraph(tiles[ti], CONFIG["tile_m"], CONFIG["halo_m"])
+            sub, feats, shapes, locs, edges, xys, rawc = Gs.cached(tiles[ti], CONFIG["tile_m"], CONFIG["halo_m"], device)
             core = [(t, i) for t in S.TYPES for i in np.where(sub[t]["core"])[0]]
             if len(core) < 16: continue
-            feats, shapes, locs, edges, xys = S.build_batch(Gs, sub, device)
             pick = rng.choice(len(core), size=min(CONFIG["anchors"], len(core)), replace=False)
             anchors = {}
             for j in pick:
@@ -113,7 +112,7 @@ def main():
             A, P, N = [], [], []
             for t, ix in anchors.items():
                 ix = np.array(ix)
-                raw = torch.cat([v for v in feats[t].values()] + [shapes[t]], 1).cpu().numpy()
+                raw = rawc[t]
                 dm = S.distance_matched(xys[t], raw, ix, CONFIG["dm_k"], tuple(CONFIG["dm_band_m"]), rng)
                 ixt = torch.from_numpy(ix).to(device)
                 A.append(r1[t][ixt]); P.append(r2[t][ixt])
@@ -141,7 +140,7 @@ def main():
                     aux_l = aux_l + F.poisson_nll_loss(lr, y, log_input=True)
                 loss = loss + CONFIG["lambda_aux"] * aux_l
             opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(params, 5.0); opt.step()
-            losses.append([float(loss_nce), float(aux_l)]); step += 1
+            losses.append([float(loss_nce.detach()), float(aux_l.detach())]); step += 1
             if a.max_steps and step >= a.max_steps: break
         sec = time.time() - te
         log["epochs"].append({"epoch": ep, "seconds": round(sec, 1), "steps": len(losses),
