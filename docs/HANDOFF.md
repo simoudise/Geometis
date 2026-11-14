@@ -30,10 +30,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 14, 2026, 13:25 Pacific (update this section at every handoff)
+## State on November 14, 2026, 13:30 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 139,
-status lane s155.
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 144,
+status lane s157.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
@@ -65,14 +65,19 @@ Waiting on Evangelos:
 - His 15 templates in the Sheet "Test 1 question templates (Evangelos)"
   (https://claude.ai/artifact/XSwwaWghxUitpkHonAxcJQ), to become templates_evangelos.py with author "evangelos".
 
+Running:
+- Fold f1 tuning, jobs 140 to 144 (S-pub, S-full, rgcn, rgcn-eq, sage; tune.py; about 8 to 9 hours in total).
+  Output ~/Geometis-mini/work/test2-tune/f1-wc-ph-concord/<network>/tuning.json. tune.py resumes: rerunning a
+  job skips finished trials. Tuning rules and the M13 leakage rule are in the plan's change log.
+
 Next steps, in order:
-1. Write tune.py: for each network (S-pub, S-full, rgcn, sage) and fold, 8 configurations from a fixed space and
-   seed; each trial trains, then scores B-style heads by 5-fold source spatial-block CV (evaluate.py's tuning code
-   on source rows only); pick the best. Record the spaces in the change log before running.
-2. Run tuning, then 5 seeds per network per fold, Contra Costa folds first, San Francisco last; rgcn-eq for the
-   equal-supervision comparison.
-3. Only then run evaluate.py on held-out folds for every method, the block bootstrap and the pass rules.
-4. When Evangelos's templates arrive: implement them, generate the full pool with a new seed excluding pilot
+1. When f1 tuning ends: queue f2 tuning (same five jobs), then f3 (San Francisco last).
+2. After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
+   --epochs from tuning.json; baselines_gnn.py likewise). Check each run's leakage against its control.
+3. Add method B2-eq to evaluate.py (B2 trained on both crash windows, for the equal-supervision comparison).
+4. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods,
+   then the block bootstrap and the pass rules.
+5. When Evangelos's templates arrive: implement them, generate the full pool with a new seed excluding pilot
    fillings, freeze templates, reference code, drop rule and parser by hash, then run the full Test 1.
 
 GCP: project "geometis", GPUS_ALL_REGIONS = 1 approved on Nov 14; us-central1 L4 limit already 1. Nothing created.
