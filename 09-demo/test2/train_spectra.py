@@ -74,7 +74,10 @@ def main():
     ap.add_argument("--fold", required=True); ap.add_argument("--variant", default="S-pub", choices=["S-pub", "S-full"])
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--epochs", type=int, default=20)
     ap.add_argument("--max-steps", type=int, default=0); ap.add_argument("--device", default="cpu")
+    ap.add_argument("--overrides", default="{}", help="JSON object of CONFIG values (tuning trials)")
+    ap.add_argument("--mask-cv-group", type=int, default=-1, help="source CV group whose labels L_aux never sees (tuning)")
     a = ap.parse_args()
+    CONFIG.update(json.loads(a.overrides))
     device = torch.device(a.device if (a.device != "mps" or torch.backends.mps.is_available()) else "cpu")
     torch.manual_seed(a.seed); rng = np.random.default_rng(a.seed)
     out = os.path.join(a.outdir, a.fold, a.variant, f"seed{a.seed}"); os.makedirs(out, exist_ok=True)
@@ -87,7 +90,7 @@ def main():
     params = list(enc.parameters()) + (list(aux.parameters()) if a.variant == "S-full" else [])
     opt = torch.optim.AdamW(params, lr=CONFIG["lr"], weight_decay=CONFIG["weight_decay"])
     tiles = Gs.tiles(CONFIG["tile_m"]); fa, fb = ff_masks()
-    log = {"config": CONFIG, "fold": a.fold, "variant": a.variant, "seed": a.seed, "device": str(device),
+    log = {"config": CONFIG, "mask_cv_group": a.mask_cv_group, "fold": a.fold, "variant": a.variant, "seed": a.seed, "device": str(device),
            "tiles": len(tiles), "epochs": []}
     step = 0
     for ep in range(a.epochs):
@@ -124,13 +127,14 @@ def main():
             k = max(n.shape[1] for n in N)
             N = torch.cat([F.pad(n, (0, 0, 0, k - n.shape[1])) for n in N])
             valid = (N.abs().sum(2) > 0)                      # padded or missing negatives are zero vectors
-            loss_nce = _nce_with_dm(A, P, N, valid)
+            loss_nce = _nce_with_dm(A, P, N, valid, CONFIG["tau"], CONFIG["tau_plus"])
             loss = loss_nce - CONFIG["lambda_gatereg"] * (g1 + g2) / 2
             aux_l = torch.zeros((), device=device)
             if a.variant == "S-full":
                 r0, _ = enc(S.assemble(feats, shapes), edges)
                 for t in ("segment", "node"):
                     c = np.where(sub[t]["core"])[0]
+                    c = c[Gs.types[t]["cv"][sub[t]["ids"][c]] != a.mask_cv_group]
                     if len(c) == 0: continue
                     ids = sub[t]["ids"][c]
                     y = torch.from_numpy(Gs.labels[t][ids]).to(device)
@@ -171,7 +175,7 @@ def main():
     json.dump(log, open(os.path.join(out, "train_log.json"), "w"), indent=1, default=str)
     print("done", log["train_seconds"], "s training,", log["embed_seconds"], "s embedding", flush=True)
 
-def _nce_with_dm(A, P, N, valid, tau=CONFIG["tau"], tau_plus=CONFIG["tau_plus"]):
+def _nce_with_dm(A, P, N, valid, tau, tau_plus):
     """InfoNCE with debiased in-batch negatives plus distance-matched negatives (padding excluded)."""
     import math
     n = A.shape[0]

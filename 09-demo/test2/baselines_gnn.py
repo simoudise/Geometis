@@ -82,17 +82,21 @@ def main():
     ap.add_argument("--fold", required=True); ap.add_argument("--model", required=True, choices=["rgcn", "rgcn-eq", "sage"])
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--epochs", type=int, default=20)
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--overrides", default="{}", help="JSON object of CONFIG values (tuning trials)")
+    ap.add_argument("--mask-cv-group", type=int, default=-1, help="source CV group whose labels training never sees (tuning)")
     a = ap.parse_args()
+    CONFIG.update(json.loads(a.overrides))
     device = torch.device(a.device if (a.device != "mps" or torch.backends.mps.is_available()) else "cpu")
     torch.manual_seed(a.seed); rng = np.random.default_rng(a.seed)
     out = os.path.join(a.outdir, a.fold, a.model, f"seed{a.seed}"); os.makedirs(out, exist_ok=True)
     t0 = time.time()
     Gs = S.Graph(a.exportdir, a.netdir, a.foldsdir, a.fold, "source", labels=("with_target" if a.model != "sage" else False))
     model = RGCN(Gs.in_dims(), list(Gs.edges), CONFIG["layers"], CONFIG["hidden"], mean_agg_all=(a.model == "sage")).to(device)
+    log0 = {"mask_cv_group": a.mask_cv_group}
     heads = nn.ModuleDict({f"{t}_{w}": nn.Linear(CONFIG["hidden"], 1) for t in ("segment", "node") for w in ("y", "aux")}).to(device)
     params = list(model.parameters()) + (list(heads.parameters()) if a.model != "sage" else [])
     opt = torch.optim.AdamW(params, lr=CONFIG["lr"], weight_decay=CONFIG["weight_decay"])
-    tiles = Gs.tiles(TILE); log = {"config": CONFIG, "model": a.model, "fold": a.fold, "seed": a.seed, "epochs": []}
+    tiles = Gs.tiles(TILE); log = {**log0, "config": CONFIG, "model": a.model, "fold": a.fold, "seed": a.seed, "epochs": []}
     for ep in range(a.epochs):
         te = time.time(); losses = []
         for ti in rng.permutation(len(tiles)):
@@ -115,6 +119,7 @@ def main():
             else:
                 for t in ("segment", "node"):
                     c = np.where(sub[t]["core"])[0]
+                    c = c[Gs.types[t]["cv"][sub[t]["ids"][c]] != a.mask_cv_group]
                     if len(c) == 0: continue
                     ids = sub[t]["ids"][c]; ct = torch.from_numpy(c).to(device)
                     off = torch.log(torch.from_numpy(Gs.length[ids] / 1000.0).clamp(min=1e-3)).to(device) if t == "segment" else 0.0

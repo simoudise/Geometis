@@ -139,12 +139,14 @@ class Graph:
                 if t in ("segment", "node", "ped_edge", "ped_node"):
                     df = df.merge(pd.read_parquet(os.path.join(netdir, gf, f"{t}.parquet")), on="urn", how="left")
                 df["geofence_id"] = gf
-                keep = set(mem.loc[(mem.geofence_id == gf) & (mem.kind == t), "urn"])
-                parts.append(df[df.urn.isin(keep)])
+                mk = mem[(mem.geofence_id == gf) & (mem.kind == t)].set_index("urn").cv_group
+                df = df[df.urn.isin(mk.index)].copy(); df["cv_group"] = df.urn.map(mk).values
+                parts.append(df)
             df = pd.concat(parts, ignore_index=True)
             groups, shape = attributes(t, df)
             self.types[t] = {"urn": df.urn.values, "gf": df.geofence_id.values,
-                             "xy": df[["x", "y"]].to_numpy(np.float64), "groups": groups, "shape": shape}
+                             "xy": df[["x", "y"]].to_numpy(np.float64), "groups": groups, "shape": shape,
+                             "cv": df.cv_group.to_numpy(np.int64)}
         self.index = {t: pd.Series(np.arange(len(v["urn"])), index=pd.MultiIndex.from_arrays([v["gf"], v["urn"]]))
                       for t, v in self.types.items()}
         self.edges = {}
