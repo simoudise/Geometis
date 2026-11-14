@@ -15,8 +15,10 @@ union core, not inside one city.
 ## Classes (tables)
 - uko:RoadSegment = `road_segment` (urn, name, road_classification, subclass, length_m, speed_limit_mph,
   speed_limit_source, grade, max_abs_grade, is_bridge, is_tunnel, from_node, to_node). A street for planning
-  purposes is road_classification in (primary, secondary, tertiary, residential, unclassified, living_street)
-  and subclass is not 'link'. Arterials: primary and secondary. Freeway: motorway, trunk; ramps: subclass 'link'.
+  purposes is road_classification in (trunk, primary, secondary, tertiary, residential, unclassified, living_street)
+  and subclass is not 'link'. Trunk roads are state highways that run at grade through towns (for example
+  California Avenue or Railroad Avenue segments signed as state routes); people walk along and across them.
+  Arterials: trunk, primary and secondary. Freeway: motorway only; ramps: subclass 'link'.
 - uko:Intersection = `intersection_node` (urn, degree = number of legs, node_kind, elevation_m).
   Segments meet nodes through road_segment.from_node / to_node (node urn).
 - uko:PedestrianWay = `pedestrian_edge` (edge_class footway/path/steps/cycleway; subclass sidewalk, crosswalk,

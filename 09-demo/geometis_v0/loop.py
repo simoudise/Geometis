@@ -11,7 +11,7 @@ import anthropic, psycopg
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODEL = os.environ.get("GEOMETIS_MODEL", "claude-sonnet-5-5")
-MAX_STEPS = 24
+MAX_STEPS = 14
 TRIP_TABLES = re.compile(r"\b(base_trips|base_trip_links|base_trips_carry|base_trips_file_log)\b", re.I)
 QUESTIONS = json.load(open(os.path.join(HERE, "questions.json")))
 
@@ -96,9 +96,14 @@ def answer(mode, qid):
     msgs = [{"role": "user", "content": q}]
     ledger, t0, usage = [], time.time(), {"input": 0, "output": 0}
     final = None
+    sysp = system_prompt(mode, conn)
     for step in range(MAX_STEPS):
-        r = client.messages.create(model=MODEL, max_tokens=4000, system=system_prompt(mode, conn), tools=tools, messages=msgs)
-        usage["input"] += r.usage.input_tokens; usage["output"] += r.usage.output_tokens
+        last = step == MAX_STEPS - 1
+        kw = {} if last else {"tools": tools}
+        if last:
+            msgs[-1]["content"].append({"type": "text", "text": "Step limit reached: give your final answer now from what you have, and say what you could not check."})
+        r = client.messages.create(model=MODEL, max_tokens=4000, system=[{"type": "text", "text": sysp, "cache_control": {"type": "ephemeral"}}], messages=msgs, **kw)
+        usage["input"] += r.usage.input_tokens + (getattr(r.usage, "cache_read_input_tokens", 0) or 0); usage["output"] += r.usage.output_tokens
         msgs.append({"role": "assistant", "content": [b.model_dump() for b in r.content]})
         calls = [b for b in r.content if b.type == "tool_use"]
         if not calls:
@@ -107,7 +112,7 @@ def answer(mode, qid):
         for c in calls:
             res = run_sql(conn, c.input["query"]) if c.name == "sql" else shortest_path(conn, **c.input)
             ledger.append({"step": step, "tool": c.name, "input": c.input, "result": res})
-            results.append({"type": "tool_result", "tool_use_id": c.id, "content": json.dumps(res)[:20000]})
+            results.append({"type": "tool_result", "tool_use_id": c.id, "content": json.dumps(res)[:12000]})
         msgs.append({"role": "user", "content": results})
     out = {"qid": qid, "mode": mode, "model": MODEL, "question": q, "answer": final, "steps": len(ledger),
            "seconds": round(time.time() - t0, 1), "usage": usage, "ledger": ledger}
