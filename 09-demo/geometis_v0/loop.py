@@ -16,10 +16,9 @@ TRIP_TABLES = re.compile(r"\b(base_trips|base_trip_links|base_trips_carry|base_t
 QUESTIONS = json.load(open(os.path.join(HERE, "questions.json")))
 
 def db():
-    c = psycopg.connect("dbname=geometis", autocommit=False)
-    with c.cursor() as cur:
-        cur.execute("set search_path = gkg, public; set statement_timeout = '180s'; set transaction read only")
-    return c
+    # Session settings go in the connection options: a SET inside a transaction is undone by rollback.
+    return psycopg.connect("dbname=geometis", autocommit=False,
+        options="-c statement_timeout=180000 -c search_path=gkg,public -c default_transaction_read_only=on")
 
 def run_sql(conn, query):
     q = query.strip().rstrip(";")
@@ -32,12 +31,12 @@ def run_sql(conn, query):
             cur.execute(q)
             cols = [d.name for d in cur.description]
             rows = cur.fetchmany(201)
-        conn.rollback(); conn.cursor().execute("set transaction read only")
+        conn.rollback()
         out = {"columns": cols, "rows": [[None if v is None else (v if isinstance(v,(int,float,str,bool)) else str(v)) for v in r] for r in rows[:200]]}
         if len(rows) > 200: out["note"] = "truncated at 200 rows"
         return out
     except Exception as e:
-        conn.rollback(); conn.cursor().execute("set transaction read only")
+        conn.rollback()
         return {"error": f"{type(e).__name__}: {str(e)[:500]}"}
 
 _graphs = {}
@@ -53,7 +52,7 @@ def shortest_path(conn, geofence_id, from_node, to_node, avoid_classes=None):
             for urn, a, b, L, cls, sub, name in cur.fetchall():
                 if a and b:
                     g.add_edge(a, b, urn=urn, w=L, cls=cls, sub=sub, name=name)
-        conn.rollback(); conn.cursor().execute("set transaction read only")
+        conn.rollback()
         _graphs[key] = g
     g = _graphs[key]
     avoid = set(avoid_classes or [])
@@ -78,7 +77,7 @@ def plain_schema(conn):
         cur.execute("select table_name, string_agg(column_name||' '||data_type, ', ' order by ordinal_position) "
                     "from information_schema.columns where table_schema='gkg' group by 1 order by 1")
         rows = cur.fetchall()
-    conn.rollback(); conn.cursor().execute("set transaction read only")
+    conn.rollback()
     return "\n".join(f"gkg.{t}({c})" for t, c in rows)
 
 def system_prompt(mode, conn):
