@@ -1,6 +1,6 @@
 # GeoMetis test plan: two bets, two tests (revision 2, November 14, 2026)
 
-Status: DRAFT, revision 2. Revision 1 went to Fable for a design review (Chat 5, November 14). Fable found 18 defects, three of them fatal. This revision accepts all 18; the change log at the end maps each defect to its fix. The plan is frozen once Evangelos approves the open decisions listed at the end. Any later change goes in the change log, with its date and reason, before the run it affects.
+Status: revision 2, approved by Evangelos on November 14, 2026 (decisions below). Arm descriptions and tools frozen (Freeze record); templates not yet frozen. Revision 1 went to Fable for a design review (Chat 5, November 14). Fable found 18 defects, three of them fatal. This revision accepts all 18; the change log at the end maps each defect to its fix. The plan is frozen once Evangelos approves the open decisions listed at the end. Any later change goes in the change log, with its date and reason, before the run it affects.
 
 ## Why this plan exists
 
@@ -51,7 +51,7 @@ All arms keep the step limit of 14 with a forced final answer, tool output cappe
 
 ### Network tool
 
-The current `shortest_path` tool routes only over road segments and can avoid only whole road classes. Revision 2 extends it, before anything is frozen, to (a) the pedestrian network and (b) removal of named segments, so that network and what-if questions do not depend on SQL tricks. One-way rules are not applied, and every question says so.
+The current `shortest_path` tool routes only over road segments and can avoid only whole road classes. Revision 2 replaces it, before anything is frozen, with `network_path`, which adds (a) the walking network the walksheds use (road segments other than motorways, pedestrian edges and access points) and (b) removal of named segments, so that network and what-if questions do not depend on SQL tricks. One-way rules are not applied, and every question says so.
 
 ### Reference answers
 
@@ -66,7 +66,7 @@ The current `shortest_path` tool routes only over road segments and can avoid on
 - **Size:** at least 30 non-lookup templates with at most 6 filled-in questions each, plus 10 lookup templates. The pilot estimates the variance between templates; the final template count is then set so that the standard error of the A4-minus-A2 difference is at most 4 points (Fable defect 6).
 - **Authorship:** at least half of the non-lookup templates come from an author who has not seen the catalog or the data dictionary. The report shows results for the two author groups separately (Fable defect 4). (Open decision 1.)
 - **Freeze order:** first the catalog, the data dictionary, every system prompt, `loop.py` and the network tool are frozen and their SHA-256 hashes recorded here. Then the templates are written. Then the templates, the reference code, the drop rule and the answer parser are frozen and hashed (Fable defect 4).
-- **Drop rule:** frozen code drops a question before the run when its reference depends on data the catalog marks unreliable. In the first version of this rule, pedestrian-network questions in Contra Costa are dropped, because sidewalk mapping there covers 20 to 35 percent of streets. The plan publishes the category-by-geofence count table before the run (Fable defect 9).
+- **Drop rule:** frozen code drops a question before the run when its reference depends on data the catalog marks unreliable. In the first version of this rule, Contra Costa questions whose answer depends on whether a sidewalk or crosswalk is mapped are dropped, because sidewalk mapping there covers 20 to 35 percent of streets. Walking-route questions stay in both geofences: the walking network (the same one the walksheds use) is every road segment except motorways plus mapped pedestrian ways, so sparse sidewalk data does not cut it apart. The plan publishes the category-by-geofence count table before the run (Fable defect 9).
 - **Sampling:** the filled-in questions are drawn with a recorded seed. Pilot questions are excluded from the full set.
 
 ### Scoring
@@ -210,12 +210,22 @@ Five seeds of four networks on three folds, plus tuning trials, come to roughly 
 
 Work outside this plan (H8, Pittsburgh, the effect library, patch rev 3) waits until both tests report, unless Evangelos decides otherwise.
 
-## Open decisions for Evangelos
+## Freeze record
 
-1. **Independent template author.** Either Evangelos writes about 15 non-lookup templates (each a question with blanks, about an hour in total, using a form I provide), or a separate agent that sees only the schema listing writes them. Fable cannot write them, because Fable has now read the catalog.
-2. **Interval-based rules.** The rules above keep the approved thresholds (15 and 5 points) but add confidence bounds and an inconclusive outcome.
-3. **API budget.** The pilot measures the cost; the full run needs more than the current $20.
-4. **Compute for Test 2.** Stay on the Mac mini (Test 2 reports around December 4) or move training to GCP once the GPU quota is approved (earlier).
+| Date | File (in `09-demo/test1/`) | SHA-256 |
+|---|---|---|
+| Nov 14 | catalog.md (arm A4 description) | d447946179162c4b6dc3188ac70cf631ada736eaa3adda0f163fe5ddd9ef62d8 |
+| Nov 14 | dictionary.md (arm A3 description) | dfb4b7e63e4d093a8e537013b8ef9e4b6e9e520710a8beb1b03250a57a56c129 |
+| Nov 14 | loop.py (all system prompts, answer rules, SQL tool, network tool) | 223a27e80f02c1bf9848c490ba6634dd4c1547533f7dec5b1bbbb41598d60454 |
+
+These three files were frozen before any template was written. The network tool passed a smoke test on both geofences and both networks (job 124, no model calls).
+
+## Decisions (Evangelos, November 14)
+
+1. **Independent template author:** Evangelos writes 15 non-lookup templates (5 network, 5 what-if, 5 constrained) in the Sheet "Test 1 question templates (Evangelos)". I write the other 15 non-lookup templates and the 10 lookup templates.
+2. **Interval-based rules:** approved.
+3. **API budget:** the pilot measures the cost; I report it before spending past the current $20.
+4. **Compute for Test 2:** time the first SPECTRA run on the Mac mini, then decide between the Mac mini and GCP.
 
 ## Change log
 
@@ -239,5 +249,6 @@ Work outside this plan (H8, Pittsburgh, the effect library, patch rev 3) waits u
 | Nov 14 | 16 | Encoder and all fitted quantities on source entities only; edges crossing the buffer cut |
 | Nov 14 | 17 | Lineage manifest enforced; L_aux from tims_crash up to 2019; no names or URNs |
 | Nov 14 | 18 | Gaps section extended; head reads the transferable vector (M4); position-leakage measurement (M13); low-label references; evaluation log |
+| Nov 14 | (none) | Drop rule corrected: the walking network includes all non-motorway roads, so walking-route questions stay in Contra Costa; only questions that depend on mapped sidewalks are dropped there. The catalog's own answer rules are removed so that every arm receives the same rules |
 
 *Synapse Partners, LLC — Confidential and Proprietary*
