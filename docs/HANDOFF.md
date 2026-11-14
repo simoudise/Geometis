@@ -31,9 +31,9 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 14, 2026, 13:30 Pacific (update this section at every handoff)
+## State on November 14, 2026, 14:30 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 144,
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149,
 status lane s157.
 
 Done:
@@ -66,12 +66,13 @@ Waiting on Evangelos:
   He is working on them now.
 
 Running:
-- Fold f1 tuning, jobs 140 to 144 (S-pub, S-full, rgcn, rgcn-eq, sage; tune.py; about 8 to 9 hours in total).
-  Output ~/Geometis-mini/work/test2-tune/f1-wc-ph-concord/<network>/tuning.json. tune.py resumes: rerunning a
-  job skips finished trials. Tuning rules and the M13 leakage rule are in the plan's change log.
+- Fold f1 tuning, jobs 140 to 144 (S-pub, S-full, rgcn, rgcn-eq, sage), then fold f2 tuning, jobs 145 to 149,
+  queued behind it. At 14:26 S-pub had finished 4 of 8 trials (454 to 1,124 s each; validation deviance 0.477 to
+  0.488); no failures. Output ~/Geometis-mini/work/test2-tune/<fold>/<network>/tuning.json. tune.py resumes:
+  rerunning a job skips finished trials. Tuning rules and the M13 leakage rule are in the plan's change log.
 
 Next steps, in order:
-1. When f1 tuning ends: queue f2 tuning (same five jobs), then f3 (San Francisco last).
+1. When f2 tuning ends: queue f3 tuning (San Francisco last; same five networks).
 2. After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
    --epochs from tuning.json; baselines_gnn.py likewise). Check each run's leakage against its control.
 3. Done: evaluate.py method B2-eq (B2 trained on both crash windows, window column), tested on synthetic data.
