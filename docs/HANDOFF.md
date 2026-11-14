@@ -73,7 +73,7 @@ Next steps, in order:
 1. When f1 tuning ends: queue f2 tuning (same five jobs), then f3 (San Francisco last).
 2. After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
    --epochs from tuning.json; baselines_gnn.py likewise). Check each run's leakage against its control.
-3. Add method B2-eq to evaluate.py (B2 trained on both crash windows, for the equal-supervision comparison).
+3. Done: evaluate.py method B2-eq (B2 trained on both crash windows, window column), tested on synthetic data.
 4. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods,
    then the block bootstrap and the pass rules.
 5. When Evangelos's templates arrive: implement them, generate the full pool with a new seed excluding pilot

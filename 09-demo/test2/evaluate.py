@@ -1,6 +1,6 @@
 """Test 2 heads and held-out evaluation for one method on one fold.
 
-python evaluate.py FEATURESDIR OUTDIR --fold F --method B0|B1|B2|EMB|EMB+B2 [--emb DIR] [--seed N] [--trials 8]
+python evaluate.py FEATURESDIR OUTDIR --fold F --method B0|B1|B2|B2-eq|EMB|EMB+B2 [--emb DIR] [--seed N] [--trials 8]
 Runs on the Mac mini. Every feature set feeds the same head class: scikit-learn's histogram gradient boosting
 with a Poisson loss, trained on source entities only (docs/test-plan-2026-11.md, Test 2). Segment heads model the
 crash rate per kilometer with length as the weight, which is the Poisson model with log length as exposure;
@@ -42,6 +42,11 @@ def fit_predict(cfg, Xtr, ytr, wtr, Xte, seed):
     m.fit(Xtr, ytr, sample_weight=wtr)
     return m.predict(Xte)
 
+def stack(X, y, y_aux, e):
+    """Rows for both crash windows, with a window column (1 = 2021-2025, 0 = 2015-2019)."""
+    Xa = np.r_[np.c_[X, np.ones(len(X))], np.c_[X, np.zeros(len(X))]]
+    return Xa, np.r_[y / e, y_aux / e], np.r_[e, e]
+
 def b0(src, dst, head):
     """Source mean by cell; unseen cells fall back to the class, then to the overall mean."""
     expo = (src.exposure_m / 1000.0) if head == "segment" else pd.Series(1.0, index=src.index)
@@ -54,7 +59,7 @@ def b0(src, dst, head):
 
 def matrix(df, method, flist, emb):
     cols = []
-    if method in ("B1", "B2", "EMB+B2"):
+    if method in ("B1", "B2", "B2-eq", "EMB+B2"):
         cols = list(flist["B1" if method == "B1" else "B2"])
     X = df[cols].to_numpy(np.float64) if cols else np.zeros((len(df), 0))
     if method in ("EMB", "EMB+B2"):
@@ -79,17 +84,30 @@ def run_head(df, head, method, flist, emb, trials, seed):
     else:
         Xs, Xt = matrix(src, method, flist, emb), matrix(tgt, method, flist, emb)
         es = expo(src); ys = src.y.values / es
+        if method == "B2-eq":
+            # Equal supervision (Fable defect 11): each source row appears twice, once with 2021-2025 counts and
+            # once with 2015-2019 counts, and a window column (1 = 2021-2025) tells the trees which; prediction and
+            # scoring use window 1 only.
+            Xt = np.c_[Xt, np.ones(len(Xt))]
         best, best_dev = None, np.inf
         for i, cfg in enumerate(configs(trials, seed)):
             dev = []
             for g in range(5):
                 tr, te = src.cv_group.values != g, src.cv_group.values == g
-                mu = fit_predict(cfg, Xs[tr], ys[tr], es[tr], Xs[te], seed) * es[te]
+                if method == "B2-eq":
+                    Xa, ya, wa = stack(Xs[tr], src.y.values[tr], src.y_aux.values[tr], es[tr])
+                    mu = fit_predict(cfg, Xa, ya, wa, np.c_[Xs[te], np.ones(te.sum())], seed) * es[te]
+                else:
+                    mu = fit_predict(cfg, Xs[tr], ys[tr], es[tr], Xs[te], seed) * es[te]
                 dev.append(deviance(src.y.values[te], mu).sum())
             mdev = float(np.sum(dev) / len(src))
             tuning.append({"trial": i, "config": cfg, "cv_mean_deviance": mdev})
             if mdev < best_dev: best, best_dev = cfg, mdev
-        mu = fit_predict(best, Xs, ys, es, Xt, seed) * expo(tgt)
+        if method == "B2-eq":
+            Xa, ya, wa = stack(Xs, src.y.values, src.y_aux.values, es)
+            mu = fit_predict(best, Xa, ya, wa, Xt, seed) * expo(tgt)
+        else:
+            mu = fit_predict(best, Xs, ys, es, Xt, seed) * expo(tgt)
     # Held-out labels are read from here on.
     y = tgt.y.values.astype(float)
     mu_adj = mu.copy()
@@ -114,7 +132,7 @@ def run_head(df, head, method, flist, emb, trials, seed):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("featdir"); ap.add_argument("outdir")
-    ap.add_argument("--fold", required=True); ap.add_argument("--method", required=True, choices=["B0", "B1", "B2", "EMB", "EMB+B2"])
+    ap.add_argument("--fold", required=True); ap.add_argument("--method", required=True, choices=["B0", "B1", "B2", "B2-eq", "EMB", "EMB+B2"])
     ap.add_argument("--emb", default=""); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--trials", type=int, default=8)
     a = ap.parse_args()
     os.makedirs(a.outdir, exist_ok=True)
