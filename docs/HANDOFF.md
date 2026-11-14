@@ -30,34 +30,45 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 14, 2026, 11:45 Pacific (update this section at every handoff)
+## State on November 14, 2026, 12:40 Pacific (update this section at every handoff)
+
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 135,
+status lane s153.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
-- Test 1: five arms in 09-demo/test1/loop.py; catalog.md and dictionary.md frozen (hashes in the plan); network tool
-  `network_path` (road and walk networks, segment removal); 25 Claude templates (templates_claude.py) with
-  independent references (reference.py, SciPy and PostGIS); generator gen.py; parallel runner run.py; scorer score.py.
-  Dry-run pool (seed 20261114) and a 2-question smoke test (job 129) exist on the Mac mini; neither may be used in
-  the pilot or the full set. Measured cost: about $0.11 per run on arms A1 to A4.
-- Test 2: export.py wrote Tier P features, edges, crash labels and cores to ~/Geometis-mini/work/test2-export
-  (job 130), with the lineage check passing.
+- Test 1: five arms in 09-demo/test1/loop.py; catalog.md and dictionary.md frozen; 25 Claude templates with
+  independent references; gen.py, run.py, score.py. Dry-run pool (seed 20261114) is for smoke tests only.
+- Test 1 pilot (job 131, seed 58231907, `pilot_select.py`, `pilot_report.py`): 50 questions on A1 to A4, 10 on A0,
+  210 runs, none failed, $12.30 total ($0.053 to $0.069 per run on A1 to A4). Step-limit hits A1 14%, A2 6%,
+  A3 4%, A4 4%. With 30 non-lookup templates and 6 questions each the standard errors are 3.3 to 3.6 points
+  (target 4); bootstrap medians of the needed count range 19 to 39. Recommendation sent: keep 30 templates.
+  Pilot questions (runs-pilot, pool-pilot on the Mac mini) must be excluded from the full set.
+- loop.py per-call timing (model_calls; tool seconds) and run.py step summary, after the pilot; new loop.py
+  SHA-256 29778409... in the freeze record; checked with status job s152.
+- Test 2 on the Mac mini, under ~/Geometis-mini/work: test2-export (job 130), test2-folds (job 132, folds.py),
+  test2-netmetrics (job 133, network_metrics.py: reach and betweenness), test2-features (job 134, features.py;
+  feature_list.json SHA-256 742bbc8e... frozen in the plan). SPECTRA v0 code (spectra.py, train_spectra.py) and
+  evaluate.py (heads, tuning, append-only held-out log) are written and tested on synthetic data only.
+- No held-out label has been read by any evaluation. Rule kept: no held-out evaluation until every method's
+  configuration is fixed.
 
-Waiting on Evangelos:
-- $400 of API credit (decided; he adds it at platform.claude.com/settings/billing). The pilot needs it.
-- His 15 templates in the Sheet "Test 1 question templates (Evangelos)"
-  (https://claude.ai/artifact/XSwwaWghxUitpkHonAxcJQ). Translate each into a sampler and a reference function in
-  templates_evangelos.py, with author "evangelos".
+Running or waiting:
+- Job 135: SPECTRA timing on fold f1 (S-pub 3 epochs, S-full 1 epoch), output in test2-spectra-timing.
+  Its log appears only at the end (grep buffers it).
+- Evangelos: decision on the template count (30 recommended, 40 as the margin option).
+- Evangelos: his 15 templates in the Sheet "Test 1 question templates (Evangelos)"
+  (https://claude.ai/artifact/XSwwaWghxUitpkHonAxcJQ), to become templates_evangelos.py with author "evangelos".
 
 Next steps, in order:
-1. When credit is in: generate the pilot pool with a new seed (not 20261114), 50 questions across Claude's
-   templates; run A1 to A4 once and A0 on 10; report cost per run, step-limit hits and the variance between
-   templates; set the final template count (standard error of A4 minus A2 at most 4 points).
-2. Test 2: folds.py (city membership from cores.parquet, 1 km buffer, edges crossing the buffer cut, 1 km spatial
-   blocks); B0/B1/B2 feature builder with the B2 list frozen by hash before SPECTRA trains.
-3. SPECTRA v0 model code per v19 patch M1 to M4, M7, M8, M9, M13, M17; time one training run; then decide Mac mini
-   or GCP (project "geometis", one L4 GPU in us-central1 approved; gcloud not yet installed on the Mac mini).
-4. When Evangelos's templates arrive: implement them, freeze all templates, reference code, drop rule and parser by
-   hash, then run the full Test 1.
+1. Read job 135; compute the time per run (seconds per epoch times epochs) and the total for about 150 runs;
+   report to Evangelos and recommend Mac mini or GCP.
+2. Write the B4 baselines (supervised R-GCN with Poisson loss; unsupervised GraphSAGE) on the same tiles and fold
+   graphs as SPECTRA, and the S-full equal-supervision variants of B2 and B4 (2015-2019 counts as extra targets).
+3. Fix every method's tuning space; then run evaluate.py fold by fold (Contra Costa folds first, San Francisco
+   last), and the block bootstrap and pass rules.
+4. When Evangelos's templates arrive: implement them, generate the full pool with a new seed excluding pilot
+   fillings, freeze templates, reference code, drop rule and parser by hash, then run the full Test 1.
 
 GCP: project "geometis", GPUS_ALL_REGIONS = 1 approved on Nov 14; us-central1 L4 limit already 1. Nothing created.
 
