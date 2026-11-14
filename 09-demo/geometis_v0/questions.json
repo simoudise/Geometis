@@ -1,0 +1,16 @@
+{
+ "q01": "Which 10 intersections in Concord had the most killed-or-severely-injured crashes in 2021-2025, and what are their legs, road classes and speed limits?",
+ "q02": "For the corridor with the most killed-or-severely-injured crashes in Pittsburg in 2021-2025, how do its segments, intersections and surroundings differ from the city's other arterials?",
+ "q03": "Rank the five Contra Costa cities (Antioch, Concord, Pittsburg, Pleasant Hill, Walnut Creek) and San Francisco by pedestrian crashes per km of street in 2021-2025, and describe how their street patterns differ.",
+ "q04": "How did pedestrian crashes change between 2015-2019 and 2021-2025 on streets of each speed-limit class, city by city, for the five Contra Costa cities and San Francisco?",
+ "q06": "Which census tracts in the five Contra Costa cities have the highest share of households without a car, and which grocery stores, clinics and schools lie within the 800 m walksheds of their bus stops?",
+ "q07": "If Tri Delta Transit removed its least-used route serving Antioch, how many households without a car would lose a bus stop within 800 m?",
+ "q08": "Which BART stations in the five Contra Costa cities have the least safe walking access, measured as the share of street length in the station's 800 m walkshed posted above 35 mph?",
+ "q10": "Which bus stops in the five Contra Costa cities and San Francisco have no sidewalk or marked crossing within 100 m? Give counts by city.",
+ "q11": "What makes downtown Walnut Creek a weekend-evening destination, judged by the mix and density of its places, and how does downtown Concord compare?",
+ "q13": "Where in the five Contra Costa cities would one new grocery store bring the most households without a car within an 800 m walk of a grocery store?",
+ "q14": "Which areas within 800 m of a BART station in the five Contra Costa cities have many places and few residents, and so are candidates for transit-oriented housing?",
+ "q15": "Which warehouses and distribution sites in Concord and Pittsburg lie more than 1 km from a freeway ramp, and which residential streets lie on their shortest route to the nearest ramp?",
+ "q17": "Which compact area of Walnut Creek or San Francisco suits a first automated ride service: many short-trip destinations, few complex intersections and moderate speeds?",
+ "q20": "Which street segments in the two geofences lack a speed limit, sidewalk data or lane count, by road class?"
+}
