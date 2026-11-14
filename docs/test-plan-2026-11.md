@@ -229,6 +229,8 @@ These three files were frozen before any template was written. The network tool 
 2. **Interval-based rules:** approved.
 3. **API budget:** the pilot measures the cost; I report it before spending past the current $20.
 4. **Compute for Test 2:** time the first SPECTRA run on the Mac mini, then decide between the Mac mini and GCP.
+5. **Template count (Nov 14, after the pilot):** 30 non-lookup templates (15 by Evangelos, 15 by Claude) with at most 6 questions each, plus 10 lookup templates. The pilot gave standard errors of 3.3 to 3.6 points for the three comparisons at this count.
+6. **Compute (Nov 14, after timing):** Test 2 training stays on the Mac mini (CPU); GCP is not used.
 
 ## Change log
 

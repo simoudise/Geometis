@@ -57,13 +57,12 @@ Done:
   epoch on CPU for fold 1. Estimate about 2 days for all Test 2 training on the Mac mini (change log, Nov 14).
   Tile cache added. B4 baselines written (baselines_gnn.py: rgcn, rgcn-eq, sage), tested on synthetic data.
 
+Decided by Evangelos (Nov 14, 13:36): 30 non-lookup templates; Test 2 stays on the Mac mini.
+
 Waiting on Evangelos:
-- Template count (30 recommended, 40 as the margin option).
-- Compute decision (Mac mini recommended; plan's four-day rule also points to the Mac mini).
-- No objection yet recorded to the proposed M13 leakage rule: trained relational block passes if its position
-  R-squared does not exceed the untrained control's. Record it in the change log before the first real run.
 - His 15 templates in the Sheet "Test 1 question templates (Evangelos)"
   (https://claude.ai/artifact/XSwwaWghxUitpkHonAxcJQ), to become templates_evangelos.py with author "evangelos".
+  He is working on them now.
 
 Running:
 - Fold f1 tuning, jobs 140 to 144 (S-pub, S-full, rgcn, rgcn-eq, sage; tune.py; about 8 to 9 hours in total).
