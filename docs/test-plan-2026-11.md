@@ -217,6 +217,7 @@ Work outside this plan (H8, Pittsburgh, the effect library, patch rev 3) waits u
 | Nov 14 | catalog.md (arm A4 description) | d447946179162c4b6dc3188ac70cf631ada736eaa3adda0f163fe5ddd9ef62d8 |
 | Nov 14 | dictionary.md (arm A3 description) | dfb4b7e63e4d093a8e537013b8ef9e4b6e9e520710a8beb1b03250a57a56c129 |
 | Nov 14 | loop.py (all system prompts, answer rules, SQL tool, network tool) | 223a27e80f02c1bf9848c490ba6634dd4c1547533f7dec5b1bbbb41598d60454 |
+| Nov 14 | loop.py after the caching change in the change log (prompts, rules and tools unchanged) | 375b2a9464bd0aeccfb13a1559fdd37a15e11ac4a3c0d5a88d130aef512a4fe7 |
 
 These three files were frozen before any template was written. The network tool passed a smoke test on both geofences and both networks (job 124, no model calls).
 
@@ -250,5 +251,6 @@ These three files were frozen before any template was written. The network tool 
 | Nov 14 | 17 | Lineage manifest enforced; L_aux from tims_crash up to 2019; no names or URNs |
 | Nov 14 | 18 | Gaps section extended; head reads the transferable vector (M4); position-leakage measurement (M13); low-label references; evaluation log |
 | Nov 14 | (none) | Drop rule corrected: the walking network includes all non-motorway roads, so walking-route questions stay in Contra Costa; only questions that depend on mapped sidewalks are dropped there. The catalog's own answer rules are removed so that every arm receives the same rules |
+| Nov 14 | (none) | loop.py adds a rolling prompt-cache breakpoint on the newest message (cost only; prompts, rules and tools unchanged). A smoke test of 2 questions on all five arms (job 129; questions from a dry-run pool that the pilot and the full set do not use) measured about $0.11 per run on arms A1 to A4 at list prices ($2 input, $10 output, $2.50 cache write, $0.10 cache read per million tokens). Smoke-test answers were not used to change any arm |
 
 *Synapse Partners, LLC — Confidential and Proprietary*

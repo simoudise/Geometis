@@ -163,7 +163,7 @@ def answer(arm, qid, question, run=1, outdir=None):
     conn = db() if ARMS[arm]["tools"] else None
     client = anthropic.Anthropic()
     tools = ARMS[arm]["tools"]
-    msgs = [{"role": "user", "content": question}]
+    msgs = [{"role": "user", "content": [{"type": "text", "text": question}]}]
     ledger, t0, usage = [], time.time(), {"input": 0, "cache_read": 0, "cache_write": 0, "output": 0}
     final, hit_limit = None, False
     sysp = system_prompt(arm, conn)
@@ -173,7 +173,11 @@ def answer(arm, qid, question, run=1, outdir=None):
         if last:
             hit_limit = True
             msgs[-1]["content"].append({"type": "text", "text": "Step limit reached: give your final answer now from what you have, say what you could not check, and end with the ANSWER line."})
-        r = client.messages.create(model=MODEL, max_tokens=4000, system=[{"type": "text", "text": sysp, "cache_control": {"type": "ephemeral"}}], messages=msgs, **kw)
+        # Cost only, no change to content: a rolling cache breakpoint on the newest message, so each step
+        # reads the earlier conversation from the cache instead of paying full input price again.
+        send = msgs[:-1] + [{"role": msgs[-1]["role"], "content": [dict(b) for b in msgs[-1]["content"]]}]
+        send[-1]["content"][-1]["cache_control"] = {"type": "ephemeral"}
+        r = client.messages.create(model=MODEL, max_tokens=4000, system=[{"type": "text", "text": sysp, "cache_control": {"type": "ephemeral"}}], messages=send, **kw)
         u = r.usage
         usage["input"] += u.input_tokens; usage["output"] += u.output_tokens
         usage["cache_read"] += getattr(u, "cache_read_input_tokens", 0) or 0
