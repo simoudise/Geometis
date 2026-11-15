@@ -34,7 +34,7 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 ## State on November 15, 2026, 15:45 Pacific (update this section at every handoff)
 
 All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 151e
-(150a to 150e, 151a to 151e queued), status lane s996. Job scripts start with `set -o pipefail` so that a failure
+(150a to 150e, 151a to 151e queued), status lane s997. Job scripts start with `set -o pipefail` so that a failure
 is not hidden by grep.
 
 Done:
@@ -94,8 +94,9 @@ constrained, -10 on network and +1 on what-if. Full output: end of jobs/logs/146
 
 Blind grading (job 146-y, batch msgbatch_01GApSC1efzzpRgh1MiM4wTZ, about $9.27): 678 of 894 grades usable. The
 other 216 replies stopped at grade.py's 600-token cap because Fable 5.2 thinks before it writes. Raw replies are in
-work/demo/test1/grading-full/raw.json; grades in grades.csv. Proposed fix (awaiting Evangelos): cap 4,000 tokens,
-resubmit only the 216 (about $5 to $8). grade.py lives in work/demo/test1 on the Mac mini (not 09-demo).
+work/demo/test1/grading-full/raw.json; grades in grades.csv. Evangelos approved the fix: the 216 were resubmitted
+with a 4,000-token cap as msgbatch_01FMgE8mxLU5LrdQHLiHbNVf (work/demo/test1/grading-full-r2; about $5 to $8).
+Collect with `grade.py collect grading-full-r2` in the status lane, then merge with grading-full/grades.csv. grade.py lives in work/demo/test1 on the Mac mini (not 09-demo).
 
 Running and queued (main queue, in order):
 - 149a2 to 149a5 fold f1 final runs (5 seeds per network, winners from tuning.json).
@@ -105,7 +106,7 @@ Spending rule (Evangelos, Nov 15): every step that spends money must be needed t
 otherwise stop. Test 2 spends no API money (Mac mini only).
 
 Next steps, in order:
-1. On Evangelos's answer: resubmit the 216 failed grades (or not), then report grading results; he checks 10 percent.
+1. When batch grading-full-r2 ends: merge the grades with the first 678, report grading results; Evangelos checks 10 percent.
 2. When f3 tuning ends: queue the f3 final runs (copy 150* with the fold changed). Check each run's leakage against
    its control.
 3. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods
