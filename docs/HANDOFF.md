@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 14, 2026, 16:35 Pacific (update this section at every handoff)
+## State on November 14, 2026, 18:10 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a),
-status lane s184.
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a, 144-u-*, 144a),
+status lane s184. Job scripts now start with `set -o pipefail` so that a failure is not hidden by grep.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
@@ -64,18 +64,24 @@ Test 1 templates (Nov 14, 16:30): Evangelos's 15 templates are in templates_evan
 with his corrections and the implementation decisions in the plan's change log. All Test 1 files are frozen by
 hash (freeze record). Development pools for checks are in work/demo/test1/dev-ev (seed 1; not used in any run).
 
-Running:
-- Fold f1 tuning, jobs 140 to 144 (S-pub done: best trial 6, tau 0.1, lr 0.0005, 2 layers, 10 epochs, validation
-  deviance 0.465), then job 141a (Test 1 full pool: gen.py seed 20261115 excluding the pilot and dry-run
-  questions, then full_select.py), then fold f2 tuning, jobs 145 to 149.
+Test 1 full pool (job 141a, done): 216 questions from 40 templates (Claude 126, Evangelos 90), 48 pilot repeats
+removed; table and hashes in the plan's change log (published before the run).
+
+Running and queued (main queue, in order):
+- 144 fold f1 GraphSAGE tuning (running).
+- 144-u-retry-f1-rgcn-eq and 144-u-retry-f1-rgcn: the first f1 R-GCN tuning jobs (142, 143) crashed on a tile with
+  no labeled entity; baselines_gnn.py now skips such tiles (commit e718b4b). Their exit code read 0 because grep
+  hid the failure.
+- 144a full Test 1 run (A1 to A4 x 3 on 216 questions; A0 x 3 on 30), then score.py to runs-full/scores.csv.
+- 145 to 149 fold f2 tuning.
+Fold f1 winners so far: S-pub trial 6 (tau 0.1, lr 0.0005, 2 layers, mask 0.2, drop 0.2, 10 epochs; validation
+deviance 0.4647); S-full trial 7 (tau 0.1, lr 0.0005, 2 layers, mask 0.3, drop 0.2, 20 epochs; 0.4427).
 
 Next steps, in order:
-1. When job 141a ends: check pool-full (counts per template, drops), publish the category-by-geofence and
-   author table in the plan's change log, then queue the full Test 1 run as job 141b: run.py on
-   pool-full/questions.jsonl with arms A1 to A4, 3 runs, 8 workers; A0 on pool-full/full_a0.jsonl, 3 runs;
-   score.py; report cost and results by author group. Expected cost about $175.
+1. When job 144a ends: report cost, step-limit hits and primary scores by arm, category and author group; run the
+   wild cluster bootstrap and the pass rules; prepare the blind grading packet for Fable (limits.json).
 2. When f2 tuning ends: queue f3 tuning (San Francisco last; same five networks).
-3. After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
+3. After f1 tuning (all five networks): queue the f1 final runs after the f2 tuning jobs. After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
    --epochs from tuning.json; baselines_gnn.py likewise). Check each run's leakage against its control.
 4. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods
    (B0, B1, B2, B2-eq, EMB and EMB+B2 for each network), then the block bootstrap and the pass rules.
