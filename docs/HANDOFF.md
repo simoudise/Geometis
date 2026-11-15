@@ -31,10 +31,11 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 15, 2026, 07:05 Pacific (update this section at every handoff)
+## State on November 15, 2026, 15:45 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a, 144-u-*, 144a, 149a1 to 149a5, 146-x, 146-y),
-status lane s190. Job scripts now start with `set -o pipefail` so that a failure is not hidden by grep.
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 151e
+(150a to 150e, 151a to 151e queued), status lane s996. Job scripts start with `set -o pipefail` so that a failure
+is not hidden by grep.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
@@ -74,30 +75,48 @@ Fold f1 tuning is complete (validation deviance on source CV group 0; lower is b
 - GraphSAGE: trial 2, lr 0.0005, 2 layers, 10 epochs: 0.5017.
 The R-GCN jobs 142 and 143 crashed (a tile with no labeled entity) and were rerun as 144-u-* after the fix.
 
+Fold f2 tuning is complete (validation deviance on source CV group 0):
+- S-pub: trial 6, tau 0.1, lr 0.0005, 2 layers, mask 0.2, relation drop 0.2, 10 epochs: 0.4509.
+- S-full: trial 5, tau 0.2, lr 0.0005, 2 layers, mask 0.3, relation drop 0.1, 20 epochs: 0.4300.
+- R-GCN: trial 6, lr 0.001, 3 layers, 10 epochs: 0.4214. Equal-supervision R-GCN: trial 0, lr 0.002, 3 layers,
+  20 epochs: 0.4218.
+- GraphSAGE: trial 2, lr 0.0005, 2 layers, 10 epochs: 0.4683.
+
+Test 1 is complete (job 146-x, Nov 15 20:11 UTC). Every arm has all its answers (A0 90; A1 to A4 648 each).
+Cost $272.58 for the full run, plus $12.30 for the pilot. Step-limit hits: A1 25%, A2 19%, A3 18%, A4 18%.
+Verdicts under the plan's rules (non-lookup, 168 questions, 30 templates):
+- A-tool (A2 - A1): +11.7 [+6.4, +17.0], inconclusive.
+- A-knowledge (A4 - A2), primary: +7.1 [-1.0, +15.5], inconclusive.
+- A-ontology (A4 - A3): +2.8 [-2.2, +7.7], fail.
+- Lookup guardrail: +9.0 [-4.1, +22.2], holds.
+Descriptive: A-knowledge is -3.0 on Claude's templates and +15.9 on Evangelos's; A4 - A2 is about +30 on
+constrained, -10 on network and +1 on what-if. Full output: end of jobs/logs/146-x-test1-full-finish.log.
+
+Blind grading (job 146-y, batch msgbatch_01GApSC1efzzpRgh1MiM4wTZ, about $9.27): 678 of 894 grades usable. The
+other 216 replies stopped at grade.py's 600-token cap because Fable 5.2 thinks before it writes. Raw replies are in
+work/demo/test1/grading-full/raw.json; grades in grades.csv. Proposed fix (awaiting Evangelos): cap 4,000 tokens,
+resubmit only the 216 (about $5 to $8). grade.py lives in work/demo/test1 on the Mac mini (not 09-demo).
+
 Running and queued (main queue, in order):
-- Job 144a (full Test 1 run) ended at 12:02 UTC Nov 15 with 711 runs failed (A3 68, A4 643): loop.py leaks an API
-  client and a database connection per answer, and the runner allows 256 open files. Finished runs are clean
-  (scan_infra_errors.py). Cost so far $199.31. Details in the plan's change log (Nov 15).
-- 146 fold f2 S-full tuning (running).
-- 146-x finishes Test 1: open-file limit 4,096, missing A3 and A4 runs in processes of 24 questions, then
-  score.py and analyze_full.py. Expected about 4 hours and about $70.
-- 146-y Test 1 blind grading: prepare and submit a Batch API job (claude-fable-5-2, one run per question and arm,
-  about 890 answers, cap $30), only if A1 to A4 are complete. Collect with `grade.py collect grading-full`
-  (status lane) once the batch has ended.
-- 147 to 149 fold f2 tuning; 149a1 to 149a5 fold f1 final runs.
+- 149a2 to 149a5 fold f1 final runs (5 seeds per network, winners from tuning.json).
+- 150a to 150e fold f2 final runs; 151a to 151e fold f3 tuning (San Francisco).
 
 Spending rule (Evangelos, Nov 15): every step that spends money must be needed to answer Bet A or Bet B;
 otherwise stop. Test 2 spends no API money (Mac mini only).
 
 Next steps, in order:
-1. When job 146-x ends: report cost, step-limit hits and primary scores by arm, category and author group; run the
-   wild cluster bootstrap and the pass rules; prepare the blind grading packet for Fable (limits.json).
-2. When f2 tuning ends: queue f3 tuning (San Francisco last; same five networks).
-3. After f2 tuning: queue the f2 final runs the same way (copy 149a* with the fold changed). After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
-   --epochs from tuning.json; baselines_gnn.py likewise). Check each run's leakage against its control.
-4. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods
+1. On Evangelos's answer: resubmit the 216 failed grades (or not), then report grading results; he checks 10 percent.
+2. When f3 tuning ends: queue the f3 final runs (copy 150* with the fold changed). Check each run's leakage against
+   its control.
+3. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods
    (B0, B1, B2, B2-eq, EMB and EMB+B2 for each network), then the block bootstrap and the pass rules.
-5. Blind secondary grading of Test 1 by Fable with limits.json; Evangelos checks 10 percent.
+
+Later (not for Tests 1 or 2):
+- Builder fallback for cities with no GTFS feed: city2graph (github.com/c2g-dev/city2graph) added load_osm_transport,
+  which builds a synthetic GTFS feed from OSM routes and stops with adjustable assumptions and can add planned routes
+  for what-if questions. city2graph is already in the architecture's builder plan (Section 11). If adopted, mark every
+  synthetic stop, route and departure as synthetic in the graph and add it to the catalog's source limits. Not for
+  Tests 1 or 2.
 
 GCP: project "geometis", GPUS_ALL_REGIONS = 1 approved on Nov 14; us-central1 L4 limit already 1. Nothing created.
 
