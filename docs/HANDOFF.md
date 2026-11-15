@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 14, 2026, 20:10 Pacific (update this section at every handoff)
+## State on November 15, 2026, 06:50 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a, 144-u-*, 144a, 149a1 to 149a5),
-status lane s184. Job scripts now start with `set -o pipefail` so that a failure is not hidden by grep.
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a, 144-u-*, 144a, 149a1 to 149a5, 146-x),
+status lane s188. Job scripts now start with `set -o pipefail` so that a failure is not hidden by grep.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
@@ -75,14 +75,16 @@ Fold f1 tuning is complete (validation deviance on source CV group 0; lower is b
 The R-GCN jobs 142 and 143 crashed (a tile with no labeled entity) and were rerun as 144-u-* after the fix.
 
 Running and queued (main queue, in order):
-- 144a full Test 1 run (started 03:26 UTC Nov 15): at 04:02 UTC 124 of 2,592 runs done, $9.75 ($0.079 per run),
-  12 step-limit hits, no failures. Projected about 12 to 13 hours and about $205 plus A0.
-- 145 to 149 fold f2 tuning.
-- 149a1 to 149a5 fold f1 final runs: 5 seeds per network, winning config read from tuning.json, output
-  ~/Geometis-mini/work/test2-final/f1-wc-ph-concord/<network>/seed<N>; reruns skip finished seeds.
+- Job 144a (full Test 1 run) ended at 12:02 UTC Nov 15 with 711 runs failed (A3 68, A4 643): loop.py leaks an API
+  client and a database connection per answer, and the runner allows 256 open files. Finished runs are clean
+  (scan_infra_errors.py). Cost so far $199.31. Details in the plan's change log (Nov 15).
+- 146 fold f2 S-full tuning (running).
+- 146-x finishes Test 1: open-file limit 4,096, missing A3 and A4 runs in processes of 24 questions, then
+  score.py and analyze_full.py. Expected about 4 hours and about $70.
+- 147 to 149 fold f2 tuning; 149a1 to 149a5 fold f1 final runs.
 
 Next steps, in order:
-1. When job 144a ends: report cost, step-limit hits and primary scores by arm, category and author group; run the
+1. When job 146-x ends: report cost, step-limit hits and primary scores by arm, category and author group; run the
    wild cluster bootstrap and the pass rules; prepare the blind grading packet for Fable (limits.json).
 2. When f2 tuning ends: queue f3 tuning (San Francisco last; same five networks).
 3. After f2 tuning: queue the f2 final runs the same way (copy 149a* with the fold changed). After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
