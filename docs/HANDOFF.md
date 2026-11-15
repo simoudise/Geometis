@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 15, 2026, 06:50 Pacific (update this section at every handoff)
+## State on November 15, 2026, 07:05 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a, 144-u-*, 144a, 149a1 to 149a5, 146-x),
-status lane s188. Job scripts now start with `set -o pipefail` so that a failure is not hidden by grep.
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a, 144-u-*, 144a, 149a1 to 149a5, 146-x, 146-y),
+status lane s190. Job scripts now start with `set -o pipefail` so that a failure is not hidden by grep.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
@@ -81,7 +81,13 @@ Running and queued (main queue, in order):
 - 146 fold f2 S-full tuning (running).
 - 146-x finishes Test 1: open-file limit 4,096, missing A3 and A4 runs in processes of 24 questions, then
   score.py and analyze_full.py. Expected about 4 hours and about $70.
+- 146-y Test 1 blind grading: prepare and submit a Batch API job (claude-fable-5-2, one run per question and arm,
+  about 890 answers, cap $30), only if A1 to A4 are complete. Collect with `grade.py collect grading-full`
+  (status lane) once the batch has ended.
 - 147 to 149 fold f2 tuning; 149a1 to 149a5 fold f1 final runs.
+
+Spending rule (Evangelos, Nov 15): every step that spends money must be needed to answer Bet A or Bet B;
+otherwise stop. Test 2 spends no API money (Mac mini only).
 
 Next steps, in order:
 1. When job 146-x ends: report cost, step-limit hits and primary scores by arm, category and author group; run the
