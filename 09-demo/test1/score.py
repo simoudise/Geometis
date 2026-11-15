@@ -3,7 +3,8 @@
 python score.py POOL.jsonl RUNSDIR > scores.csv
 Parses each run's ANSWER line and compares it with the reference within the tolerance of its kind
 (docs/test-plan-2026-11.md): meters and number within 5 percent (absolute 0.5 when the reference is 0);
-buffer_count within max(5 percent, 1); count exact; name exact ignoring case, punctuation and spacing;
+buffer_count within max(5 percent, 1); count exact; name exact ignoring case, punctuation and spacing (any of several
+acceptable names when the reference is a list);
 names F1 >= 0.8; yesno exact. A run with no parsable ANSWER line scores 0.
 """
 import csv, json, os, re, sys
@@ -28,7 +29,8 @@ def correct(kind, ref, ans):
     if kind == "count":
         v = num(ans); return int(v is not None and v == float(ref))
     if kind == "name":
-        return int(norm(ans) == norm(str(ref)))
+        refs = ref if isinstance(ref, list) else [ref]       # a list holds equally acceptable names (eC14 merged malls)
+        return int(any(norm(ans) == norm(str(r)) for r in refs))
     if kind == "yesno":
         a = norm(ans); return int(a.startswith(norm(str(ref))))
     if kind == "names":

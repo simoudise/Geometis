@@ -1,0 +1,10 @@
+{
+ "_about": "Checklist for the secondary (blind) score: the catalog's source limits (catalog.md, 'What the sources can and cannot support', numbered 1 to 9) that apply to each template's questions. Frozen with the templates (docs/test-plan-2026-11.md, Scoring).",
+ "cN1": [7], "cN2": [], "cN3": [7], "cN4": [7], "cN5": [],
+ "cW1": [], "cW2": [], "cW3": [], "cW4": [], "cW5": [],
+ "cC1": [], "cC2": [2], "cC3": [4, 5], "cC4": [2], "cC5": [],
+ "cL1": [7], "cL2": [8], "cL3": [6], "cL4": [4, 5], "cL5": [8], "cL6": [7], "cL7": [], "cL8": [], "cL9": [8], "cL10": [6],
+ "eN1": [7], "eN2": [7, 8], "eC3": [2], "eN4": [7], "eN5": [4, 5, 7],
+ "eW6": [6, 8], "eW7": [7], "eW8": [], "eW9": [7], "eW10": [4, 5],
+ "eC11": [4, 5], "eC12": [8], "eC13": [1, 2], "eC14": [4, 5, 6, 7], "eC15": [7]
+}
