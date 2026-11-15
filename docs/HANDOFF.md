@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 14, 2026, 14:30 Pacific (update this section at every handoff)
+## State on November 14, 2026, 16:35 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149,
-status lane s157.
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 149 (plus 141a),
+status lane s184.
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
@@ -60,26 +60,26 @@ Done:
 
 Decided by Evangelos (Nov 14, 13:36): 30 non-lookup templates; Test 2 stays on the Mac mini.
 
-Waiting on Evangelos:
-- His 15 templates in the Sheet "Test 1 question templates (Evangelos)"
-  (https://claude.ai/artifact/XSwwaWghxUitpkHonAxcJQ), to become templates_evangelos.py with author "evangelos".
-  He is working on them now.
+Test 1 templates (Nov 14, 16:30): Evangelos's 15 templates are in templates_evangelos.py (author "evangelos"),
+with his corrections and the implementation decisions in the plan's change log. All Test 1 files are frozen by
+hash (freeze record). Development pools for checks are in work/demo/test1/dev-ev (seed 1; not used in any run).
 
 Running:
-- Fold f1 tuning, jobs 140 to 144 (S-pub, S-full, rgcn, rgcn-eq, sage), then fold f2 tuning, jobs 145 to 149,
-  queued behind it. At 14:26 S-pub had finished 4 of 8 trials (454 to 1,124 s each; validation deviance 0.477 to
-  0.488); no failures. Output ~/Geometis-mini/work/test2-tune/<fold>/<network>/tuning.json. tune.py resumes:
-  rerunning a job skips finished trials. Tuning rules and the M13 leakage rule are in the plan's change log.
+- Fold f1 tuning, jobs 140 to 144 (S-pub done: best trial 6, tau 0.1, lr 0.0005, 2 layers, 10 epochs, validation
+  deviance 0.465), then job 141a (Test 1 full pool: gen.py seed 20261115 excluding the pilot and dry-run
+  questions, then full_select.py), then fold f2 tuning, jobs 145 to 149.
 
 Next steps, in order:
-1. When f2 tuning ends: queue f3 tuning (San Francisco last; same five networks).
-2. After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
+1. When job 141a ends: check pool-full (counts per template, drops), publish the category-by-geofence and
+   author table in the plan's change log, then queue the full Test 1 run as job 141b: run.py on
+   pool-full/questions.jsonl with arms A1 to A4, 3 runs, 8 workers; A0 on pool-full/full_a0.jsonl, 3 runs;
+   score.py; report cost and results by author group. Expected cost about $175.
+2. When f2 tuning ends: queue f3 tuning (San Francisco last; same five networks).
+3. After each fold's tuning: 5 seeds per network with the winning config (train_spectra.py with --overrides and
    --epochs from tuning.json; baselines_gnn.py likewise). Check each run's leakage against its control.
-3. Done: evaluate.py method B2-eq (B2 trained on both crash windows, window column), tested on synthetic data.
-4. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods,
-   then the block bootstrap and the pass rules.
-5. When Evangelos's templates arrive: implement them, generate the full pool with a new seed excluding pilot
-   fillings, freeze templates, reference code, drop rule and parser by hash, then run the full Test 1.
+4. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods
+   (B0, B1, B2, B2-eq, EMB and EMB+B2 for each network), then the block bootstrap and the pass rules.
+5. Blind secondary grading of Test 1 by Fable with limits.json; Evangelos checks 10 percent.
 
 GCP: project "geometis", GPUS_ALL_REGIONS = 1 approved on Nov 14; us-central1 L4 limit already 1. Nothing created.
 
