@@ -128,6 +128,7 @@ def main():
                     if a.model == "rgcn-eq":
                         ya = torch.from_numpy(Gs.labels[t][ids]).to(device)
                         loss = loss + F.poisson_nll_loss(heads[f"{t}_aux"](h[t][ct]).squeeze(1) + off, ya, log_input=True)
+            if not loss.requires_grad: continue          # no labeled core entity in this tile (for example all in the masked CV group)
             opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(params, 5.0); opt.step()
             losses.append(float(loss.detach()))
         log["epochs"].append({"epoch": ep, "seconds": round(time.time() - te, 1), "steps": len(losses), "loss": float(np.mean(losses))})
