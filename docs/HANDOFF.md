@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 15, 2026, 15:45 Pacific (update this section at every handoff)
+## State on November 16, 2026, 13:30 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 151e
-(150a to 150e, 151a to 151e queued), status lane s997. Job scripts start with `set -o pipefail` so that a failure
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 152e
+(152a to 152e queued), status lane s998. Job scripts start with `set -o pipefail` so that a failure
 is not hidden by grep.
 
 Done:
@@ -92,25 +92,25 @@ Verdicts under the plan's rules (non-lookup, 168 questions, 30 templates):
 Descriptive: A-knowledge is -3.0 on Claude's templates and +15.9 on Evangelos's; A4 - A2 is about +30 on
 constrained, -10 on network and +1 on what-if. Full output: end of jobs/logs/146-x-test1-full-finish.log.
 
-Blind grading (job 146-y, batch msgbatch_01GApSC1efzzpRgh1MiM4wTZ, about $9.27): 678 of 894 grades usable. The
-other 216 replies stopped at grade.py's 600-token cap because Fable 5.2 thinks before it writes. Raw replies are in
-work/demo/test1/grading-full/raw.json; grades in grades.csv. Evangelos approved the fix: the 216 were resubmitted
-with a 4,000-token cap as msgbatch_01FMgE8mxLU5LrdQHLiHbNVf (work/demo/test1/grading-full-r2; about $5 to $8).
-Collect with `grade.py collect grading-full-r2` in the status lane, then merge with grading-full/grades.csv. grade.py lives in work/demo/test1 on the Mac mini (not 09-demo).
+Blind grading is complete (first batch 678 items, resubmitted 216 with a 4,000-token cap; merged in
+work/demo/test1/grading-full/grades-merged.csv; about $13.49). Correct explanations: A0 0%, A1 63%, A2 68%,
+A3 72%, A4 73%. Applicable limits stated: A0 17%, A1 32%, A2 38%, A3 78%, A4 81%. A3 and A4 were told the limits,
+so the limit share partly measures repetition. Evangelos's 10 percent sample: grading-full/check-sample-10pct.csv
+(89 items, seed 20261116).
+
+Test 2: fold f1 and f2 final runs and fold f3 tuning are complete; every trained network passes the M13 leakage
+rule on f1 and f2. Fold f3 winners are in the plan's change log (Nov 16).
 
 Running and queued (main queue, in order):
-- 149a2 to 149a5 fold f1 final runs (5 seeds per network, winners from tuning.json).
-- 150a to 150e fold f2 final runs; 151a to 151e fold f3 tuning (San Francisco).
+- 152a to 152e fold f3 final runs (San Francisco; 5 seeds per network).
 
 Spending rule (Evangelos, Nov 15): every step that spends money must be needed to answer Bet A or Bet B;
 otherwise stop. Test 2 spends no API money (Mac mini only).
 
 Next steps, in order:
-1. When batch grading-full-r2 ends: merge the grades with the first 678, report grading results; Evangelos checks 10 percent.
-2. When f3 tuning ends: queue the f3 final runs (copy 150* with the fold changed). Check each run's leakage against
-   its control.
-3. Only when every method's configuration is fixed on every fold: evaluate.py on held-out folds for all methods
-   (B0, B1, B2, B2-eq, EMB and EMB+B2 for each network), then the block bootstrap and the pass rules.
+1. Evangelos checks the 10 percent grading sample; he decides whether fuller grading is needed.
+2. When the f3 final runs end: check leakage, then run evaluate.py on held-out folds for all methods (B0, B1, B2,
+   B2-eq, EMB and EMB+B2 for each network), then the block bootstrap and the pass rules.
 
 Later (not for Tests 1 or 2):
 - Builder fallback for cities with no GTFS feed: city2graph (github.com/c2g-dev/city2graph) added load_osm_transport,
