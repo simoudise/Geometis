@@ -71,7 +71,7 @@ def leakage(rblk, G, t="segment"):
 def main():
     ap = argparse.ArgumentParser()
     for a in ("exportdir", "netdir", "foldsdir", "outdir"): ap.add_argument(a)
-    ap.add_argument("--fold", required=True); ap.add_argument("--variant", default="S-pub", choices=["S-pub", "S-full", "S-pub-untyped"])
+    ap.add_argument("--fold", required=True); ap.add_argument("--variant", default="S-pub", choices=["S-pub", "S-full", "S-pub-untyped", "S-pub-untyped-wide"])
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--epochs", type=int, default=20)
     ap.add_argument("--max-steps", type=int, default=0); ap.add_argument("--device", default="cpu")
     ap.add_argument("--overrides", default="{}", help="JSON object of CONFIG values (tuning trials)")
@@ -84,8 +84,13 @@ def main():
     t0 = time.time()
     Gs = S.Graph(a.exportdir, a.netdir, a.foldsdir, a.fold, "source", labels=(a.variant == "S-full"))
     print("source graph loaded", {t: len(v["urn"]) for t, v in Gs.types.items()}, round(time.time() - t0), "s", flush=True)
-    untyped = a.variant == "S-pub-untyped"
-    enc = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], untyped=untyped).to(device)
+    untyped = a.variant in ("S-pub-untyped", "S-pub-untyped-wide")
+    width = S.H
+    if a.variant == "S-pub-untyped-wide":
+        width, target = S.matched_width(Gs.in_dims(), list(Gs.edges), CONFIG["layers"])
+        print("width-matched untyped encoder: hidden", width, "for a typed parameter count of", target, flush=True)
+    CONFIG["hidden"] = width
+    enc = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], hidden=width, untyped=untyped).to(device)
     init_state = copy.deepcopy(enc.state_dict())
     aux = nn.ModuleDict({"segment": nn.Linear(S.H, 1), "node": nn.Linear(S.H, 1)}).to(device)
     params = list(enc.parameters()) + (list(aux.parameters()) if a.variant == "S-full" else [])
@@ -162,7 +167,7 @@ def main():
     te = time.time()
     emb_s, r_s = embed(enc, Gs, device, w)
     leak_trained = leakage(r_s, Gs)
-    enc0 = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], untyped=untyped).to(device); enc0.load_state_dict(init_state)
+    enc0 = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], hidden=width, untyped=untyped).to(device); enc0.load_state_dict(init_state)
     _, r_s0 = embed(enc0, Gs, device, w)
     log["leakage_r2"] = {"trained": leak_trained, "untrained_control": leakage(r_s0, Gs)}
     print("leakage", log["leakage_r2"], flush=True)

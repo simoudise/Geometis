@@ -1,6 +1,6 @@
 """Test 2 add-on: do separate parameters per relation help message passing? (change log, Nov 17)
 
-python analyze_untyped.py EVALDIR UNTYPEDDIR [B] [SEED]
+python analyze_untyped.py EVALDIR UNTYPEDDIR [B] [SEED] [WIDEDIR]
 EVALDIR holds the main evaluations.jsonl and reference.jsonl (analyze_test2.py). UNTYPEDDIR holds evaluations.jsonl
 for S-pub-untyped (evaluate.py with --emb .../S-pub-untyped/seedN). Written and frozen before any S-pub-untyped run.
 
@@ -11,6 +11,7 @@ the untyped encoder also has fewer parameters. Both limits are reported with the
 Decision rule (approved by Evangelos, Nov 17), on S-pub embeddings alone (EMB) against S-pub-untyped alone:
 - relation parameters help: the pooled gain of S-pub over S-pub-untyped reaches the minimum effect (10 percent of
   the B2-to-reference gap and more than two seed standard deviations) and the block interval excludes zero;
+- they hurt (added Nov 17): S-pub-untyped beats S-pub by the minimum effect and the block interval excludes zero;
 - they add nothing: the 95 percent block interval lies inside plus or minus the minimum effect;
 - inconclusive: every other outcome.
 """
@@ -39,12 +40,24 @@ def main():
     print("Per stratum:", {s: round(float(A.gain(mean, S, U, A.FOLDS, {s})), 4) for s in A.STRATA + ["local"]})
     if g >= thresh and ci[0] > 0:
         v = "SEPARATE RELATION PARAMETERS HELP"
+    elif -g >= thresh and ci[1] < 0:
+        v = "SEPARATE RELATION PARAMETERS HURT"   # third outcome added by Evangelos, Nov 17
     elif ci[0] > -min_eff and ci[1] < min_eff:
         v = "SEPARATE RELATION PARAMETERS ADD NOTHING"
     else:
         v = "INCONCLUSIVE"
     print("Verdict:", v)
     print("Limits: per-type input encoders remain in S-pub-untyped, and it has fewer parameters than S-pub.")
+    # Secondary, width-matched check (added Nov 17): run only when the primary verdict is "help"; it tests whether
+    # model size explains the result and does not change the primary verdict.
+    wdir = sys.argv[5] if len(sys.argv) > 5 else ""
+    if wdir:
+        A.NETS.append("S-pub-untyped-wide")
+        wm, wps = A.load(wdir); mean.update(wm); per_seed.update(wps)
+        W = "S-pub-untyped-wide EMB"
+        if all((W, f) in mean for f in A.FOLDS):
+            gw = A.gain(mean, S, W); cw = A.bootstrap(mean, S, W, B, rng)
+            print(f"Secondary (width-matched): S-pub gain over S-pub-untyped-wide: {gw:+.4f} [{cw[0]:+.4f}, {cw[1]:+.4f}]")
     if all(("S-pub-untyped EMB+B2", f) in mean for f in A.FOLDS):
         print(f"Secondary: S-pub-untyped EMB+B2 gain over B2: {A.gain(mean, 'S-pub-untyped EMB+B2', 'B2'):+.4f}")
 

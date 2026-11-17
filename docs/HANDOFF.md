@@ -31,7 +31,7 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 17, 2026, 10:45 Pacific (update this section at every handoff)
+## State on November 17, 2026, 11:00 Pacific (update this section at every handoff)
 
 All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 155
 (155 running), status lane s1003. Job scripts start with `set -o pipefail` so that a failure
@@ -120,12 +120,12 @@ Decisions on Nov 17 (Evangelos): the Test 1 A-ontology fail stops treating the o
 reads. The step-limit reruns and the A-tool and A-knowledge checks are exploratory; the frozen verdicts stand.
 
 Next steps, in order:
-1. Evangelos spot-checks 20 Fable grades on the limits measure (work/demo/test1/grading-full/limits-spotcheck-20.md;
-   arm key in limits-spotcheck-20-key.json).
+1. Done Nov 17: Evangelos's spot check of 20 Fable grades (92 percent agreement; both errors lenient; change log).
 2. When job 155 ends (estimate: late Nov 19 Pacific): merge the logs, run analyze_test2.py, report the Bet B verdict.
 3. Only if S-pub passes or is inconclusive: queue S-pub-untyped (tune.py --network S-pub-untyped on the three folds,
    then 5 seeds per fold with train_spectra.py --variant S-pub-untyped, then evaluate.py EMB and EMB+B2 into
-   work/test2-eval-untyped), then run analyze_untyped.py. If S-pub fails, do not run it. Specification and rule in
+   work/test2-eval-untyped), then run analyze_untyped.py. If S-pub fails, do not run it. If and only if that verdict is 'help', also run
+   S-pub-untyped-wide the same way (into work/test2-eval-untyped-wide) and pass that folder as the fifth argument. Specification and rule in
    the change log (Nov 17). The Mac mini copies of spectra.py, train_spectra.py and tune.py must be replaced with
    the repository versions before queuing (job 155 does not use them).
 4. Write the Test 1 and Test 2 report.

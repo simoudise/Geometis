@@ -309,6 +309,14 @@ class Encoder(nn.Module):
         r = {t: F.normalize(self.out(v), dim=1) for t, v in h.items()}
         return r, torch.zeros(())
 
+def matched_width(in_dims, rel_keys, layers, step=8):
+    """Hidden width at which the untyped encoder has about as many parameters as the typed encoder with width H on the
+    same inputs, relations and layers (secondary width-matched check, change log Nov 17)."""
+    n = lambda m: sum(p.numel() for p in m.parameters())
+    target = n(Encoder(in_dims, rel_keys, layers, H, untyped=False))
+    best = min(range(H, 4 * H + 1, step), key=lambda w: abs(n(Encoder(in_dims, rel_keys, layers, w, untyped=True)) - target))
+    return best, target
+
 def assemble(feats, shapes, mask_groups=None):
     """Concatenate attribute groups (masked groups zeroed) and the shape block, per type."""
     x = {}
