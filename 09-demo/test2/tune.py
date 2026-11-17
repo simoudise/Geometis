@@ -56,7 +56,7 @@ def main():
     ap = argparse.ArgumentParser()
     for x in ("exportdir", "netdir", "foldsdir", "featdir", "outdir"): ap.add_argument(x)
     ap.add_argument("--fold", required=True); ap.add_argument("--network", required=True,
-                    choices=["S-pub", "S-full", "rgcn", "rgcn-eq", "sage"])
+                    choices=["S-pub", "S-full", "S-pub-untyped", "rgcn", "rgcn-eq", "sage"])
     ap.add_argument("--trials", type=int, default=8); ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     spectra = a.network.startswith("S-")

@@ -237,9 +237,21 @@ def build_batch(G, sub, device):
     return feats, shapes, locs, edges, xys
 
 class Encoder(nn.Module):
-    def __init__(self, in_dims, rel_keys, layers=3, hidden=H):
+    def __init__(self, in_dims, rel_keys, layers=3, hidden=H, untyped=False):
         super().__init__()
+        self.untyped = untyped
         self.enc = nn.ModuleDict({t: nn.Sequential(nn.Linear(d, hidden), nn.ReLU(), nn.Linear(hidden, hidden)) for t, d in in_dims.items()})
+        if untyped:
+            # S-pub-untyped (change log, Nov 17): one message function and one update and normalization layer shared by
+            # every relation and node type; messages from all incoming edges are averaged together, so no relation-
+            # specific parameter or gate remains (a gate over one pooled message is the identity). Per-type input
+            # encoders stay, because node types have different input widths.
+            self.msg_u = nn.ModuleList([nn.Linear(hidden + 3, hidden) for _ in range(layers)])
+            self.self_u = nn.ModuleList([nn.Linear(hidden, hidden) for _ in range(layers)])
+            self.norm_u = nn.ModuleList([nn.LayerNorm(hidden) for _ in range(layers)])
+            self.out = nn.Linear(hidden, hidden)
+            self.layers, self.hidden, self.rel_keys, self.last_gates = layers, hidden, list(rel_keys), []
+            return
         self.rel_keys = [k for k in rel_keys]
         rk = lambda k: "__".join(k)
         self.msg = nn.ModuleList([nn.ModuleDict({rk(k): nn.Linear(hidden + 3, hidden) for k in self.rel_keys}) for _ in range(layers)])
@@ -254,6 +266,8 @@ class Encoder(nn.Module):
         """x: type -> (n_t, in_dim) input (attribute groups and shape block concatenated). Returns r per type and
         the mean relation-gate entropy (for L_gatereg)."""
         h = {t: self.enc[t](v) for t, v in x.items()}
+        if self.untyped:
+            return self._forward_untyped(h, edges)
         ent = []
         for l in range(self.layers):
             agg = {t: [] for t in h}; logits = {t: [] for t in h}
@@ -282,6 +296,18 @@ class Encoder(nn.Module):
         r = {t: F.normalize(self.out(v), dim=1) for t, v in h.items()}
         gent = torch.stack(ent).mean() if ent else torch.zeros(())
         return r, gent
+
+    def _forward_untyped(self, h, edges):
+        for l in range(self.layers):
+            M = {t: torch.zeros_like(v) for t, v in h.items()}
+            c = {t: torch.zeros(v.shape[0], device=v.device) for t, v in h.items()}
+            for (a, rel, b), (s, d, ef) in edges.items():
+                m = self.msg_u[l](torch.cat([h[a][s], ef], 1))
+                M[b].index_add_(0, d, m)
+                c[b].index_add_(0, d, torch.ones_like(d, dtype=m.dtype))
+            h = {t: F.relu(self.norm_u[l](h[t] + self.self_u[l](h[t]) + M[t] / c[t].clamp(min=1)[:, None])) for t in h}
+        r = {t: F.normalize(self.out(v), dim=1) for t, v in h.items()}
+        return r, torch.zeros(())
 
 def assemble(feats, shapes, mask_groups=None):
     """Concatenate attribute groups (masked groups zeroed) and the shape block, per type."""
