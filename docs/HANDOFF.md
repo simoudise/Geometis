@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 16, 2026, 13:30 Pacific (update this section at every handoff)
+## State on November 16, 2026, 17:45 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 152e
-(152a to 152e queued), status lane s998. Job scripts start with `set -o pipefail` so that a failure
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 154
+(153 running, 154 queued), status lane s999. Job scripts start with `set -o pipefail` so that a failure
 is not hidden by grep.
 
 Done:
@@ -102,15 +102,21 @@ Test 2: fold f1 and f2 final runs and fold f3 tuning are complete; every trained
 rule on f1 and f2. Fold f3 winners are in the plan's change log (Nov 16).
 
 Running and queued (main queue, in order):
-- 152a to 152e fold f3 final runs (San Francisco; 5 seeds per network).
+- 153 held-out evaluation, 162 evaluations (all folds, all methods, 5 encoder seeds). Results go to
+  work/test2-eval/evaluations.jsonl and eval-output.txt; the job log shows progress only.
+- 154 in-geofence reference (reference.py) for the three folds.
+Then run `python analyze_test2.py ~/Geometis-mini/work/test2-eval` (frozen by hash; see change log Nov 17).
+
+The share Geometis-mini dropped off the MacBook on Nov 16 (Evangelos remounted it at 17:23 Pacific). If
+/Volumes/Geometis-mini is missing, ask him to reconnect with Finder > Go > Connect to Server, smb://10.0.0.202.
 
 Spending rule (Evangelos, Nov 15): every step that spends money must be needed to answer Bet A or Bet B;
 otherwise stop. Test 2 spends no API money (Mac mini only).
 
 Next steps, in order:
 1. Evangelos checks the 10 percent grading sample; he decides whether fuller grading is needed.
-2. When the f3 final runs end: check leakage, then run evaluate.py on held-out folds for all methods (B0, B1, B2,
-   B2-eq, EMB and EMB+B2 for each network), then the block bootstrap and the pass rules.
+2. When jobs 153 and 154 end: run analyze_test2.py and report the Bet B verdict.
+3. Write the Test 1 and Test 2 report.
 
 Later (not for Tests 1 or 2):
 - Builder fallback for cities with no GTFS feed: city2graph (github.com/c2g-dev/city2graph) added load_osm_transport,
