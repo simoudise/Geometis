@@ -237,7 +237,7 @@ def build_batch(G, sub, device):
     return feats, shapes, locs, edges, xys
 
 class Encoder(nn.Module):
-    def __init__(self, in_dims, rel_keys, layers=3, hidden=H, untyped=False):
+    def __init__(self, in_dims, rel_keys, layers=3, hidden=H, untyped=False, out_dim=None):
         super().__init__()
         self.untyped = untyped
         self.enc = nn.ModuleDict({t: nn.Sequential(nn.Linear(d, hidden), nn.ReLU(), nn.Linear(hidden, hidden)) for t, d in in_dims.items()})
@@ -249,7 +249,9 @@ class Encoder(nn.Module):
             self.msg_u = nn.ModuleList([nn.Linear(hidden + 3, hidden) for _ in range(layers)])
             self.self_u = nn.ModuleList([nn.Linear(hidden, hidden) for _ in range(layers)])
             self.norm_u = nn.ModuleList([nn.LayerNorm(hidden) for _ in range(layers)])
-            self.out = nn.Linear(hidden, hidden)
+            # out_dim: final linear projection to a fixed output width (S-pub-untyped-wide projects to H so that the
+            # downstream heads see embeddings of the same width as S-pub's; change log Nov 17).
+            self.out = nn.Linear(hidden, out_dim or hidden)
             self.layers, self.hidden, self.rel_keys, self.last_gates = layers, hidden, list(rel_keys), []
             return
         self.rel_keys = [k for k in rel_keys]
@@ -310,11 +312,11 @@ class Encoder(nn.Module):
         return r, torch.zeros(())
 
 def matched_width(in_dims, rel_keys, layers, step=8):
-    """Hidden width at which the untyped encoder has about as many parameters as the typed encoder with width H on the
-    same inputs, relations and layers (secondary width-matched check, change log Nov 17)."""
+    """Hidden width at which the untyped encoder, with its output projected to width H, has about as many parameters
+    as the typed encoder with width H on the same inputs, relations and layers (secondary width-matched check, change log Nov 17)."""
     n = lambda m: sum(p.numel() for p in m.parameters())
     target = n(Encoder(in_dims, rel_keys, layers, H, untyped=False))
-    best = min(range(H, 4 * H + 1, step), key=lambda w: abs(n(Encoder(in_dims, rel_keys, layers, w, untyped=True)) - target))
+    best = min(range(H, 4 * H + 1, step), key=lambda w: abs(n(Encoder(in_dims, rel_keys, layers, w, untyped=True, out_dim=H)) - target))
     return best, target
 
 def assemble(feats, shapes, mask_groups=None):

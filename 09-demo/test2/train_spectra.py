@@ -90,7 +90,8 @@ def main():
         width, target = S.matched_width(Gs.in_dims(), list(Gs.edges), CONFIG["layers"])
         print("width-matched untyped encoder: hidden", width, "for a typed parameter count of", target, flush=True)
     CONFIG["hidden"] = width
-    enc = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], hidden=width, untyped=untyped).to(device)
+    out_dim = S.H if a.variant == "S-pub-untyped-wide" else None
+    enc = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], hidden=width, untyped=untyped, out_dim=out_dim).to(device)
     init_state = copy.deepcopy(enc.state_dict())
     aux = nn.ModuleDict({"segment": nn.Linear(S.H, 1), "node": nn.Linear(S.H, 1)}).to(device)
     params = list(enc.parameters()) + (list(aux.parameters()) if a.variant == "S-full" else [])
@@ -167,7 +168,7 @@ def main():
     te = time.time()
     emb_s, r_s = embed(enc, Gs, device, w)
     leak_trained = leakage(r_s, Gs)
-    enc0 = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], hidden=width, untyped=untyped).to(device); enc0.load_state_dict(init_state)
+    enc0 = S.Encoder(Gs.in_dims(), list(Gs.edges), layers=CONFIG["layers"], hidden=width, untyped=untyped, out_dim=out_dim).to(device); enc0.load_state_dict(init_state)
     _, r_s0 = embed(enc0, Gs, device, w)
     log["leakage_r2"] = {"trained": leak_trained, "untrained_control": leakage(r_s0, Gs)}
     print("leakage", log["leakage_r2"], flush=True)

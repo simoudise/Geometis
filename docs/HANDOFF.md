@@ -31,7 +31,7 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 17, 2026, 11:00 Pacific (update this section at every handoff)
+## State on November 17, 2026, 12:00 Pacific (update this section at every handoff)
 
 All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 155
 (155 running), status lane s1003. Job scripts start with `set -o pipefail` so that a failure
@@ -125,7 +125,8 @@ Next steps, in order:
 3. Only if S-pub passes or is inconclusive: queue S-pub-untyped (tune.py --network S-pub-untyped on the three folds,
    then 5 seeds per fold with train_spectra.py --variant S-pub-untyped, then evaluate.py EMB and EMB+B2 into
    work/test2-eval-untyped), then run analyze_untyped.py. If S-pub fails, do not run it. If and only if that verdict is 'help', also run
-   S-pub-untyped-wide the same way (into work/test2-eval-untyped-wide) and pass that folder as the fifth argument. Specification and rule in
+   S-pub-untyped-wide the same way (into work/test2-eval-untyped-wide) and pass that folder as the fifth argument.
+   S-pub-untyped-wide projects its output to S-pub's width (256), so the heads see inputs of equal size. Specification and rule in
    the change log (Nov 17). The Mac mini copies of spectra.py, train_spectra.py and tune.py must be replaced with
    the repository versions before queuing (job 155 does not use them).
 4. Write the Test 1 and Test 2 report.
