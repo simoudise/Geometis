@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 19, 2026, 18:15 Pacific (update this section at every handoff)
+## State on November 19, 2026, 19:45 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 156
-(nothing running or queued), status lane s1003. Job scripts start with `set -o pipefail` so that a failure
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 157
+(157 running), status lane s1006. Job scripts start with `set -o pipefail` so that a failure
 is not hidden by grep.
 
 Done:
@@ -114,9 +114,20 @@ otherwise stop. Test 2 spends no API money (Mac mini only).
 Decisions on Nov 17 (Evangelos): the Test 1 A-ontology fail stops treating the ontology as something the model
 reads. The step-limit reruns and the A-tool and A-knowledge checks are exploratory; the frozen verdicts stand.
 
+FLAG AGAINST THE ARCHITECTURE (v19), recorded Nov 19 at Evangelos's request: the v19 components for the ontology
+as model input and for SPECTRA have no supporting evidence after Tests 1 and 2 (Test 1 A-ontology fail; Test 2 Bet B
+fail). Make no architecture revisions until the Test 3 pilot.
+
+Decisions Nov 19 (Evangelos): verdict accepted; SPECTRA training and S-pub-untyped stop; no rescue designs.
+
+Running: job 157, a diagnostic outside the verdict: the in-geofence reference with B2's tuning budget (8 trials,
+nested cross-validation inside the held-out area; reference_tuned.py), then diag_reference.py, which compares B2
+with the fixed and the tuned reference per fold (output in jobs/logs/157-test2-reference-tuned.log).
+
 Next steps, in order:
-1. Evangelos reviews the Test 1 and Test 2 results and decides what follows.
-2. Write the Test 1 and Test 2 report (format to agree with Evangelos).
+1. When job 157 ends: put its result into the internal report (Markdown in the Drive folder SPECTRA, written for
+   Evangelos) and record it in the change log as a diagnostic.
+2. city2graph comparison: planned, not started; it waits for Evangelos's approval of the plan, hours and pass rule.
 
 Open question for after Thursday (no work now): (a) does the ontology improve transfer to cities with different data
 sources compared with standard schemas; (b) could city2graph build Test 3 graphs in place of our builder.
