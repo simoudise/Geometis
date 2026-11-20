@@ -53,7 +53,11 @@ relation family against this; freeing space is Evangelos's decision.
 Step 1 approved by Evangelos (Nov 20, 13:25 Pacific); his rule decisions are in docs/gkg-full-decisions.md, with
 his addition: record distances to important buildings and districts. Public downloads done (jobs 202-204, folder
 ~/geometis-data/gkg/public/2026-11-20 with MANIFEST.tsv). Disk: Evangelos freed space; 126 GiB free at 11:39 Pacific.
-Open before Step 2: the landmark-distance details, and whether to issue UKO 15.6 with the section 8 corrections.
+UKO 15.6 written (01-ontologies/uko_ontology_v15_6.ttl, generator tools/make_uko_15_6.py; HermiT finds it consistent
+with no unsatisfiable classes once its 14 non-OWL-2 date and time datatypes are mapped to strings for the check).
+The builder still reads UKO 15.5 (gkg/stage3_places.py); Step 3 switches it to 15.6. connectsToTransit: road -> stop
+(confirmed). Crash-flagged relations built and tagged (confirmed). Open before Step 2: the landmark-distance details
+(targets, 2 km radius, straight-line and walking distance) and the xsd:date/time question in docs/gkg-full-decisions.md.
 Next: Step 2 (feasibility, no building).
 
 Earlier state (Tests 1 and 2, closed):
