@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 17, 2026, 12:00 Pacific (update this section at every handoff)
+## State on November 19, 2026, 18:15 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 155
-(155 running), status lane s1003. Job scripts start with `set -o pipefail` so that a failure
+All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 156
+(nothing running or queued), status lane s1003. Job scripts start with `set -o pipefail` so that a failure
 is not hidden by grep.
 
 Done:
@@ -101,17 +101,12 @@ so the limit share partly measures repetition. Evangelos's 10 percent sample: gr
 Test 2: fold f1 and f2 final runs and fold f3 tuning are complete; every trained network passes the M13 leakage
 rule on f1 and f2. Fold f3 winners are in the plan's change log (Nov 16).
 
-Running and queued (main queue, in order):
-- 155 held-out evaluation, the remaining 158 of 162 evaluations in 3 parallel streams (logs work/test2-eval/s0 to
-  s2; progress lines in jobs/logs/155-test2-evaluate-parallel.log). Job 153 did the first 4 (work/test2-eval/
-  evaluations.jsonl) and was stopped between evaluations (change log Nov 17). Job 154 (reference) is done.
-When 155 ends: concatenate test2-eval/evaluations.jsonl and test2-eval/s*/evaluations.jsonl into
-test2-eval/all/evaluations.jsonl, copy test2-eval/reference.jsonl there, and run
-`python analyze_test2.py ~/Geometis-mini/work/test2-eval/all` (frozen by hash; change log Nov 17).
-S-pub alone carries the Bet B claim (Evangelos confirmed Nov 16); EMB+B2 sets are secondary.
-
-The share Geometis-mini dropped off the MacBook on Nov 16 (Evangelos remounted it at 17:23 Pacific). If
-/Volumes/Geometis-mini is missing, ask him to reconnect with Finder > Go > Connect to Server, smb://10.0.0.202.
+Test 2 is complete (job 155 ended 01:59 UTC Nov 20, no failures; job 156 ran the frozen analysis on
+work/test2-eval/all). Bet B: FAIL. S-pub is worse than B2 in every fold and stratum (pooled gain -0.062, interval
+-0.074 to -0.051). No graph network beats B2 alone; the combined EMB+B2 sets are slightly worse than B2. The
+in-geofence reference is worse than B2 on the two Contra Costa folds (recorded in the change log, Nov 20).
+Full output: jobs/logs/156-test2-analyze.log. S-pub-untyped is not run (Evangelos's rule: only if S-pub passes or
+is inconclusive). Per the plan, SPECTRA training stops until a different design or more data gives a reason.
 
 Spending rule (Evangelos, Nov 15): every step that spends money must be needed to answer Bet A or Bet B;
 otherwise stop. Test 2 spends no API money (Mac mini only).
@@ -120,16 +115,8 @@ Decisions on Nov 17 (Evangelos): the Test 1 A-ontology fail stops treating the o
 reads. The step-limit reruns and the A-tool and A-knowledge checks are exploratory; the frozen verdicts stand.
 
 Next steps, in order:
-1. Done Nov 17: Evangelos's spot check of 20 Fable grades (92 percent agreement; both errors lenient; change log).
-2. When job 155 ends (estimate: late Nov 19 Pacific): merge the logs, run analyze_test2.py, report the Bet B verdict.
-3. Only if S-pub passes or is inconclusive: queue S-pub-untyped (tune.py --network S-pub-untyped on the three folds,
-   then 5 seeds per fold with train_spectra.py --variant S-pub-untyped, then evaluate.py EMB and EMB+B2 into
-   work/test2-eval-untyped), then run analyze_untyped.py. If S-pub fails, do not run it. If and only if that verdict is 'help', also run
-   S-pub-untyped-wide the same way (into work/test2-eval-untyped-wide) and pass that folder as the fifth argument.
-   S-pub-untyped-wide projects its output to S-pub's width (256), so the heads see inputs of equal size. Specification and rule in
-   the change log (Nov 17). The Mac mini copies of spectra.py, train_spectra.py and tune.py must be replaced with
-   the repository versions before queuing (job 155 does not use them).
-4. Write the Test 1 and Test 2 report.
+1. Evangelos reviews the Test 1 and Test 2 results and decides what follows.
+2. Write the Test 1 and Test 2 report (format to agree with Evangelos).
 
 Open question for after Thursday (no work now): (a) does the ontology improve transfer to cities with different data
 sources compared with standard schemas; (b) could city2graph build Test 3 graphs in place of our builder.
