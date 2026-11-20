@@ -44,8 +44,13 @@ Notes: the first neighborhood downloads from the Socrata resource endpoint came 
 - connectsToTransit runs from road to stop (UKO's direction). v19 section 9.4 lists the reverse; that stays a pending v19 item under the Nov 19 rule (no architecture revisions until the Test 3 pilot).
 - Crash-flagged relations are built and tagged; crash-prediction exports drop them by rule.
 
-## E. Still open before Step 2
+## E. Answered November 20, 13:49 Pacific
 
-- Landmark and district distances (Evangelos's addition): target classes, radius (proposed 2 km), and distance measure (proposed: straight line and walking network).
-- UKO 15.6 leaves 14 uses of xsd:date, xsd:time and xsd:gYear, which are outside the OWL 2 datatype map; OWL 2 reasoners such as HermiT refuse to load the file until they are changed. Changing them alters how dates are typed, so it is Evangelos's decision.
-- The companion ontologies (TKO 8.4, MLO 1.7, REO 1.6.1) still import UKO 15.5.0; a coordinated release would point them at 15.6.0.
+- "Change the dates and times to standard types in UKO": done in UKO 15.6 (uko:CalendarDate, uko:TimeOfDay, uko:ISODuration as patterned xsd:string; years as xsd:integer).
+- "Make all the necessary changes to the other ontologies": coordinated release 2026-11-20, TKO 8.5.0, MLO 1.7.1, REO 1.6.2, FKO 1.2.2 (generator `01-ontologies/tools/make_companions_2026_11_20.py`). The check script `tools/check_stack.py` reports zero problems, and HermiT finds the five ontologies together consistent. The 2026-09-19 set (UKO 15.5 with its companions) is logically inconsistent under HermiT even with its dates mapped to strings: language-tagged values sit in MLO and REO properties whose range is xsd:string; MLO 1.7.1 and REO 1.6.2 change those six ranges to rdf:PlainLiteral.
+- Landmark targets, 2 km radius, straight-line and walking distances: approved.
+- "Change the builder appropriately": the builder reads UKO 15.6 and records the whole release set in gkg.build.source_versions (`gkg/config.py` ONTOLOGY_RELEASE); rail segments are uko:RailSegment; comments and README updated. No place changes class under 15.6 (status job s212).
+
+## F. Open for Step 3
+
+See `docs/gkg-full-step2-feasibility.md`, section 5: run approval (about 2 to 2.5 hours on the Mac mini, no spending), edge storage design, veryNear as a subset of near, city blocks, theater and concert-hall mapping, and TIMS weather and road-surface fields.

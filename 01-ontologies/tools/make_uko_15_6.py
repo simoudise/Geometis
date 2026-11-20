@@ -22,9 +22,8 @@ def rep(old, new, count=1):
 rep("#    Version 15.5.0 - Neurosymbolic Urban Mobility System",
     "#    Version 15.6.0 - Neurosymbolic Urban Mobility System")
 rep("#    Change Log:\n", """#    Change Log:
-#    - v15.6.0: Consistency and GKG-build release, 2026-11-20 (Synapse Partners). Companion
-#               ontologies unchanged: TKO v8.4.0, MLO v1.7.0, REO v1.6.1, FKO v1.2.1 (they still
-#               import urn:urban-kg:15.5.0; every term they use from UKO is present here).
+#    - v15.6.0: Consistency and GKG-build release, coordinated release 2026-11-20 (release set:
+#               UKO v15.6.0, TKO v8.5.0, MLO v1.7.1, REO v1.6.2, FKO v1.2.2; Synapse Partners).
 #               (1) Declared seven classes and three annotation properties that 15.5 used but
 #                   never declared: SpatialEntity, GeographicArea, RoadFeature,
 #                   ProactiveSafetyNetwork, TimePeriod, FunctionalClassification (equivalent to
@@ -57,6 +56,14 @@ rep("#    Change Log:\n", """#    Change Log:
 #               (11) Harmonized duplicate labels on Neighborhood, District, HistoricDistrict and
 #                   IndustrialDistrict (two declaration blocks gave each an untagged and an @en
 #                   label).
+#               (12) OWL 2 datatypes: xsd:date, xsd:time and xsd:gYear are outside the OWL 2
+#                   datatype map, so OWL 2 reasoners refused to load UKO. Ranges now use the new
+#                   datatypes uko:CalendarDate (YYYY-MM-DD) and uko:TimeOfDay (HH:MM or HH:MM:SS,
+#                   hours up to 47 for GTFS service past midnight), both defined as patterned
+#                   xsd:string, and xsd:integer for years. uko:ISODuration (ISO 8601 duration as
+#                   patterned xsd:string) is defined here for the companion ontologies.
+#               (13) The four general distance and travel-time properties declare rdfs:domain
+#                   owl:Thing explicitly.
 """)
 
 # 2. Ontology header triples
@@ -65,8 +72,7 @@ rep("owl:versionIRI <urn:urban-kg:15.5.0> ;",
 rep('dcterms:title "Urban Knowledge Ontology (UKO) v15.5.0"@en ;',
     'dcterms:title "Urban Knowledge Ontology (UKO) v15.6.0"@en ;')
 rep("Companion ontologies: TKO v8.4, MLO v1.7, REO v1.6.1, FKO v1.2.1 (coordinated release 2026-09-19).",
-    "Companion ontologies: TKO v8.4.0, MLO v1.7.0, REO v1.6.1, FKO v1.2.1 (coordinated release 2026-09-19; UKO "
-    "advanced to 15.6.0 on 2026-11-20 without changes to the companions).")
+    "Companion ontologies: TKO v8.5.0, MLO v1.7.1, REO v1.6.2, FKO v1.2.2 (coordinated release 2026-11-20).")
 rep('rdfs:comment "Version 15.5.0 delivers',
     'rdfs:comment "Version 15.6.0 declares every UKO term the stack uses, repairs the class hierarchy '
     '(IntersectionNode, Trail, SpatialEntity), adds rail segments, priority development areas, distance '
@@ -100,6 +106,14 @@ rep('''uko:anchorStation rdf:type owl:ObjectProperty ;
 # 6. Duplicate labels: give the second declaration blocks the same @en label
 for cls in ["Neighborhood", "District", "Historic District", "Industrial District"]:
     rep(f'    rdfs:label "{cls}" ;\n', f'    rdfs:label "{cls}"@en ;\n')
+
+# 6b. OWL 2 datatypes in ranges
+import re
+for old, new, want in (("xsd:date", "uko:CalendarDate", 9), ("xsd:time", "uko:TimeOfDay", 4), ("xsd:gYear", "xsd:integer", 1)):
+    pat = re.compile(r"(rdfs:range )" + re.escape(old) + r"(?=\s*[;.])")
+    s, k = pat.subn(r"\g<1>" + new, s)
+    if k != want:
+        raise SystemExit(f"{old}: expected {want} ranges, found {k}")
 
 # 7. Closing banner
 rep("#    END OF UKO v15.5.0 ONTOLOGY", "#    END OF UKO v15.6.0 ONTOLOGY")
@@ -351,6 +365,34 @@ uko:crashDerivationBasis rdf:type owl:AnnotationProperty ;
     rdfs:comment "'stated' when UKO's own definition rests on crash or injury records; 'conservative' when UKO leaves the inputs unstated and the term is marked to be safe."@en .
 
 ''' + crash + '''
+### (12) OWL 2 datatypes (patterned strings) ###
+
+uko:CalendarDate rdf:type rdfs:Datatype ;
+    owl:equivalentClass [ rdf:type rdfs:Datatype ;
+        owl:onDatatype xsd:string ;
+        owl:withRestrictions ( [ xsd:pattern "[0-9]{4}-[0-9]{2}-[0-9]{2}" ] ) ] ;
+    rdfs:label "calendar date"@en ;
+    rdfs:comment "A calendar date written YYYY-MM-DD (ISO 8601), with no time of day. Replaces xsd:date, which is outside the OWL 2 datatype map. Values are written as xsd:string literals in this form; OWL 2 does not allow literals typed with a defined datatype."@en .
+
+uko:TimeOfDay rdf:type rdfs:Datatype ;
+    owl:equivalentClass [ rdf:type rdfs:Datatype ;
+        owl:onDatatype xsd:string ;
+        owl:withRestrictions ( [ xsd:pattern "[0-4][0-9]:[0-5][0-9](:[0-5][0-9])?" ] ) ] ;
+    rdfs:label "time of day"@en ;
+    rdfs:comment "A local time of day written HH:MM or HH:MM:SS. Hours may exceed 23 (up to 47) for GTFS service that runs past midnight. Replaces xsd:time, which is outside the OWL 2 datatype map. Values are written as xsd:string literals in this form; OWL 2 does not allow literals typed with a defined datatype."@en .
+
+uko:ISODuration rdf:type rdfs:Datatype ;
+    owl:equivalentClass [ rdf:type rdfs:Datatype ;
+        owl:onDatatype xsd:string ;
+        owl:withRestrictions ( [ xsd:pattern "-?P([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T([0-9]+H)?([0-9]+M)?([0-9]+([.][0-9]+)?S)?)?" ] ) ] ;
+    rdfs:label "ISO 8601 duration"@en ;
+    rdfs:comment "A duration written in ISO 8601 form, for example PT5M30S. Replaces xsd:duration, which is outside the OWL 2 datatype map. Values are written as xsd:string literals in this form; OWL 2 does not allow literals typed with a defined datatype."@en .
+
+uko:distanceInMeters rdfs:domain owl:Thing .
+uko:walkingTimeMinutes rdfs:domain owl:Thing .
+uko:drivingTimeMinutes rdfs:domain owl:Thing .
+uko:transitTimeMinutes rdfs:domain owl:Thing .
+
 ### (10) GTFS fares version ###
 
 uko:gtfsFaresVersion rdf:type owl:DatatypeProperty ;

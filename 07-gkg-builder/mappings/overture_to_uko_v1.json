@@ -1,5 +1,5 @@
 {
-  "_note": "Overture places taxonomy (release 2026-10-21.0) to UKO 15.5 classes. Used only when no UKO class name equals the place's category. 'level2' keys are second-level taxonomy names, 'top' keys are top-level names. A null value means 'leave unclassified on purpose': the category is not a travel destination (contractors, storage) or UKO has no class for it (historic sites, civic organizations). Drafted 3 November 2026 by Claude; to be reviewed.",
+  "_note": "Overture places taxonomy (release 2026-10-21.0) to UKO classes (written against 15.5; every target class exists unchanged in 15.6). Used only when no UKO class name equals the place's category. 'level2' keys are second-level taxonomy names, 'top' keys are top-level names. A null value means 'leave unclassified on purpose': the category is not a travel destination (contractors, storage) or UKO has no class for it (historic sites, civic organizations). Drafted 3 November 2026 by Claude; to be reviewed.",
   "level2": {
     "financial_service": "ServiceEstablishment",
     "home_service": null,

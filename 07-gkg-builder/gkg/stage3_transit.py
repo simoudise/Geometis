@@ -441,7 +441,7 @@ def run(geofence_id, ref_day=None):
                                               "decay_method", "beta", "snap_m", "nodes_reached",
                                               "decay_weighted_nodes", "area_m2", "geom", "build_id"], shed_rows)
         # Stop and nearest walkable road segment within 50 m. The edge uko:connectsToTransit runs from the
-        # segment to the stop (UKO 15.5); the view gkg.rel_connects_to_transit states that direction.
+        # segment to the stop (UKO 15.6); the view gkg.rel_connects_to_transit states that direction.
         conn.execute("""
             INSERT INTO gkg.stop_road (geofence_id, segment_urn, stop_urn, distance_m, build_id)
             SELECT s.geofence_id, r.urn, s.urn, r.d, %s FROM gkg.transit_stop s

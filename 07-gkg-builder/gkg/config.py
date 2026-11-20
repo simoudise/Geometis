@@ -13,6 +13,12 @@ SPEC_VERSION = "geofence-input-spec 2026-11-03"
 OVERTURE_RELEASE = "2026-10-21.0"
 OVERTURE_BASE = f"s3://overturemaps-us-west-2/release/{OVERTURE_RELEASE}/theme=transportation"
 
+# Ontology release the builder classifies and labels against (coordinated release 2026-11-20). Every build records
+# these versions in gkg.build.source_versions. UKO 15.5 stays in 01-ontologies for the frozen Tests 1 and 2.
+ONTOLOGY_RELEASE = {"uko": "15.6.0", "tko": "8.5.0", "mlo": "1.7.1", "reo": "1.6.2", "fko": "1.2.2"}
+ONTOLOGY_DIR = Path(__file__).resolve().parents[2] / "01-ontologies"
+UKO_TTL = ONTOLOGY_DIR / "uko_ontology_v15_6.ttl"
+
 TIGER_VINTAGE = 2024
 TIGER_URL = "https://www2.census.gov/geo/tiger/TIGER{v}/{layer_upper}/tl_{v}_{state}_{layer}.zip"
 
@@ -46,7 +52,7 @@ URN_MATCH_LENGTH_SHARE = 0.10
 
 # Stage 3 transit. The reference date is a Wednesday in April 2024, the month of the first client trip delivery,
 # so that the transit graph matches the trips. v19 asks for walksheds with "the v15.4 decay parameters" but
-# neither v19 nor UKO 15.5 gives their values; the three values below are placeholders until they are set.
+# neither v19 nor UKO (15.5 or 15.6) gives their values; the three values below are placeholders until they are set.
 TRANSIT_REFERENCE_DATE = "20240417"
 WALKSHED_THRESHOLD_M = 800.0
 WALKSHED_BETA = 0.002          # exponential decay per metre: weight = exp(-beta * network distance)

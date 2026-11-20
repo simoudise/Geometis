@@ -3,8 +3,7 @@ URNs from the URN registry and OSM-way crosswalk rows (layer 'rail').
 
 The road stage loads subtype road only, so rail trip legs (BART, Amtrak) found no segment to conflate to
 (TLP Phase 2, job 080). This stage runs after Stage 1 and leaves the road and pedestrian tables alone.
-Gap against UKO 15.5: the ontology has rail routes (uko:RailRoute, uko:SubwayRoute) but no class for a
-piece of rail track, so the URN kind "RailSegment" is provisional until UKO adds one.
+Each piece is a uko:RailSegment (class added in UKO 15.6; UKO 15.5 had rail routes but no class for rail track).
 """
 import json
 from collections import Counter

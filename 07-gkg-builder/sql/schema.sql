@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS gkg.pedestrian_edge (
 );
 
 -- Rail track pieces (Overture segments of subtype rail), so that rail trip legs can be conflated.
--- UKO 15.5 has rail routes but no class for rail track; the URN kind RailSegment is provisional.
+-- Each row is a uko:RailSegment (class added in UKO 15.6; 15.5 had no class for rail track).
 CREATE TABLE IF NOT EXISTS gkg.rail_segment (
     geofence_id         text NOT NULL,
     urn                 text NOT NULL,
@@ -149,7 +149,7 @@ CREATE INDEX IF NOT EXISTS osm_crosswalk_seg ON gkg.osm_crosswalk (geofence_id, 
 CREATE INDEX IF NOT EXISTS road_segment_nodes ON gkg.road_segment (geofence_id, from_node, to_node);
 
 -- Edges are views over the segment table, so that they cost no disk.
--- Segment to each of its end nodes. UKO 15.5 names this pair uko:adjacentSegment and declares it from
+-- Segment to each of its end nodes. UKO (15.5 and 15.6) names this pair uko:adjacentSegment and declares it from
 -- uko:IntersectionNode (domain) to uko:RoadSegment (range), so the edge runs node -> segment; the view keeps
 -- segment_urn first only for backward compatibility. The view gkg.rel_adjacent_segment below states the UKO direction.
 -- (Before branch gkg-full this comment said uko:intersects, which is UKO's generic feature-to-feature relation.)
@@ -159,7 +159,7 @@ CREATE OR REPLACE VIEW gkg.seg_intersects AS
     SELECT geofence_id, urn, to_node, 'end' FROM gkg.road_segment;
 
 -- uko:touches: two segments whose lines share an end node (symmetric; UKO declares no segment-to-segment
--- adjacency property). Before branch gkg-full this view was labeled uko:adjacentSegment, which UKO 15.5
+-- adjacency property). Before branch gkg-full this view was labeled uko:adjacentSegment, which UKO
 -- declares from uko:IntersectionNode to uko:RoadSegment, not between segments.
 CREATE OR REPLACE VIEW gkg.seg_adjacent AS
     SELECT a.geofence_id, a.segment_urn AS segment_a, b.segment_urn AS segment_b, a.node_urn AS via_node
@@ -256,7 +256,7 @@ CREATE TABLE IF NOT EXISTS gkg.walkshed_area (
     decay_weighted_nodes double precision, area_m2 double precision, geom geometry(Polygon, 4326) NOT NULL,
     build_id integer NOT NULL, PRIMARY KEY (geofence_id, urn));
 -- Pairs of transit stop and nearest road segment. The table stores the pair; the edge direction is fixed by the
--- view gkg.rel_connects_to_transit below, which follows UKO 15.5 (domain uko:Road, range uko:TransitStop):
+-- view gkg.rel_connects_to_transit below, which follows UKO 15.6 (domain uko:Road, range uko:TransitStop):
 -- road segment (subject) -> stop (object). v19 section 9.4 lists the reverse direction; that is a gap against v19.
 CREATE TABLE IF NOT EXISTS gkg.stop_road (
     geofence_id text NOT NULL, segment_urn text NOT NULL, stop_urn text NOT NULL, distance_m double precision,

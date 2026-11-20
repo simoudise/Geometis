@@ -167,6 +167,15 @@ u("appliesToInterventionType", F10, NG, "", "analysis layer")
 u("hasMemberEntity", F10, NG, "", "analysis layer")
 u("eHorizonFeatureOf", F2, LK, "", "", miss="ADAS e-horizon map data")
 
+# ---- added in UKO 15.6 (2026-11-20)
+F12 = "Landmark and district distances"
+u("hasDistanceMeasurement", F12, C, PLC + "; " + GTFS + "; " + SEG + "; SF Find neighborhoods; MTC PDAs; " + OSM,
+  "places, stops and intersections to landmark buildings and districts within 2 km (decision of Nov 20)")
+u("measuredFrom", F12, C, "as hasDistanceMeasurement", "start entity of each measurement")
+u("measuredTo", F12, C, "as hasDistanceMeasurement", "target landmark or district; straight-line and walking distance")
+u("fromCrossStreet", F5, CR, PED + "; " + SEG, "cross street at the start of a sidewalk segment", miss="skipped with segmentBetween (decision B3)")
+u("toCrossStreet", F5, CR, PED + "; " + SEG, "cross street at the end of a sidewalk segment", miss="skipped with segmentBetween (decision B3)")
+
 # ---- TKO, MLO, REO, FKO
 def other(onto, p, dom, rng, dep):
     if dep: return dict(family="(deprecated)", status=DEP, source="", method="", missing="", crash="", stored="")
@@ -202,7 +211,7 @@ for r in csv.DictReader(open("props.csv")):
     c = U.get(r["prop"]) if r["onto"] == "UKO" else other(r["onto"], r["prop"], r["domain"], r["range"], r["deprecated"])
     if c is None: raise SystemExit("unclassified " + r["prop"])
     rows.append({**r, **c})
-assert len([r for r in rows if r["onto"] == "UKO"]) == 128
+assert len([r for r in rows if r["onto"] == "UKO"]) in (128, 133)
 w = csv.DictWriter(open("inventory.csv", "w"), fieldnames=list(rows[0].keys()))
 w.writeheader(); w.writerows(rows)
 cnt = collections.Counter((r["onto"], r["family"], r["status"]) for r in rows)

@@ -94,10 +94,10 @@ historic sites and other categories that are not trip destinations or have no UK
 cent remain, mostly places with no Overture category. The LLM-assisted classifier that v19 names for
 ambiguous categories is not built yet, and the crosswalk needs Evangelos's review.
 
-Gap against v19: section 9.3 Stage 3 says each POI is classified "into the UKO uko:PointOfInterest
-hierarchy", but UKO 15.5 puts restaurants, shops, schools and hospitals under uko:Building, not under
-uko:PointOfInterest, whose subclasses are street furniture and small sites (ATMs, charging stations,
-monuments). Either v19's wording or the UKO hierarchy needs to change.
+Correction (20 November 2026): an earlier version of this note said that UKO 15.5 puts restaurants, shops, schools
+and hospitals under uko:Building and not under uko:PointOfInterest. That was wrong: uko:Building is itself a
+subclass of uko:PointOfInterest (and of uko:PhysicalStructure) in both 15.5 and 15.6, so these places are points
+of interest, as v19 section 9.3 says.
 
 GTFS (the transit part of Stage 3) waits for a Mobility Database token, and Foursquare OS Places is not
 loaded yet.
@@ -146,7 +146,7 @@ nearest one and records the gap. A deprecated feed and the feed it redirects to 
 4. **Direction of uko:connectsToTransit.** v19 section 9.4 lists the edge as (TransitStop, connectsToTransit,
    RoadSegment). UKO 15.5 declares the property with domain uko:Road and range uko:TransitStop, the
    opposite direction. The table `gkg.stop_road` stores the pair. Since branch gkg-full (November 20, 2026)
-   the graph follows UKO 15.5: the view `gkg.rel_connects_to_transit` runs from road segment to stop. v19
+   the graph follows UKO (15.5 and 15.6): the view `gkg.rel_connects_to_transit` runs from road segment to stop. v19
    section 9.4 still lists the reverse, which remains a gap against v19. The same branch relabels
    `gkg.seg_adjacent` as uko:touches (UKO declares uko:adjacentSegment from intersection node to segment, which
    the new view `gkg.rel_adjacent_segment` now states) and `gkg.segment_within_tract` as uko:withinCensusTract.
@@ -341,9 +341,8 @@ with layer `rail`. It runs after Stage 1; Stage 1 now deletes only its own cross
 | Tram | none | 35.0 km |
 | Class unknown | 154.6 km | 50.3 km |
 
-Gap against UKO 15.5: the ontology has rail routes (uko:RailRoute, uko:SubwayRoute, uko:LightRailRoute) but no class
-for a piece of rail track. The URN kind `RailSegment` is provisional until UKO adds a class, which the next UKO release
-should do. Rail segments have no node table yet; their ends are Overture connector ids.
+UKO 15.5 had rail routes (uko:RailRoute, uko:SubwayRoute, uko:LightRailRoute) but no class for a piece of rail track;
+UKO 15.6 (20 November 2026) adds uko:RailSegment, so the URN kind `RailSegment` is now an ontology class. Rail segments have no node table yet; their ends are Overture connector ids.
 
 ## Stage 4, crashes from TIMS (10 November 2026)
 

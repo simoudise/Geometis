@@ -20,7 +20,7 @@ from .geofence import fetch
 
 PLACES_BASE = f"s3://overturemaps-us-west-2/release/{config.OVERTURE_RELEASE}/theme=places/type=place"
 URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")
-UKO_TTL = Path(__file__).resolve().parents[2] / "01-ontologies" / "uko_ontology_v15_5.ttl"
+UKO_TTL = config.UKO_TTL
 
 
 def snake(name):
@@ -96,7 +96,7 @@ def run(geofence_id, ttl_path=UKO_TTL):
             "INSERT INTO gkg.build (geofence_id, stage, builder_version, source_versions) "
             "VALUES (%s, 'stage3-places', %s, %s) RETURNING build_id",
             (geofence_id, config.BUILDER_VERSION, json.dumps({"overture": config.OVERTURE_RELEASE,
-                                                               "uko": "15.5.0"}))).fetchone()[0]
+                                                               **config.ONTOLOGY_RELEASE}))).fetchone()[0]
         conn.execute("DELETE FROM gkg.place WHERE geofence_id = %s", (geofence_id,))
         for p in rows_in:
             g = shapely.from_wkb(bytes(p["wkb"]))
