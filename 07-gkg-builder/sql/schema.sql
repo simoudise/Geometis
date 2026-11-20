@@ -149,17 +149,26 @@ CREATE INDEX IF NOT EXISTS osm_crosswalk_seg ON gkg.osm_crosswalk (geofence_id, 
 CREATE INDEX IF NOT EXISTS road_segment_nodes ON gkg.road_segment (geofence_id, from_node, to_node);
 
 -- Edges are views over the segment table, so that they cost no disk.
--- uko:intersects: segment to each of its end nodes.
+-- Segment to each of its end nodes. UKO 15.5 names this pair uko:adjacentSegment and declares it from
+-- uko:IntersectionNode (domain) to uko:RoadSegment (range), so the edge runs node -> segment; the view keeps
+-- segment_urn first only for backward compatibility. The view gkg.rel_adjacent_segment below states the UKO direction.
+-- (Before branch gkg-full this comment said uko:intersects, which is UKO's generic feature-to-feature relation.)
 CREATE OR REPLACE VIEW gkg.seg_intersects AS
     SELECT geofence_id, urn AS segment_urn, from_node AS node_urn, 'start' AS position FROM gkg.road_segment
     UNION ALL
     SELECT geofence_id, urn, to_node, 'end' FROM gkg.road_segment;
 
--- uko:adjacentSegment: two segments that share an end node (symmetric).
+-- uko:touches: two segments whose lines share an end node (symmetric; UKO declares no segment-to-segment
+-- adjacency property). Before branch gkg-full this view was labeled uko:adjacentSegment, which UKO 15.5
+-- declares from uko:IntersectionNode to uko:RoadSegment, not between segments.
 CREATE OR REPLACE VIEW gkg.seg_adjacent AS
     SELECT a.geofence_id, a.segment_urn AS segment_a, b.segment_urn AS segment_b, a.node_urn AS via_node
     FROM gkg.seg_intersects a JOIN gkg.seg_intersects b
       ON a.geofence_id = b.geofence_id AND a.node_urn = b.node_urn AND a.segment_urn <> b.segment_urn;
+
+-- uko:adjacentSegment in UKO's direction: intersection node (subject) -> road segment (object).
+CREATE OR REPLACE VIEW gkg.rel_adjacent_segment AS
+    SELECT geofence_id, node_urn AS subject_urn, segment_urn AS object_urn, position FROM gkg.seg_intersects;
 
 -- uko:connectsTo: segment A ends where segment B starts, in digitized direction.
 -- Turn restrictions and one-way rules are not applied yet (see README, open items).
@@ -187,7 +196,8 @@ CREATE TABLE IF NOT EXISTS gkg.census_tract (
 );
 CREATE INDEX IF NOT EXISTS census_tract_geom ON gkg.census_tract USING gist (geom);
 
--- uko:within: each road segment lies in the tract that contains its midpoint.
+-- uko:withinCensusTract (a subproperty of uko:within): each road segment lies in the tract that contains its
+-- midpoint, as UKO's comment specifies for linear features. Before branch gkg-full this said uko:within.
 -- Segments in the buffer ring outside every loaded tract get no row.
 CREATE OR REPLACE VIEW gkg.segment_within_tract AS
     SELECT s.geofence_id, s.urn AS segment_urn, t.urn AS tract_urn
@@ -245,10 +255,14 @@ CREATE TABLE IF NOT EXISTS gkg.walkshed_area (
     decay_method text, beta double precision, snap_m double precision, nodes_reached integer,
     decay_weighted_nodes double precision, area_m2 double precision, geom geometry(Polygon, 4326) NOT NULL,
     build_id integer NOT NULL, PRIMARY KEY (geofence_id, urn));
--- uko:connectsToTransit runs from a road to a stop in UKO 15.5 (domain uko:Road, range uko:TransitStop).
+-- Pairs of transit stop and nearest road segment. The table stores the pair; the edge direction is fixed by the
+-- view gkg.rel_connects_to_transit below, which follows UKO 15.5 (domain uko:Road, range uko:TransitStop):
+-- road segment (subject) -> stop (object). v19 section 9.4 lists the reverse direction; that is a gap against v19.
 CREATE TABLE IF NOT EXISTS gkg.stop_road (
     geofence_id text NOT NULL, segment_urn text NOT NULL, stop_urn text NOT NULL, distance_m double precision,
     build_id integer NOT NULL);
+CREATE OR REPLACE VIEW gkg.rel_connects_to_transit AS
+    SELECT geofence_id, segment_urn AS subject_urn, stop_urn AS object_urn, distance_m, build_id FROM gkg.stop_road;
 
 -- URN registry (gkg/urn_registry.py). One row per URN ever issued for an Overture-derived entity, with the
 -- releases in which it was first and last present, and lineage rows for splits and merges.

@@ -145,8 +145,11 @@ nearest one and records the gap. A deprecated feed and the feed it redirects to 
    segment except motorways, plus the pedestrian layer, joined at access points.
 4. **Direction of uko:connectsToTransit.** v19 section 9.4 lists the edge as (TransitStop, connectsToTransit,
    RoadSegment). UKO 15.5 declares the property with domain uko:Road and range uko:TransitStop, the
-   opposite direction. The table `gkg.stop_road` stores the pair without choosing; the graph export must
-   follow one of the two, and v19 or UKO should change to match the other.
+   opposite direction. The table `gkg.stop_road` stores the pair. Since branch gkg-full (November 20, 2026)
+   the graph follows UKO 15.5: the view `gkg.rel_connects_to_transit` runs from road segment to stop. v19
+   section 9.4 still lists the reverse, which remains a gap against v19. The same branch relabels
+   `gkg.seg_adjacent` as uko:touches (UKO declares uko:adjacentSegment from intersection node to segment, which
+   the new view `gkg.rel_adjacent_segment` now states) and `gkg.segment_within_tract` as uko:withinCensusTract.
 5. **city2graph.** v19 names city2graph for the GTFS graph. The loader reads the GTFS files directly with
    pandas instead, as Stage 1 does for Overture.
 6. **Feed search by bounding box.** The Mobility Database search returns feeds whose recorded bounding box

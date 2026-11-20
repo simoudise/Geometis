@@ -31,11 +31,30 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 20, 2026, 10:30 Pacific (update this section at every handoff)
+## State on November 20, 2026, 11:10 Pacific (update this section at every handoff)
 
-All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 157
-(nothing running or queued), status lane s1006. Job scripts start with `set -o pipefail` so that a failure
-is not hidden by grep.
+CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
+cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
+and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: s200-s205
+(status, counts only). Nothing is running or queued.
+
+Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
+REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
+(the classification is a hand-written table in the second file). Deliverable in Drive SPECTRA > GKG FULL. Result:
+99 properties can be built from data we can access (17 stored in full or part, 46 computable, 36 need a rule from
+Evangelos); 8 need public downloads; 18 carry a crash flag and must never be inputs to a crash-prediction test.
+Naming fixes on the branch (not yet applied to the database): `seg_adjacent` relabeled uko:touches; `seg_intersects`
+documented as uko:adjacentSegment with new view `rel_adjacent_segment` (node -> segment); `segment_within_tract`
+relabeled uko:withinCensusTract; new view `rel_connects_to_transit` (segment -> stop, UKO direction; v19 9.4 differs).
+
+RESOURCE FLAG: the Mac mini data volume is 99 percent full (15 GiB free; database 55 GB). Step 2 must size every
+relation family against this; freeing space is Evangelos's decision.
+
+Next: Step 2 (feasibility, no building) only after Evangelos approves Step 1 and answers the rule decisions in
+section 6 of the Step 1 document.
+
+Earlier state (Tests 1 and 2, closed):
 
 Done:
 - Test plan revision 2 approved; Fable's 18 defects accepted (docs/test-plan-2026-11.md, change log).
