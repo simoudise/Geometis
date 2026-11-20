@@ -125,8 +125,10 @@ Contra Costa folds (+0.020 and +0.029, intervals exclude zero); San Francisco un
 Internal report on Tests 1 and 2: Drive folder SPECTRA, "GeoMetis Tests 1 and 2 report 2026-11-20.md".
 
 Next steps, in order:
-1. city2graph comparison: planned, not started. It waits for Evangelos's approval of the plan, hours and pass rule
-   and his three decisions (place categories, attributes city2graph lacks, margin M). Plan sent Nov 19.
+1. city2graph comparison: approved Nov 19 (plan, decisions and rule in the change log, Nov 20). Steps: install
+   city2graph in a separate environment; build graphs from the same sources as our builder; load into a parallel
+   schema; attach crashes; export, network metrics, features, folds; freeze the block-level analysis; run B0 and B2
+   on both graphs for the three folds; report.
 
 Open question for after Thursday (no work now): (a) does the ontology improve transfer to cities with different data
 sources compared with standard schemas; (b) could city2graph build Test 3 graphs in place of our builder.
