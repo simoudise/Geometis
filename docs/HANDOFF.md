@@ -36,8 +36,7 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: s200-s205
-(status, counts only). Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-204; status s200-s211. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -51,8 +50,11 @@ relabeled uko:withinCensusTract; new view `rel_connects_to_transit` (segment -> 
 RESOURCE FLAG: the Mac mini data volume is 99 percent full (15 GiB free; database 55 GB). Step 2 must size every
 relation family against this; freeing space is Evangelos's decision.
 
-Next: Step 2 (feasibility, no building) only after Evangelos approves Step 1 and answers the rule decisions in
-section 6 of the Step 1 document.
+Step 1 approved by Evangelos (Nov 20, 13:25 Pacific); his rule decisions are in docs/gkg-full-decisions.md, with
+his addition: record distances to important buildings and districts. Public downloads done (jobs 202-204, folder
+~/geometis-data/gkg/public/2026-11-20 with MANIFEST.tsv). Disk: Evangelos freed space; 126 GiB free at 11:39 Pacific.
+Open before Step 2: the landmark-distance details, and whether to issue UKO 15.6 with the section 8 corrections.
+Next: Step 2 (feasibility, no building).
 
 Earlier state (Tests 1 and 2, closed):
 
