@@ -31,10 +31,10 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 19, 2026, 19:45 Pacific (update this section at every handoff)
+## State on November 19, 2026, 21:30 Pacific (update this section at every handoff)
 
 All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 157
-(157 running), status lane s1006. Job scripts start with `set -o pipefail` so that a failure
+(nothing running or queued), status lane s1006. Job scripts start with `set -o pipefail` so that a failure
 is not hidden by grep.
 
 Done:
@@ -120,14 +120,13 @@ fail). Make no architecture revisions until the Test 3 pilot.
 
 Decisions Nov 19 (Evangelos): verdict accepted; SPECTRA training and S-pub-untyped stop; no rescue designs.
 
-Running: job 157, a diagnostic outside the verdict: the in-geofence reference with B2's tuning budget (8 trials,
-nested cross-validation inside the held-out area; reference_tuned.py), then diag_reference.py, which compares B2
-with the fixed and the tuned reference per fold (output in jobs/logs/157-test2-reference-tuned.log).
+Done Nov 20: job 157, the reference diagnostic (outside the verdict). B2 still beats the tuned reference on both
+Contra Costa folds (+0.020 and +0.029, intervals exclude zero); San Francisco unchanged. Change log, Nov 20.
+Internal report on Tests 1 and 2: Drive folder SPECTRA, "GeoMetis Tests 1 and 2 report 2026-11-20.md".
 
 Next steps, in order:
-1. When job 157 ends: put its result into the internal report (Markdown in the Drive folder SPECTRA, written for
-   Evangelos) and record it in the change log as a diagnostic.
-2. city2graph comparison: planned, not started; it waits for Evangelos's approval of the plan, hours and pass rule.
+1. city2graph comparison: planned, not started. It waits for Evangelos's approval of the plan, hours and pass rule
+   and his three decisions (place categories, attributes city2graph lacks, margin M). Plan sent Nov 19.
 
 Open question for after Thursday (no work now): (a) does the ontology improve transfer to cities with different data
 sources compared with standard schemas; (b) could city2graph build Test 3 graphs in place of our builder.
