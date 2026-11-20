@@ -31,7 +31,7 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
 
-## State on November 19, 2026, 21:30 Pacific (update this section at every handoff)
+## State on November 20, 2026, 10:30 Pacific (update this section at every handoff)
 
 All work is on branch `a2-stage1-loader` (main still stops at November 3). Last numbers used: main queue 157
 (nothing running or queued), status lane s1006. Job scripts start with `set -o pipefail` so that a failure
@@ -124,11 +124,10 @@ Done Nov 20: job 157, the reference diagnostic (outside the verdict). B2 still b
 Contra Costa folds (+0.020 and +0.029, intervals exclude zero); San Francisco unchanged. Change log, Nov 20.
 Internal report on Tests 1 and 2: Drive folder SPECTRA, "GeoMetis Tests 1 and 2 report 2026-11-20.md".
 
-Next steps, in order:
-1. city2graph comparison: approved Nov 19; paused Nov 20 after the road-graph probe (job 159) showed city2graph
-   rebuilds nearly the same road graph from the same Overture files (change log, Nov 20). Waiting for Evangelos to
-   choose: stop and record, run the full comparison as approved, or change the design. city2graph 1.1.0 is in
-   ~/c2g-venv on the Mac mini.
+Work stopped by Evangelos on Nov 20: "finish your reports and then stop." The city2graph comparison ended at the
+road-graph probe (change log, Nov 20). The final internal report on Tests 1 and 2 is in the Drive folder SPECTRA.
+Nothing is running or queued on the Mac mini, and no check-in is scheduled. Start new work only on Evangelos's
+instruction; the Test 3 pilot is the next decision point named in the architecture flag above.
 
 Open question for after Thursday (no work now): (a) does the ontology improve transfer to cities with different data
 sources compared with standard schemas; (b) could city2graph build Test 3 graphs in place of our builder.
