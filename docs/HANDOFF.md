@@ -30,13 +30,15 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - Pass statement_timeout and read-only settings as connection options, not as SET statements, because a rollback undoes a SET.
 - The catalog's street definition includes trunk roads; leaving them out broke an earlier answer.
 - Long jobs run in the main queue in the foreground; launchd kills processes a job leaves behind.
+- `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
+- A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 20, 2026, 11:10 Pacific (update this section at every handoff)
+## State on November 20, 2026, 17:30 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-207; status s200-s215. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-221; status s200-s221. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -67,6 +69,19 @@ URNs or about 9 GB with integer entity keys; about 2 to 2.5 hours on the Mac min
 Scratch schemas gkg_feas and gkg_feas2 were dropped. Files on the Mac mini: work/gkg-full (feasibility code copies,
 feas-2pct/feasibility.json). Disk: 71 GiB free at 14:28 (local Time Machine snapshots reappear hourly).
 Decisions needed before Step 3: section 5 of the Step 2 document.
+
+Step 3 (done, Nov 20, 17:30 Pacific; awaiting Evangelos's review). Evangelos approved the six Step 3 decisions
+("1. yes 2. ok 3. ok 4. ok 5. ok 6. ok"). Code: 07-gkg-builder/relations/build.py (steps schema to cleanup),
+validate.py, make_dictionary.py, catalogue/*.tsv; commit 211eb22 is the code version in gkg.provenance. Jobs 208-221
+(208-211 and 213 failed on SQL errors that were fixed; each step was rerun alone). Result: 1,532,717 entities,
+58,655,659 edges in 78 relations with 100 provenance rows, 28,053,993 distance measurements; edges 5.2 GB; database
+63 GB; 54 GiB free. All invariants are zero except district walking distances that the 20 m node rule makes shorter
+than the boundary distance (documented). Enforcement removed 352,082 edges that failed UKO 15.6 domains or ranges
+(gkg.edge_rejected). Validation file: work/gkg-full/validation-2026-11-20.json on the Mac mini. Data dictionary:
+docs/gkg-full-data-dictionary.md. Handoff for Chats 3a and 3b: docs/gkg-full-handoff-3a-3b.md. Build report with
+counts, gaps and three open decisions: Drive SPECTRA > GKG FULL. The scratch schemas gkg_work and gkg_load were dropped.
+The stage-3 place mapping in gkg/stage3_places.py does not yet carry the landmark class overrides (Theater,
+ConcertHall, OperaHouse, CityHall); relations/build.py applies them in gkg.entity only.
 
 Earlier state (Tests 1 and 2, closed):
 
