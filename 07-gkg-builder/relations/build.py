@@ -7,7 +7,7 @@ so a failed step can be rerun alone). Approved design (Evangelos, Nov 20):
 - gkg.entity numbers every entity (urn + geofence) and records its UKO class; gkg.entity_type adds asserted extra
   types (each rule documented in RULES_EXTRA_TYPES and the data dictionary).
 - gkg.edge holds one row per edge: relation code, subject and object entity numbers, provenance code and an
-  optional value (metres). Symmetric relations are stored once, with subject number < object number. For a pair
+  optional value (meters). Symmetric relations are stored once, with subject number < object number. For a pair
   of inverse properties only the property named in RELATIONS is stored; the inverse follows from it.
 - gkg.distance_measurement holds uko:DistanceMeasurement rows (straight-line and walking distance) from places,
   stops and intersections to landmark buildings and districts within 2 km.
@@ -66,7 +66,7 @@ LOG = []
 def log(**kw):
     kw["t"] = time.strftime("%H:%M:%S")
     LOG.append(kw)
-    print(json.dumps(kw), flush=True)
+    print(json.dumps(kw, default=str), flush=True)
 
 
 def urn(kind, *parts):
@@ -93,8 +93,8 @@ RELATIONS = [
     ("uko:within", False, False, "building in city block; place in building (place_building)"),
     ("uko:overlaps", False, True, "district polygon overlaps census tract polygon (shared area >= 1 percent)"),
     ("uko:adjacentTo", False, True, "census tracts whose boundaries share a line"),
-    ("uko:near", False, True, "places, stops, intersections within 200 m (value_m = metres); veryNear is value_m <= 50"),
-    ("uko:crosses", False, False, "road segment crosses rail segment; crosswalk crosses road segment"),
+    ("uko:near", False, True, "places, stops, intersections within 200 m (value_m = meters); veryNear is value_m <= 50"),
+    ("uko:crosses", False, False, "road segment crosses rail segment; crosswalk to the road segment nearest its midpoint (12 m)"),
     ("uko:crossesOver", False, False, "road segments whose lines cross with no shared node; bridge over non-bridge, or non-tunnel over tunnel"),
     ("uko:intersectsRoad", False, True, "segments of differently named roads that meet at a shared node"),
     ("uko:hasJurisdiction", False, False, "feature to its city (TIGER place), else its county"),
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS gkg.aux_entity (geofence_id text NOT NULL, urn text N
     kind text NOT NULL, name text, props jsonb, geom geometry(Geometry, 4326), PRIMARY KEY (geofence_id, urn));
 CREATE INDEX IF NOT EXISTS aux_entity_kind ON gkg.aux_entity (kind);
 CREATE TABLE IF NOT EXISTS gkg.relation_type (rid smallint PRIMARY KEY, curie text UNIQUE NOT NULL,
-    domain_classes text[], range_classes text[], crash_derived boolean NOT NULL, symmetric boolean NOT NULL,
+    domain_classes text[], range_classes text[], crash_derived boolean NOT NULL, is_symmetric boolean NOT NULL,
     inverse_curie text, method text);
 CREATE TABLE IF NOT EXISTS gkg.provenance (pid smallint PRIMARY KEY, rid smallint NOT NULL, source text NOT NULL,
     method text NOT NULL, code_version text NOT NULL, ontology_version text NOT NULL, crash_derived boolean NOT NULL,
@@ -228,7 +228,7 @@ def edges(curie, source, method, select_sql, args=None, symmetric=None):
     """Insert edges from a SELECT returning (subj eid, obj eid, value_m). Returns the row count."""
     r = rid(curie)
     p = pid(curie, source, method)
-    sym = Q("select symmetric from gkg.relation_type where rid=%(r)s", {"r": r})[0][0] if symmetric is None else symmetric
+    sym = Q("select is_symmetric from gkg.relation_type where rid=%(r)s", {"r": r})[0][0] if symmetric is None else symmetric
     t = time.time()
     if sym:
         sql = (f"insert into gkg.edge (rid, subj, obj, pid, value_m) select distinct on (least(s,o), greatest(s,o)) "
@@ -448,19 +448,19 @@ def step_aux():
         X(f"""insert into gkg.aux_entity select %(g)s, 'urn:urban-kg:CommonSpace:osm:'||coalesce(osm_id, osm_way_id), case
               when leisure='dog_park' then 'uko:DogPark' when leisure='garden' then 'uko:Garden'
               when leisure='playground' then 'uko:Playground' when leisure='nature_reserve' then 'uko:NaturalArea'
-              else 'uko:Park' end, 'common_space', name, jsonb_build_object('leisure', leisure), o.geom
+              else 'uko:Park' end, 'common_space', o.name, jsonb_build_object('leisure', leisure), o.geom
               from gkg_load.{t} o join gkg.geofence f on f.geofence_id=%(g)s and ST_Intersects(o.geom, f.extent)
               where leisure in ('park','garden','playground','recreation_ground','nature_reserve','dog_park')
                  or landuse in ('recreation_ground','village_green')
               on conflict do nothing""", {"g": g})
         X(f"""insert into gkg.aux_entity select %(g)s, 'urn:urban-kg:NaturalArea:osm:'||coalesce(osm_id, osm_way_id), 'uko:NaturalArea',
-              'natural_area', name, jsonb_build_object('natural', "natural"), o.geom
+              'natural_area', o.name, jsonb_build_object('natural', "natural"), o.geom
               from gkg_load.{t} o join gkg.geofence f on f.geofence_id=%(g)s and ST_Intersects(o.geom, f.extent)
               where "natural" in ('wood','scrub','wetland','grassland','heath') and coalesce(leisure,'')=''
               on conflict do nothing""", {"g": g})
         X(f"""insert into gkg.aux_entity select %(g)s, 'urn:urban-kg:ParkingFacility:osm:'||coalesce(osm_id, osm_way_id),
               case when other_tags ~ '"hgv"=>"(yes|designated)"' then 'uko:TruckParkingFacility' else 'uko:ParkingLot' end,
-              'parking', name, null, o.geom
+              'parking', o.name, null, o.geom
               from gkg_load.{t} o join gkg.geofence f on f.geofence_id=%(g)s and ST_Intersects(o.geom, f.extent)
               where amenity='parking' on conflict do nothing""", {"g": g})
     # Brand organizations (one per brand name and geofence), data sources, Bay Wheels.
@@ -501,9 +501,9 @@ def step_blocks():
         t = time.time()
         X("""insert into gkg.aux_entity select %(g)s, 'urn:urban-kg:CityBlock:gkgfull:'||md5(%(g)s||ST_AsText(ST_SnapToGrid(ST_PointOnSurface(b),1e-6))),
              'uko:CityBlock', 'city_block', null, jsonb_build_object('area_m2', round(ST_Area(b::geography))), b
-             from (select (ST_Dump(ST_Polygonize(ST_Node(ST_Union(geom))))).geom b from gkg.road_segment
+             from (select (ST_Dump(ST_Polygonize(u))).geom b from (select ST_Union(geom) u from gkg.road_segment
                    where geofence_id=%(g)s and coalesce(road_classification,'') not in ('service','track','motorway','unknown')
-                     and coalesce(subclass,'')<>'link' and not coalesce(is_tunnel,false) and not coalesce(is_bridge,false)) z
+                     and coalesce(subclass,'')<>'link' and not coalesce(is_tunnel,false) and not coalesce(is_bridge,false)) un) z
              where ST_Area(b::geography) between 200 and 2000000
              on conflict do nothing""", {"g": g})
         log(step="blocks", geofence=g, seconds=round(time.time() - t, 1),
@@ -666,19 +666,20 @@ def step_topology():
         reset(c)
     edges("uko:crosses", "Overture 2026-10-21.0", "road segment crosses rail segment",
           "select s.eid, r.eid, null::real from gkg_work.seg s join gkg_work.rail r on r.g=s.g and ST_Crosses(s.geom, r.geom)")
-    edges("uko:crosses", "Overture 2026-10-21.0", "crosswalk edge crosses road segment",
-          "select p.eid, s.eid, null::real from gkg_work.ped p join gkg_work.seg s on s.g=p.g and ST_Crosses(p.geom, s.geom) "
-          "where p.subclass='crosswalk'")
+    edges("uko:crosses", "Overture 2026-10-21.0", "crosswalk edge to the road segment nearest its midpoint (within 12 m)",
+          "select p.eid, r.eid, r.d::real from gkg_work.ped p cross join lateral (select s.eid, ST_Distance(s.geom, "
+          "ST_LineInterpolatePoint(ST_LineMerge(p.geom), 0.5)) d from gkg_work.seg s where s.g=p.g and s.cls not in ('motorway','track') "
+          "order by s.geom <-> ST_LineInterpolatePoint(ST_LineMerge(p.geom), 0.5) limit 1) r "
+          "where p.subclass='crosswalk' and GeometryType(ST_LineMerge(p.geom))='LINESTRING' and r.d <= 12")
     edges("uko:crossesOver", "Overture 2026-10-21.0", "lines cross, no shared node; bridge over non-bridge or non-tunnel over tunnel",
           """select case when a.is_bridge or b.is_tunnel then a.eid else b.eid end, case when a.is_bridge or b.is_tunnel then b.eid else a.eid end,
              null::real from gkg_work.seg a join gkg_work.seg b on b.g=a.g and a.eid<b.eid and ST_Crosses(a.geom, b.geom)
              and a.from_node not in (b.from_node, b.to_node) and a.to_node not in (b.from_node, b.to_node)
              where (a.is_bridge <> b.is_bridge) or (a.is_tunnel <> b.is_tunnel)""")
-    edges("uko:intersectsRoad", "Overture 2026-10-21.0", "differently named roads meeting at a shared node",
-          """select a.eid, b.eid, null::real from gkg.seg_adjacent x join gkg.road_segment ra on ra.geofence_id=x.geofence_id and ra.urn=x.segment_a
-             join gkg.road_segment rb on rb.geofence_id=x.geofence_id and rb.urn=x.segment_b
-             join gkg.entity a on a.geofence_id=x.geofence_id and a.urn=x.segment_a join gkg.entity b on b.geofence_id=x.geofence_id and b.urn=x.segment_b
-             where coalesce(ra.name,'')<>'' and coalesce(rb.name,'')<>'' and gkg.road_key(ra.name)<>gkg.road_key(rb.name)""")
+    edges("uko:intersectsRoad", "Overture 2026-10-21.0", "differently named roads meeting at a shared node (from uko:touches)",
+          """select x.subj, x.obj, null::real from gkg.edge x join gkg_work.seg a on a.eid=x.subj join gkg_work.seg b on b.eid=x.obj
+             where x.rid=(select rid from gkg.relation_type where curie='uko:touches')
+               and coalesce(a.name,'')<>'' and coalesce(b.name,'')<>'' and gkg.road_key(a.name)<>gkg.road_key(b.name)""")
     edges("uko:sharesWallWith", "Overture buildings", "boundaries share at least 1 m",
           """select a.eid, b.eid, null::real from gkg_work.bld a join gkg_work.bld b on b.g=a.g and a.eid<b.eid and ST_DWithin(a.geom, b.geom, 0.5)
              where ST_Length(ST_Intersection(ST_Boundary(ST_Buffer(a.geom, 0.3)), b.geom)) >= 1""")
@@ -922,7 +923,7 @@ def step_transit():
     T = lambda kind, *p: f"urn:urban-kg:{kind}:gtfs:{uuid.uuid5(URN_NS, '|'.join([kind] + [str(x) for x in p]))}"
     for g in GEOFENCES:
         sv = Q("select source_versions from gkg.build where geofence_id=%(g)s and stage='stage3-transit' order by build_id desc limit 1", {"g": g})[0][0]
-        feeds = [f for f in sv.get("feeds", []) if f.get("dataset") and not f.get("status")]
+        feeds = [f for f in sv.get("feeds", []) if f.get("dataset") and f.get("status") == "loaded"]
         trips, stimes, exc, xfer, fares = [], [], [], [], []
         st_rows = Q("select feed_id, trip_id, stop_urn, route_urn, stop_sequence from gkg.transit_stop_time where geofence_id=%(g)s", {"g": g})
         trip_set = {(r[0], r[1]): r[3] for r in st_rows}
@@ -1034,6 +1035,12 @@ def _walk_graph(g):
     return m, xy, node_eid
 
 
+NODES_NEAR = """select ST_X(n.geom), ST_Y(n.geom) from gkg_work.node n join gkg_work.aux x on x.eid=%({a})s and n.g=%(g)s
+    and ST_DWithin(x.geom, n.geom, 20)
+    union all select ST_X(n.geom), ST_Y(n.geom) from gkg_work.pnode n join gkg_work.aux x on x.eid=%({a})s and n.g=%(g)s
+    and ST_DWithin(x.geom, n.geom, 20)"""
+
+
 def step_distances():
     """uko:DistanceMeasurement rows: places, stops and intersections to landmark buildings and districts within
     2 km; straight line (EPSG:3310) and walking distance (Dijkstra on the walking network, 2 km limit)."""
@@ -1088,9 +1095,7 @@ def step_distances():
                                    and ST_DWithin(a.geom, d.geom, 2000) where a.g=%(g)s""", {"d": deid, "g": g}), columns=["s", "d", "inside"])
             if not len(dp):
                 continue
-            inn = Q("""select ST_X(n.geom), ST_Y(n.geom) from (select ST_Transform(geom,3310) geom from gkg.intersection_node where geofence_id=%(g)s
-                       union all select ST_Transform(geom,3310) from gkg.pedestrian_node where geofence_id=%(g)s) n
-                       join gkg_work.aux d on d.eid=%(d)s and ST_DWithin(d.geom, n.geom, 20)""", {"d": deid, "g": g})
+            inn = Q(NODES_NEAR.format(a="d"), {"d": deid, "g": g})
             sp = pos[dp.s.values].values
             if inn:
                 _, srcn = tree.query(np.array(inn), k=1)
@@ -1124,9 +1129,7 @@ def step_recreation():
         parks = Q("select eid from gkg_work.aux where g=%(g)s and kind='common_space'", {"g": g})
         out = []
         for (pe,) in parks:
-            inn = Q("""select ST_X(n.geom), ST_Y(n.geom) from (select ST_Transform(geom,3310) geom from gkg.intersection_node where geofence_id=%(g)s
-                       union all select ST_Transform(geom,3310) from gkg.pedestrian_node where geofence_id=%(g)s) n
-                       join gkg_work.aux c on c.eid=%(c)s and ST_DWithin(c.geom, n.geom, 20)""", {"c": pe, "g": g})
+            inn = Q(NODES_NEAR.format(a="d"), {"d": pe, "g": g})
             if not inn:
                 continue
             _, srcn = tree.query(np.array(inn), k=1)
@@ -1178,6 +1181,21 @@ def step_index():
         entity_gb=Q("select round(pg_total_relation_size('gkg.entity')/1e9,2)")[0][0])
 
 
+def step_views():
+    """Read views: named edges, veryNear, and the export that crash-prediction work must use."""
+    X("""create or replace view gkg.edge_named as select t.curie relation, s.urn subject_urn, s.uko_class subject_class,
+         o.urn object_urn, o.uko_class object_class, s.geofence_id, x.value_m, p.source, p.method, p.code_version,
+         p.ontology_version, t.crash_derived from gkg.edge x join gkg.relation_type t using (rid) join gkg.provenance p using (pid)
+         join gkg.entity s on s.eid=x.subj join gkg.entity o on o.eid=x.obj""")
+    X("""create or replace view gkg.rel_very_near as select x.subj, x.obj, x.value_m, x.pid from gkg.edge x
+         where x.rid=(select rid from gkg.relation_type where curie='uko:near') and x.value_m <= 50""")
+    X("""create or replace view gkg.edge_for_crash_prediction as select x.* from gkg.edge x join gkg.relation_type t using (rid)
+         join gkg.entity s on s.eid=x.subj join gkg.entity o on o.eid=x.obj
+         where not t.crash_derived and s.src not in ('tims_crash','aux:risk_profile','aux:hin_feature','aux:hin_network')
+           and o.src not in ('tims_crash','aux:risk_profile','aux:hin_feature','aux:hin_network')""")
+    log(step="views", views=3)
+
+
 def step_cleanup():
     X("drop schema if exists gkg_work cascade")
     X("drop schema if exists gkg_load cascade")
@@ -1188,7 +1206,7 @@ STEPS = [("schema", step_schema), ("catalogue", step_catalogue), ("entities", st
          ("proximity", step_proximity), ("topology", step_topology), ("roadnet", step_roadnet), ("access", step_access),
          ("commons", step_commons), ("other", step_commercial_safety_freight), ("tims", step_tims), ("transit", step_transit),
          ("distances", step_distances), ("recreation", step_recreation), ("index", step_index), ("enforce", step_enforce),
-         ("cleanup", step_cleanup)]
+         ("views", step_views), ("cleanup", step_cleanup)]
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--catalogue"]:

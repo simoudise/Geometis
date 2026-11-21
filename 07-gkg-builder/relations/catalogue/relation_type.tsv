@@ -5,8 +5,8 @@
 5	uko:within	uko:GeographicFeature	uko:GeographicFeature	False	False	uko:contains	building in city block; place in building (place_building)
 6	uko:overlaps	uko:GeographicFeature	uko:GeographicFeature	False	True		district polygon overlaps census tract polygon (shared area >= 1 percent)
 7	uko:adjacentTo	uko:GeographicFeature	uko:GeographicFeature	False	True		census tracts whose boundaries share a line
-8	uko:near	uko:GeographicFeature	uko:GeographicFeature	False	True		places, stops, intersections within 200 m (value_m = metres); veryNear is value_m <= 50
-9	uko:crosses	uko:LinearFeature	uko:GeographicFeature	False	False		road segment crosses rail segment; crosswalk crosses road segment
+8	uko:near	uko:GeographicFeature	uko:GeographicFeature	False	True		places, stops, intersections within 200 m (value_m = meters); veryNear is value_m <= 50
+9	uko:crosses	uko:LinearFeature	uko:GeographicFeature	False	False		road segment crosses rail segment; crosswalk to the road segment nearest its midpoint (12 m)
 10	uko:crossesOver	uko:Road	uko:Road	False	False	uko:crossesUnder	road segments whose lines cross with no shared node; bridge over non-bridge, or non-tunnel over tunnel
 11	uko:intersectsRoad	uko:Road	uko:Road	False	True		segments of differently named roads that meet at a shared node
 12	uko:hasJurisdiction	uko:GeographicFeature	uko:AdministrativeArea	False	False		feature to its city (TIGER place), else its county
