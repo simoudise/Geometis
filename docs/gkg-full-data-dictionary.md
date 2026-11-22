@@ -1,6 +1,6 @@
 # GKG full build: data dictionary for the new relations
 
-Release: GKG full, built November 20, 2026, on the Mac mini (database `geometis`, schema `gkg`) with UKO 15.6.0 and REO 1.6.2. Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.
+Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.7.0 and REO 1.6.3. The method is in `docs/gkg-full-methodology.md`. Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.
 
 ## Tables
 
@@ -14,7 +14,7 @@ Release: GKG full, built November 20, 2026, on the Mac mini (database `geometis`
 | `gkg.edge` | one edge | `rid`, `subj`, `obj` (entity keys), `pid`, `value_m` (meters, where the relation has a distance) |
 | `gkg.distance_measurement` | one uko:DistanceMeasurement | `subj`, `target`, `straight_m`, `walk_m`, `measured_to` (`point` or `boundary`), `inside_target`, `pid` |
 | `gkg.edge_rejected` | edges removed because the subject or object failed the property's domain or range | `rid`, `reason`, `n`, example classes |
-| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.6 + REO 1.6.2) | `uko_class`, `ancestor` |
+| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.7 + REO 1.6.3) | `uko_class`, `ancestor` |
 
 ## Views
 
@@ -29,15 +29,11 @@ Release: GKG full, built November 20, 2026, on the Mac mini (database `geometis`
 - Metric work uses California Albers (EPSG:3310). Walking distances use the stored walking network: road segments except motorways, pedestrian edges and access points.
 - An edge never joins entities of two geofences. The Contra Costa and San Francisco extents overlap, so the same Overture feature can appear in both geofences with two entity keys.
 - New URNs use the `gkgfull` source tag (for example `urn:urban-kg:CityBlock:gkgfull:<hash>`). Public-data URNs keep the publisher's identifier where one exists (DataSF, MTC, TIGER, OpenStreetMap, GBFS).
-- The enforce step removes edges whose subject or object is not an instance of the property's `rdfs:domain` or `rdfs:range` under the UKO 15.6 class hierarchy plus `gkg.entity_type`. Removed counts are in `gkg.edge_rejected`.
+- The enforce step removes edges whose subject or object is not an instance of the property's `rdfs:domain` or `rdfs:range` under the UKO 15.7 class hierarchy plus `gkg.entity_type`. Removed counts are in `gkg.edge_rejected`.
 
 ## Asserted extra types
 
-UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in `gkg.entity_type`; each is a candidate axiom for UKO 15.7.
-
-- Schools (School, ElementarySchool, MiddleSchool, HighSchool, PrivateSchool) and hospitals (Hospital, GeneralHospital, ChildrensHospital) are uko:VulnerablePopulationFacility (Evangelos's decision B1); schools and the children's hospital are also uko:ChildFacility.
-- Pedestrian network edges, cycleways and trails are uko:PedestrianInfrastructure; cycleways and trails are also uko:PedestrianNetworkEdge.
-- uko:TruckRoutingConstraint entities are also uko:OperationalRoutingConstraint, the domain of uko:constrainsSegment.
+None under UKO 15.7. The November 20 build asserted types per entity that UKO 15.6 lacked (schools and hospitals as vulnerable-population facilities, pedestrian network edges as pedestrian infrastructure, truck restrictions as operational constraints); UKO 15.7 states the first as axioms and widens the domains that needed the others.
 
 ## Road network topology
 
@@ -64,7 +60,7 @@ UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in 
 ### uko:crosses
 
 - Domain: uko:LinearFeature; range: uko:GeographicFeature.
-- Rule: road segment crosses rail segment; crosswalk to the road segment nearest its midpoint (12 m).
+- Rule: road segment crosses rail segment; crosswalk to the road segment nearest its midpoint, within 7 m and 30 degrees of perpendicular.
 
 ### uko:crossesOver
 
@@ -174,12 +170,12 @@ UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in 
 
 ### uko:sharesBuildingWith
 
-- Domain: uko:Building; range: uko:Building. Symmetric.
+- Domain: uko:PointOfInterest; range: uko:PointOfInterest. Symmetric.
 - Rule: places linked to the same building (gkg.place_building).
 
 ### uko:insideMall
 
-- Domain: uko:Building; range: uko:ShoppingMall.
+- Domain: uko:PointOfInterest; range: uko:ShoppingMall.
 - Rule: place in the same building as a ShoppingMall place.
 
 ### uko:accessibleBy
@@ -219,12 +215,12 @@ UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in 
 
 ### uko:partOfChain
 
-- Domain: uko:Building; range: uko:Organization.
+- Domain: uko:PointOfInterest; range: uko:Organization.
 - Rule: branded place to its brand organization.
 
 ### uko:operatedByOrg
 
-- Domain: uko:Building; range: uko:Organization.
+- Domain: uko:PointOfInterest; range: uko:Organization.
 - Rule: branded place to its brand organization (decision B4).
 
 ## Sidewalks
@@ -328,7 +324,7 @@ UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in 
 
 ### uko:nearestTransitStop
 
-- Domain: uko:PointOfInterest; range: uko:TransitStop.
+- Domain: uko:GeographicFeature; range: uko:TransitStop.
 - Rule: place to its nearest boardable stop (value_m).
 
 ### uko:hasTransitAccess
@@ -375,7 +371,7 @@ UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in 
 
 ### uko:pathThroughCommonSpace
 
-- Domain: uko:PedestrianInfrastructure; range: uko:CommonSpace.
+- Domain: uko:PedestrianInfrastructure or uko:PedestrianNetworkEdge or uko:Trail or uko:Cycleway; range: uko:CommonSpace.
 - Rule: pedestrian edge intersecting a common space polygon.
 
 ### uko:providesRecreationFor
@@ -392,7 +388,7 @@ UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in 
 
 ### uko:constrainsSegment
 
-- Domain: uko:OperationalRoutingConstraint; range: uko:RoadSegment.
+- Domain: uko:OperationalRoutingConstraint or uko:TruckRoutingConstraint; range: uko:RoadSegment.
 - Rule: truck restriction to the segment it applies to.
 
 ### uko:hasTruckParkingFacility
@@ -456,7 +452,7 @@ UKO 15.6 lacks these subclass axioms. The build asserts the types per entity in 
 
 ### uko:hasDataSource
 
-- Domain: uko:GeographicFeature; range: uko:DataSource.
+- Domain: owl:Thing; range: uko:DataSource.
 - Rule: entity to the data source release it came from.
 
 ## Not built, and why

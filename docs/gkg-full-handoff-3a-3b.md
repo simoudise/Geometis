@@ -12,8 +12,10 @@ in `docs/gkg-full-data-dictionary.md`. The build report with counts and checks i
   build added `gkg.entity`, `gkg.entity_type`, `gkg.aux_entity`, `gkg.relation_type`, `gkg.provenance`, `gkg.edge`,
   `gkg.distance_measurement`, `gkg.edge_rejected` and `gkg.class_closure`, and the views `gkg.edge_named`,
   `gkg.rel_very_near` and `gkg.edge_for_crash_prediction`.
-- Ontologies: UKO 15.6.0 and REO 1.6.2 (coordinated release 2026-11-20 in `01-ontologies`). Tests 1 and 2 stay
-  frozen on UKO 15.5.
+- Ontologies: coordinated release 2026-11-22 in `01-ontologies` (UKO 15.7.0, TKO 8.5.1, MLO 1.7.2, REO 1.6.3,
+  FKO 1.2.3). Tests 1 and 2 stay frozen on UKO 15.5.
+- Method: `docs/gkg-full-methodology.md` is the complete method (inputs, entities, every relation rule, checks,
+  how to rebuild).
 - Code: `07-gkg-builder/relations/build.py` (numbered steps; `python -m relations.build STEP ...` reruns one step),
   `relations/validate.py` (checks), `relations/make_dictionary.py` (data dictionary). The relation catalogue in
   `relations/catalogue/*.tsv` comes from the ontology files: rerun `python -m relations.build --catalogue` in the
@@ -36,15 +38,14 @@ in `docs/gkg-full-data-dictionary.md`. The build report with counts and checks i
 - For an inverse pair only one property is stored (for example uko:within, not uko:contains).
 - `value_m` holds meters for distance-bearing relations (near, nearTransitStop, hasParking and others).
 - A walking distance in `gkg.distance_measurement` is null when the walk exceeds 2 km.
-- An entity can have extra asserted types in `gkg.entity_type`. Use them, with `gkg.class_closure`, when you test
-  class membership.
+- Test class membership with `gkg.class_closure` (built from UKO 15.7 and REO 1.6.3). `gkg.entity_type` is empty
+  under UKO 15.7; if a later build adds rows, use them too.
 
-## Open items from the build (Evangelos to decide)
+## Decisions already taken on the build (November 22)
 
-1. The crosswalk rule for uko:crosses (nearest road segment within 12 m of the crosswalk's midpoint).
-2. Whether GovernmentBuilding stays a landmark class for distance measurements.
-3. Whether the UKO 15.7 candidates (wider domains for sharesBuildingWith, partOfChain, operatedByOrg, insideMall,
-   hasDataSource; four missing subclass axioms) go into an ontology update now.
+1. uko:crosses links a crosswalk to the road segment nearest its midpoint within 7 m and 30 degrees of perpendicular.
+2. Government buildings stay landmark targets for distance measurements.
+3. UKO 15.7 is in force; the build was re-checked against it.
 
 ## Known limits
 

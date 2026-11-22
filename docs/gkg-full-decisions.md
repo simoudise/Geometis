@@ -54,3 +54,25 @@ Notes: the first neighborhood downloads from the Socrata resource endpoint came 
 ## F. Open for Step 3
 
 See `docs/gkg-full-step2-feasibility.md`, section 5: run approval (about 2 to 2.5 hours on the Mac mini, no spending), edge storage design, veryNear as a subset of near, city blocks, theater and concert-hall mapping, and TIMS weather and road-surface fields.
+
+## G. Step 3 (November 20, 2026)
+
+Evangelos approved the six Step 3 decisions ("1. yes 2. ok 3. ok 4. ok 5. ok 6. ok"): the build run on the Mac mini
+with no spending; integer entity keys with a lookup table to URNs; uko:veryNear as uko:near with value_m <= 50;
+uko:CityBlock entities with uko:within edges and onSameBlock at query time; the theater, opera house and concert hall
+mapping; and the TIMS weather and road-surface fields as crash-derived REO relations.
+
+## H. Answered November 22, 08:59 Pacific
+
+1. Crosswalk rule: "Yes. The tighter the constraint, the better. We need accuracy." Applied: nearest road segment to
+   the crosswalk's midpoint within 7 m and within 30 degrees of perpendicular (cut-offs from status job s222; see the
+   methodology, section 7). The November 20 rule was 12 m with no angle test.
+2. Government buildings stay landmark targets for distance measurements: "Government buildings are important POIs
+   because of the variety of traveler types who go to them, and because governments quickly implement mobility
+   infrastructure around them. For example, consider the Americans with Disabilities Act."
+3. "Generate UKO 15.7 now ... Determine whether the updates to UKO necessitate updates to the other ontologies."
+   Done: UKO 15.7.0 (`01-ontologies/tools/make_uko_15_7.py`) widens eight property domains and makes schools and
+   hospitals vulnerable-population facilities. Every companion imports UKO by version, so each needed a new version
+   (TKO 8.5.1, MLO 1.7.2, REO 1.6.3, FKO 1.2.3; `tools/make_companions_2026_11_22.py`); none uses a changed term
+   except one TKO comment, which is corrected. check_stack: zero problems; HermiT: consistent. The complete method
+   is in `docs/gkg-full-methodology.md`.

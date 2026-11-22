@@ -103,4 +103,4 @@ out["very_near"] = Q("""select count(*) from gkg.edge x join gkg.relation_type t
 out["storage_gb"] = {t: float(Q(f"select round(pg_total_relation_size('gkg.{t}')/1e9,2)")[0][0]) for t in
                      ["edge", "entity", "entity_type", "aux_entity", "distance_measurement", "provenance", "relation_type"]}
 json.dump(out, open(sys.argv[1], "w"), indent=1, default=str)
-print(json.dumps(out["invariants"]), json.dumps(out["relations_without_edges"]))
+print(json.dumps(out["invariants"], default=str), json.dumps(out["relations_without_edges"]))
