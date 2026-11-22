@@ -16,3 +16,8 @@ This file records the state of the ontology sufficiency audit. The GKG chat owns
 - Recheck against the new release and the San Francisco data (status jobs s300, failed on a psql option; s301, done): 42 questions; 5 fully covered (T3-1, T3-2, T3-3, F6, F12), 14 partly covered, 23 not covered. Catalog: `docs/ontology-audit-catalog.md`.
 - San Francisco facts from s301: 61,175 road segments, grade on 100 percent, posted speed limit on 21.8 percent; 261 tracts with population (100 percent) and median income (94.3 percent), ACS 2020-2024; 39,669 crash records, 39,614 linked to a segment, KABCO K 387, A 2,973, B 11,204, C 25,105; no control types and no volume observations loaded.
 - Next: design note for O4 (place statistics, which the San Francisco tracts already hold without UKO properties), O5 (the fingerprint) and the REO class for non-collision police incidents. Then step 3: a query for each covered or partly covered question against the San Francisco graph.
+
+## State on November 22, 2026, 11:45 Pacific
+
+- Design note for O4, O5 and the non-collision incident class: `docs/ontology-design-note-o4-o5-incidents.md` (also in Drive SPECTRA). It awaits Evangelos's three decisions: SOSA alignment, tract-level fingerprints for San Francisco now, and counts-only storage of incidents.
+- After approval the GKG chat implements the note; this chat then runs the acceptance-test queries (jobs 300-349).
