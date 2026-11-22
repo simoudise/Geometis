@@ -1,6 +1,6 @@
 # Design note: place statistics (O4), the fingerprint (O5) and police-reported non-collision incidents (draft, November 22, 2026)
 
-Status: DRAFT for Evangelos's approval. After approval, the GKG chat implements these changes in the next coordinated release (UKO 15.8, REO 1.8.0, MLO 1.8.0) and loads San Francisco data. This note proposes terms; the GKG chat may adjust names to fit its generators, but it should keep the structure and the acceptance tests.
+Status: APPROVED by Evangelos on November 22, 2026 (11:34 Pacific), with the decisions recorded in section 6. After approval, the GKG chat implements these changes in the next coordinated release (UKO 15.8, REO 1.8.0, MLO 1.8.0) and loads San Francisco data. This note proposes terms; the GKG chat may adjust names to fit its generators, but it should keep the structure and the acceptance tests.
 
 Scope: San Francisco only, as Evangelos decided on November 22. Nothing here needs another city's data.
 
@@ -67,20 +67,30 @@ The fingerprint describes a place, so its values belong in UKO. The results of t
 - reo:relatedCollision, from a non-collision incident to the reo:HistoricalIncidentRecord it followed. Any incident with this relation, and any record of a hit-and-run or of an arrest after a collision, carries uko:valueCrashDerived true.
 - The domains of reo:onRoadSegment and reo:atIntersectionNode widen to reo:ReportedTrafficIncident, so that incidents attach to the network as crashes do. reo:locationPrecision records how far the source rounds locations (for example "nearest intersection" or "block midpoint").
 
-**What the graph stores.** Incident records describe individuals' encounters with the police. I propose that the graph store only counts: reo:IncidentCount, a subclass of uko:MeasuredValue, holding the number of incidents of one category and one origin on one segment, intersection or block for one month. The individual records stay in the loader's working tables on the Mac mini and are never exported.
+**What the graph stores.** Incident records describe individuals' encounters with the police. The graph stores only counts: reo:IncidentCount, a subclass of uko:MeasuredValue, holding the number of incidents of one category and one origin at one place for one month, split by time-of-day band (night 00-06, morning peak 06-10, midday 10-15, evening peak 15-19, evening 19-24) and by weekday or weekend. The split matters for the curb study, because pickups and drop-offs peak at particular hours. The place is the unit the source supports: police incident reports are published at the nearest intersection, so their counts attach to intersection nodes; parking citations carry a street address, so their counts attach to road segments. The individual records stay in the loader's working tables on the Mac mini and are never exported.
 
 **The rule for prediction.** Every non-collision count is excluded from crash-prediction inputs by the same view rule that drops crash-derived edges. Curb-violation counts may serve as inputs to the curb study (research question 3), which predicts no crashes. Dangerous-driving counts serve only as a secondary outcome.
 
-**San Francisco sources (to verify before loading).** DataSF publishes police incident reports from 2018 on, law enforcement dispatched calls for service, and SFMTA parking citations; the California Department of Justice publishes stop data under the Racial and Identity Profiling Act. I have not yet confirmed each dataset's identifier, fields, location rounding and licence; the loader's first job is that check, and I will report it before any download.
+**San Francisco sources (checked November 22 from the DataSF and data.gov catalog pages; field lists and licences still to confirm from each dataset's column documentation before loading):**
+- Police Department Incident Reports: 2018 to Present (DataSF wg3w-h783). Officers' reports and reports the public files online, from January 1, 2018. DataSF places every incident at the nearest intersection to protect victims from re-identification, and withholds some confidential reports and all juvenile records. Categories include traffic violation arrests and traffic collisions; collisions in this dataset duplicate the crash records and are not loaded.
+- Law Enforcement Dispatched Calls for Service: Closed (DataSF 2zdj-bwza). Every dispatched call from March 2016 on, from 911 callers or officers in the field ("on-view"), including calls handled by SFMTA parking enforcement. Its location rounding is not yet confirmed.
+- SFMTA Parking Citations and Fines. Citations issued by SFMTA, police and sheriff, with violation and location; the location comes from geocoding the address and may be inaccurate where the address is incomplete.
+- Stop data under California's Racial and Identity Profiling Act: not yet located for San Francisco; deferred.
 
 **Acceptance tests.** T3-9 (incidents of each category per segment per month), and research question 3's first step (curb-violation counts within 100 m of each place class that generates pickups).
 
-**Decision 3 for Evangelos:** store only monthly counts by segment, intersection or block (my recommendation), or store individual incident records.
+**Decision 3 (made):** counts only, monthly, split by time-of-day band and weekday or weekend, at the place unit each source supports.
 
 ## 5. Order of work after approval
 
 1. The GKG chat implements the approved terms in UKO 15.8, REO 1.8.0 and MLO 1.8.0, checks the set with HermiT, and tells this chat the release commit.
 2. The GKG chat loads San Francisco data: statistics from gkg.census_tract, then LODES and ACS B08301; tract fingerprints if Evangelos chooses option one in Decision 2; incident counts after the source check in section 4.
 3. This chat writes a query for each acceptance test, runs it on the Mac mini (jobs 300-349, read-only), checks a sample of answers by hand, and updates the audit catalog.
+
+## 6. Decisions recorded (Evangelos, November 22, 2026, 11:34 Pacific)
+
+1. Align the measured-value pattern with SOSA by subclassing and importing the SOSA module.
+2. Compute tract-level fingerprints for San Francisco now.
+3. Store incidents as monthly counts. Claude added the time-of-day and weekday split and the per-source place unit in reply to Evangelos's invitation to improve on monthly counts; he can remove either.
 
 *Synapse Partners, LLC — Confidential and Proprietary*

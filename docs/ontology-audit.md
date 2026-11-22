@@ -21,3 +21,8 @@ This file records the state of the ontology sufficiency audit. The GKG chat owns
 
 - Design note for O4, O5 and the non-collision incident class: `docs/ontology-design-note-o4-o5-incidents.md` (also in Drive SPECTRA). It awaits Evangelos's three decisions: SOSA alignment, tract-level fingerprints for San Francisco now, and counts-only storage of incidents.
 - After approval the GKG chat implements the note; this chat then runs the acceptance-test queries (jobs 300-349).
+
+## State on November 22, 2026, 11:50 Pacific
+
+- Evangelos approved the design note (11:34): SOSA alignment; tract-level fingerprints for San Francisco now; incidents as monthly counts (with the time-of-day and weekday split and per-source place unit that Claude added). The note now records the San Francisco sources checked from catalog pages.
+- Next: the GKG chat implements UKO 15.8, REO 1.8.0 and MLO 1.8.0 and loads San Francisco data; this chat then runs the acceptance-test queries.
