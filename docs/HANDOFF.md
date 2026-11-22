@@ -33,7 +33,7 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 22, 2026, 10:00 Pacific (update this section at every handoff)
+## State on November 22, 2026, 10:05 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
@@ -92,7 +92,18 @@ docs/gkg-full-decisions.md. Nov 22, 09:34: at Evangelos's request 15.7 also carr
 REO became 1.7.0 with item O1 (crash to segment, KABCO with per-state mapping); file reo_ontology_v1_7_0.ttl replaces
 the short-lived reo_ontology_v1_6_3.ttl. Jobs 224-225 built reo:onRoadSegment and reo:hasKABCOSeverity (both
 crash-derived): 59,570,786 edges in 80 relations, 102 provenance rows; validation-2026-11-22b.json. Job 223 ran
-VACUUM FULL on gkg.edge (4.9 GB). Disk: 39 GiB free. Open for Evangelos: audit question T3-9 (non-collision incidents).
+VACUUM FULL on gkg.edge (4.9 GB). Disk: 39 GiB free. Coordination with the ontology audit chat (Nov 22, 09:55):
+(a) Evangelos approved police-reported incidents other than collisions as secondary layers: curb and right-of-way
+violations, dangerous-driving enforcement (secondary outcome only, never an input to crash prediction) and incidents
+involving automated vehicles; crash-linked records (hit-and-run reports, DUI arrests after a collision) are
+crash-derived. The audit chat writes the design note for the new REO class; this chat does not draft it.
+(b) The audit chat will also send design notes for O4 (place statistics) and O5 (the fingerprint). This chat stays the
+only one that edits ontology files and builds the graph, and implements O4, O5 and the incident class only after
+Evangelos approves each note.
+(c) The audit chat uses Mac mini jobs 300-349 and s300-s349, runs read-only queries on the San Francisco geofence,
+records its state in docs/ontology-audit.md and does not edit this file. Before dropping or renaming any gkg table
+(including the relations steps schema, entities and cleanup, which truncate or drop tables), warn the audit chat
+first and wait for its answer.
 The stage-3 place mapping in gkg/stage3_places.py does not yet carry the landmark class overrides (Theater,
 ConcertHall, OperaHouse, CityHall); relations/build.py applies them in gkg.entity only.
 

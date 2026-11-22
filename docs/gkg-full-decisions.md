@@ -87,3 +87,7 @@ mapping; and the TIMS weather and road-surface fields as crash-derived REO relat
    relations are crash-derived in the ontology and in the build. Left out: a class for non-collision police
    incidents (audit question T3-9), pending Evangelos's decision. Jobs 224 and 225 built reo:onRoadSegment and
    reo:hasKABCOSeverity.
+5. Coordination with the ontology audit chat (relayed November 22, 09:55): non-collision police-reported incidents
+   are approved as secondary layers (curb and right-of-way violations; dangerous-driving enforcement as a secondary
+   outcome only; incidents involving automated vehicles; crash-linked records are crash-derived). The audit chat
+   drafts the REO design note and the O4 and O5 notes; this chat implements each only after Evangelos approves it.
