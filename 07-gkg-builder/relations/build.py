@@ -13,7 +13,7 @@ so a failed step can be rerun alone). Approved design (Evangelos, Nov 20):
   stops and intersections to landmark buildings and districts within 2 km.
 - gkg.provenance records source, method, versions and the crash flag; every edge points to one row.
 - uko:veryNear is not stored separately: it is uko:near with value_m <= 50.
-- Edges whose subject or object fails the property's rdfs:domain or rdfs:range (UKO 15.6 class hierarchy plus
+- Edges whose subject or object fails the property's rdfs:domain or rdfs:range (UKO 15.7 class hierarchy plus
   asserted extra types) are removed by the enforce step and counted in gkg.edge_rejected.
 Reads no trip table. Writes counts, never rows, to the log.
 """
@@ -35,15 +35,10 @@ TIMS_DIR = Path.home() / "Geometis-mini/tims-incoming"
 GEOFENCES = ["us-ca-contra-costa-5", "us-ca-san-francisco"]
 URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")
 CODE_VERSION = os.environ.get("GKG_CODE_VERSION", "gkg-full")
-ONTO_VERSION = "UKO 15.6.0 / REO 1.6.2 (release 2026-11-20)"
+ONTO_VERSION = "UKO 15.7.0 / REO 1.6.3 (release 2026-11-22)"
 
 LANDMARK = ["Museum", "Theater", "ConcertHall", "OperaHouse", "CityHall", "Courthouse", "Library",
             "GovernmentBuilding", "Stadium", "Arena"]
-VULNERABLE_EXTRA = {  # asserted extra type uko:VulnerablePopulationFacility (decision B1: schools, senior and care
-    # facilities, hospitals); UKO 15.6 makes only Preschool and senior/care classes subclasses of it.
-    "School": "ChildFacility", "ElementarySchool": "ChildFacility", "MiddleSchool": "ChildFacility",
-    "HighSchool": "ChildFacility", "PrivateSchool": "ChildFacility", "Hospital": "VulnerablePopulationFacility",
-    "GeneralHospital": "VulnerablePopulationFacility", "ChildrensHospital": "ChildFacility"}
 VULNERABLE = ["School", "ElementarySchool", "MiddleSchool", "HighSchool", "PrivateSchool", "Preschool",
               "SeniorCenter", "SeniorFacility", "NursingHome", "AssistedLivingFacility",
               "Hospital", "GeneralHospital", "ChildrensHospital"]
@@ -94,7 +89,7 @@ RELATIONS = [
     ("uko:overlaps", False, True, "district polygon overlaps census tract polygon (shared area >= 1 percent)"),
     ("uko:adjacentTo", False, True, "census tracts whose boundaries share a line"),
     ("uko:near", False, True, "places, stops, intersections within 200 m (value_m = meters); veryNear is value_m <= 50"),
-    ("uko:crosses", False, False, "road segment crosses rail segment; crosswalk to the road segment nearest its midpoint (12 m)"),
+    ("uko:crosses", False, False, "road segment crosses rail segment; crosswalk to the road segment nearest its midpoint, within 7 m and 30 degrees of perpendicular"),
     ("uko:crossesOver", False, False, "road segments whose lines cross with no shared node; bridge over non-bridge, or non-tunnel over tunnel"),
     ("uko:intersectsRoad", False, True, "segments of differently named roads that meet at a shared node"),
     ("uko:hasJurisdiction", False, False, "feature to its city (TIGER place), else its county"),
@@ -250,11 +245,11 @@ def step_schema():
 
 
 def catalogue_from_ontology(out_dir):
-    """Write relation_type.tsv and class_closure.tsv from UKO 15.6 + REO 1.6.2 (run where rdflib is installed)."""
+    """Write relation_type.tsv and class_closure.tsv from UKO 15.7 + REO 1.6.3 (run where rdflib is installed)."""
     import rdflib
     from rdflib.namespace import RDF, RDFS, OWL
     g = rdflib.Graph()
-    for f in ["uko_ontology_v15_6.ttl", "reo_ontology_v1_6_2.ttl"]:
+    for f in ["uko_ontology_v15_7.ttl", "reo_ontology_v1_6_3.ttl"]:
         g.parse(ONTO / f)
     nm = g.namespace_manager
     q = lambda x: x.n3(nm)
@@ -368,17 +363,8 @@ def step_entities():
                      "HistoricalIncidentRecord:tims:'||case_id, geofence_id, 'reo:HistoricalIncidentRecord', 'tims_crash' "
                      "from (select distinct geofence_id, case_id from gkg.crash_attachment) a").rowcount
     log(step="entities", table="tims_crash (attached)", rows=n)
-    # Asserted extra types (documented in the data dictionary).
-    vul = ",".join(f"('uko:{k}','uko:{v}')" for k, v in VULNERABLE_EXTRA.items())
-    X(f"""insert into gkg.entity_type select e.eid, m.t, 'decision B1: schools and hospitals count as vulnerable-population
-          facilities' from gkg.entity e join (values {vul}) m(c,t) on e.uko_class=m.c on conflict do nothing""")
-    X(f"""insert into gkg.entity_type select e.eid, 'uko:VulnerablePopulationFacility', 'decision B1' from gkg.entity e
-          join (values {vul}) m(c,t) on e.uko_class=m.c on conflict do nothing""")
-    X("""insert into gkg.entity_type select eid, 'uko:PedestrianInfrastructure', 'pedestrian network edges are pedestrian
-         infrastructure (UKO 15.6 lacks the axiom)' from gkg.entity where uko_class in
-         ('uko:PedestrianNetworkEdge','uko:Cycleway','uko:Trail') on conflict do nothing""")
-    X("""insert into gkg.entity_type select eid, 'uko:PedestrianNetworkEdge', 'cycleway and path edges belong to the
-         pedestrian network' from gkg.entity where uko_class in ('uko:Cycleway','uko:Trail') on conflict do nothing""")
+    # UKO 15.7 holds the subclass axioms the 15.6 build had to assert per entity; gkg.entity_type stays empty.
+    X("truncate gkg.entity_type")
 
 
 def _aux_register(kind):
@@ -666,11 +652,13 @@ def step_topology():
         reset(c)
     edges("uko:crosses", "Overture 2026-10-21.0", "road segment crosses rail segment",
           "select s.eid, r.eid, null::real from gkg_work.seg s join gkg_work.rail r on r.g=s.g and ST_Crosses(s.geom, r.geom)")
-    edges("uko:crosses", "Overture 2026-10-21.0", "crosswalk edge to the road segment nearest its midpoint (within 12 m)",
+    edges("uko:crosses", "Overture 2026-10-21.0", "crosswalk edge to the road segment nearest its midpoint: within 7 m and within 30 degrees of perpendicular",
           "select p.eid, r.eid, r.d::real from gkg_work.ped p cross join lateral (select s.eid, ST_Distance(s.geom, "
-          "ST_LineInterpolatePoint(ST_LineMerge(p.geom), 0.5)) d from gkg_work.seg s where s.g=p.g and s.cls not in ('motorway','track') "
+          "ST_LineInterpolatePoint(ST_LineMerge(p.geom), 0.5)) d, abs(mod((degrees(ST_Azimuth(ST_StartPoint(ST_LineMerge(p.geom)), "
+          "ST_EndPoint(ST_LineMerge(p.geom)))) - degrees(ST_Azimuth(ST_StartPoint(ST_LineMerge(s.geom)), ST_EndPoint(ST_LineMerge(s.geom)))) "
+          "+ 360)::numeric, 180) - 90) off_perp from gkg_work.seg s where s.g=p.g and s.cls not in ('motorway','track') "
           "order by s.geom <-> ST_LineInterpolatePoint(ST_LineMerge(p.geom), 0.5) limit 1) r "
-          "where p.subclass='crosswalk' and GeometryType(ST_LineMerge(p.geom))='LINESTRING' and r.d <= 12")
+          "where p.subclass='crosswalk' and GeometryType(ST_LineMerge(p.geom))='LINESTRING' and r.d <= 7 and r.off_perp <= 30")
     edges("uko:crossesOver", "Overture 2026-10-21.0", "lines cross, no shared node; bridge over non-bridge or non-tunnel over tunnel",
           """select case when a.is_bridge or b.is_tunnel then a.eid else b.eid end, case when a.is_bridge or b.is_tunnel then b.eid else a.eid end,
              null::real from gkg_work.seg a join gkg_work.seg b on b.g=a.g and a.eid<b.eid and ST_Crosses(a.geom, b.geom)
@@ -831,13 +819,12 @@ def step_commercial_safety_freight():
     # Truck restrictions from Overture access_restrictions (mode hgv), one constraint entity per segment and rule.
     X("delete from gkg.entity where src='aux:truck_constraint'")
     X("delete from gkg.aux_entity where kind='truck_constraint'")
-    X("""insert into gkg.aux_entity select s.geofence_id, 'urn:urban-kg:TruckRoutingConstraint:overture:'||md5(s.urn||r.ord), 'uko:TruckRoutingConstraint',
+    X("""insert into gkg.aux_entity select s.geofence_id, 'urn:urban-kg:TruckRoutingConstraint:overture:'||md5(s.urn||r.ord),
+         case when r.rule->>'access_type'='designated' then 'uko:TruckRouteDesignation' else 'uko:RegulatoryRoutingConstraint' end,
          'truck_constraint', r.rule->>'access_type', jsonb_build_object('rule', r.rule, 'segment', s.urn), null
          from gkg.road_segment s cross join lateral jsonb_array_elements(s.access_restrictions) with ordinality r(rule, ord)
          where jsonb_typeof(s.access_restrictions)='array' and (r.rule->'when'->'mode') @> '["hgv"]'""")
     _aux_register("truck_constraint")
-    X("""insert into gkg.entity_type select eid, 'uko:OperationalRoutingConstraint', 'truck routing constraints are operational
-         routing constraints (UKO 15.6 lacks the axiom)' from gkg.entity where uko_class='uko:TruckRoutingConstraint' on conflict do nothing""")
     edges("uko:hasTruckRoutingConstraint", "Overture 2026-10-21.0 access_restrictions", "segment to its hgv access rule",
           """select s.eid, c.eid, null::real from gkg.aux_entity a join gkg.entity c on c.geofence_id=a.geofence_id and c.urn=a.urn
              join gkg.entity s on s.geofence_id=a.geofence_id and s.urn=a.props->>'segment' where a.kind='truck_constraint'""")
@@ -876,7 +863,7 @@ def step_tims():
               "reo:incidentRoadSurface", "reo:incidentWeatherCondition"]:
         reset(c)
     X("delete from gkg.entity where src='reo_individual'")
-    maps = {  # SWITRS codes -> REO 1.6.2 individuals; codes without an exact REO match get no edge
+    maps = {  # SWITRS codes -> REO 1.6.3 individuals; codes without an exact REO match get no edge
         "collision_type": ("reo:incidentCollisionType", {"A": "HEAD_ON", "B": "SIDESWIPE", "C": "REAR_END", "D": "BROADSIDE",
                            "F": "OVERTURNED", "G": "VEHICLE_PEDESTRIAN", "H": "COLLISION_TYPE_OTHER", "E": "COLLISION_TYPE_OTHER"}),
         "lighting": ("reo:incidentLighting", {"A": "LIGHTING_DAYLIGHT", "B": "LIGHTING_DUSK_DAWN", "C": "LIGHTING_DARK_STREET_LIGHTS",
@@ -1181,6 +1168,13 @@ def step_index():
         entity_gb=Q("select round(pg_total_relation_size('gkg.entity')/1e9,2)")[0][0])
 
 
+def step_retype():
+    """Clear the per-entity type assertions that UKO 15.7 made unnecessary (subclass axioms now in the ontology)."""
+    n = Q("select count(*) from gkg.entity_type")[0][0]
+    X("truncate gkg.entity_type")
+    log(step="retype", removed_assertions=n)
+
+
 def step_views():
     """Read views: named edges, veryNear, and the export that crash-prediction work must use."""
     X("""create or replace view gkg.edge_named as select t.curie relation, s.urn subject_urn, s.uko_class subject_class,
@@ -1205,7 +1199,7 @@ STEPS = [("schema", step_schema), ("catalogue", step_catalogue), ("entities", st
          ("blocks", step_blocks), ("work", step_work), ("stored", step_stored), ("containment", step_containment),
          ("proximity", step_proximity), ("topology", step_topology), ("roadnet", step_roadnet), ("access", step_access),
          ("commons", step_commons), ("other", step_commercial_safety_freight), ("tims", step_tims), ("transit", step_transit),
-         ("distances", step_distances), ("recreation", step_recreation), ("index", step_index), ("enforce", step_enforce),
+         ("distances", step_distances), ("recreation", step_recreation), ("retype", step_retype), ("index", step_index), ("enforce", step_enforce),
          ("views", step_views), ("cleanup", step_cleanup)]
 
 if __name__ == "__main__":

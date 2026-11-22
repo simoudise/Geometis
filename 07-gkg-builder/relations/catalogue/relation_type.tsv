@@ -6,7 +6,7 @@
 6	uko:overlaps	uko:GeographicFeature	uko:GeographicFeature	False	True		district polygon overlaps census tract polygon (shared area >= 1 percent)
 7	uko:adjacentTo	uko:GeographicFeature	uko:GeographicFeature	False	True		census tracts whose boundaries share a line
 8	uko:near	uko:GeographicFeature	uko:GeographicFeature	False	True		places, stops, intersections within 200 m (value_m = meters); veryNear is value_m <= 50
-9	uko:crosses	uko:LinearFeature	uko:GeographicFeature	False	False		road segment crosses rail segment; crosswalk to the road segment nearest its midpoint (12 m)
+9	uko:crosses	uko:LinearFeature	uko:GeographicFeature	False	False		road segment crosses rail segment; crosswalk to the road segment nearest its midpoint, within 7 m and 30 degrees of perpendicular
 10	uko:crossesOver	uko:Road	uko:Road	False	False	uko:crossesUnder	road segments whose lines cross with no shared node; bridge over non-bridge, or non-tunnel over tunnel
 11	uko:intersectsRoad	uko:Road	uko:Road	False	True		segments of differently named roads that meet at a shared node
 12	uko:hasJurisdiction	uko:GeographicFeature	uko:AdministrativeArea	False	False		feature to its city (TIGER place), else its county
@@ -14,8 +14,8 @@
 14	uko:adjacentNeighborhood	uko:Neighborhood	uko:Neighborhood	False	True		neighborhoods of the same scheme sharing a boundary
 15	uko:inSupervisorDistrict	uko:SpatialEntity	uko:SupervisorDistrict	False	False		feature in a San Francisco supervisor district (2022)
 16	uko:sharesWallWith	uko:Building	uko:Building	False	True		buildings sharing at least 1 m of boundary
-17	uko:sharesBuildingWith	uko:Building	uko:Building	False	True		places linked to the same building (gkg.place_building)
-18	uko:insideMall	uko:Building	uko:ShoppingMall	False	False		place in the same building as a ShoppingMall place
+17	uko:sharesBuildingWith	uko:PointOfInterest	uko:PointOfInterest	False	True		places linked to the same building (gkg.place_building)
+18	uko:insideMall	uko:PointOfInterest	uko:ShoppingMall	False	False		place in the same building as a ShoppingMall place
 19	uko:continuesAs	uko:Road	uko:Road	False	False		named road changes name at a node with a turn of 30 degrees or less
 20	uko:branchesFrom	uko:Road	uko:Road	False	False	uko:mergesInto	ramp (subclass link) whose start node lies on a non-ramp motorway, trunk or primary segment
 21	uko:mergesInto	uko:Road	uko:Road	False	False	uko:branchesFrom	ramp whose end node lies on a non-ramp motorway, trunk or primary segment
@@ -40,7 +40,7 @@
 40	uko:anchorStation	uko:TransitOrientedDevelopment,uko:PriorityDevelopmentArea	uko:TransitStation	False	False		Priority Development Area to each transit station inside it
 41	uko:connectsToTransit	uko:Road	uko:TransitStop	False	False		road segment to the stop it serves (nearest walkable segment within 50 m)
 42	uko:nearTransitStop	uko:Building	uko:TransitStop	False	False		building within 400 m of a stop (value_m)
-43	uko:nearestTransitStop	uko:PointOfInterest	uko:TransitStop	False	False		place to its nearest boardable stop (value_m)
+43	uko:nearestTransitStop	uko:GeographicFeature	uko:TransitStop	False	False		place to its nearest boardable stop (value_m)
 44	uko:hasTransitAccess	uko:Building	uko:TransitStop	False	False		building centroid inside a stop's 800 m walkshed
 45	uko:walkshedOrigin	uko:WalkShedArea	uko:GeographicFeature	False	False		walkshed to its stop
 46	uko:operatedBySystem	uko:SharedMobilityStation	uko:SharedMobilitySystem	False	False		Bay Wheels station to the Bay Wheels system
@@ -57,20 +57,20 @@
 57	uko:bordersNaturalArea	uko:CommonSpace	uko:NaturalArea	False	False		common space polygon touching or within 5 m of a natural area polygon
 58	uko:crossesThroughCommonSpace	uko:Road	uko:CommonSpace	False	False		road segment crossing a common space polygon
 59	uko:hasTrailConnection	uko:CommonSpace	uko:Trail	False	False		common space to path edges (uko:Trail) touching or inside it
-60	uko:pathThroughCommonSpace	uko:PedestrianInfrastructure	uko:CommonSpace	False	False		pedestrian edge intersecting a common space polygon
+60	uko:pathThroughCommonSpace	uko:PedestrianInfrastructure,uko:PedestrianNetworkEdge,uko:Trail,uko:Cycleway	uko:CommonSpace	False	False		pedestrian edge intersecting a common space polygon
 61	uko:providesRecreationFor	uko:CommonSpace	uko:ConceptualArea	False	False		common space to each census tract within an 800 m walk
-62	uko:partOfChain	uko:Building	uko:Organization	False	False		branded place to its brand organization
-63	uko:operatedByOrg	uko:Building	uko:Organization	False	False		branded place to its brand organization (decision B4)
+62	uko:partOfChain	uko:PointOfInterest	uko:Organization	False	False		branded place to its brand organization
+63	uko:operatedByOrg	uko:PointOfInterest	uko:Organization	False	False		branded place to its brand organization (decision B4)
 64	uko:inHighInjuryNetwork	uko:SpatialEntity	uko:HighInjuryNetwork	True	False		road segment with at least half its length within 10 m of the SF 2024 HIN
 65	uko:hinSegmentOf	uko:HighInjuryNetwork	uko:Road	True	False	uko:overlapsHIN	SF 2024 HIN feature to each road segment it overlaps
 66	uko:hasIntersectionRiskProfile	uko:IntersectionNode	uko:IntersectionRiskProfile	True	False		intersection node with attached injury crashes to its risk profile
 67	uko:hasVulnerablePopulationNearby	uko:SpatialEntity	uko:VulnerablePopulationFacility	False	False		place, stop or intersection within 200 m of a school, senior or care facility, or hospital
 68	uko:nearVulnerablePopulation	uko:Road	uko:VulnerablePopulationFacility	False	False		road segment within 200 m of such a facility
 69	uko:hasTruckRoutingConstraint	uko:RoadSegment,uko:IntersectionNode	uko:TruckRoutingConstraint	False	False		segment to its truck restriction (Overture access_restrictions, mode hgv)
-70	uko:constrainsSegment	uko:OperationalRoutingConstraint	uko:RoadSegment	False	False		truck restriction to the segment it applies to
+70	uko:constrainsSegment	uko:OperationalRoutingConstraint,uko:TruckRoutingConstraint	uko:RoadSegment	False	False		truck restriction to the segment it applies to
 71	uko:hasTruckParkingFacility	uko:RoadSegment	uko:TruckParkingFacility	False	False		segment within 500 m of a truck parking facility
 72	uko:derivedFrom	uko:GeographicFeature	uko:GeographicFeature	False	False		URN lineage (gkg.urn_lineage)
-73	uko:hasDataSource	uko:GeographicFeature	uko:DataSource	False	False		entity to the data source release it came from
+73	uko:hasDataSource	owl:Thing	uko:DataSource	False	False		entity to the data source release it came from
 74	uko:hasDistanceMeasurement	uko:SpatialEntity	uko:DistanceMeasurement	False	False		stored in gkg.distance_measurement, not gkg.edge: place, stop or intersection to landmark or district within 2 km
 75	reo:atIntersectionNode	reo:HistoricalIncidentRecord	uko:IntersectionNode	True	False		crash record to its attached intersection node (50 m)
 76	reo:hasCollisionCausationFactor	reo:HistoricalIncidentRecord	reo:CollisionCausationFactor	True	False		crash record to its primary collision factor (exact SWITRS matches only)

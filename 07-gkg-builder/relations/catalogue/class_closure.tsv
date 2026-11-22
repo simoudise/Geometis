@@ -712,6 +712,7 @@ uko:ChildrensHospital	uko:Hospital
 uko:ChildrensHospital	uko:PhysicalStructure
 uko:ChildrensHospital	uko:PointOfInterest
 uko:ChildrensHospital	uko:SpatialEntity
+uko:ChildrensHospital	uko:VulnerablePopulationFacility
 uko:Chinatown	geo:Feature
 uko:Chinatown	uko:Chinatown
 uko:Chinatown	uko:ConceptualArea
@@ -1116,6 +1117,7 @@ uko:ElectronicsStore	uko:RetailEstablishment
 uko:ElectronicsStore	uko:SpatialEntity
 uko:ElementarySchool	geo:Feature
 uko:ElementarySchool	uko:Building
+uko:ElementarySchool	uko:ChildFacility
 uko:ElementarySchool	uko:EducationalFacility
 uko:ElementarySchool	uko:ElementarySchool
 uko:ElementarySchool	uko:GeographicFeature
@@ -1123,6 +1125,7 @@ uko:ElementarySchool	uko:PhysicalStructure
 uko:ElementarySchool	uko:PointOfInterest
 uko:ElementarySchool	uko:School
 uko:ElementarySchool	uko:SpatialEntity
+uko:ElementarySchool	uko:VulnerablePopulationFacility
 uko:EmergencyRoom	geo:Feature
 uko:EmergencyRoom	uko:Building
 uko:EmergencyRoom	uko:EmergencyRoom
@@ -1362,6 +1365,7 @@ uko:GeneralHospital	uko:Hospital
 uko:GeneralHospital	uko:PhysicalStructure
 uko:GeneralHospital	uko:PointOfInterest
 uko:GeneralHospital	uko:SpatialEntity
+uko:GeneralHospital	uko:VulnerablePopulationFacility
 uko:GeographicArea	geo:Feature
 uko:GeographicArea	uko:ConceptualArea
 uko:GeographicArea	uko:GeographicArea
@@ -1457,6 +1461,7 @@ uko:HighInjuryNetworkVehicle	uko:SpatialEntity
 uko:HighInjuryNetworkVehicle	uko:TransportationSafetyFeature
 uko:HighSchool	geo:Feature
 uko:HighSchool	uko:Building
+uko:HighSchool	uko:ChildFacility
 uko:HighSchool	uko:EducationalFacility
 uko:HighSchool	uko:GeographicFeature
 uko:HighSchool	uko:HighSchool
@@ -1464,6 +1469,7 @@ uko:HighSchool	uko:PhysicalStructure
 uko:HighSchool	uko:PointOfInterest
 uko:HighSchool	uko:School
 uko:HighSchool	uko:SpatialEntity
+uko:HighSchool	uko:VulnerablePopulationFacility
 uko:Highway	geo:Feature
 uko:Highway	uko:GeographicFeature
 uko:Highway	uko:Highway
@@ -1511,6 +1517,7 @@ uko:Hospital	uko:Hospital
 uko:Hospital	uko:PhysicalStructure
 uko:Hospital	uko:PointOfInterest
 uko:Hospital	uko:SpatialEntity
+uko:Hospital	uko:VulnerablePopulationFacility
 uko:HospitalDistrict	geo:Feature
 uko:HospitalDistrict	uko:ConceptualArea
 uko:HospitalDistrict	uko:District
@@ -1836,6 +1843,7 @@ uko:MemoryCareFacility	uko:SpatialEntity
 uko:MemoryCareFacility	uko:VulnerablePopulationFacility
 uko:MiddleSchool	geo:Feature
 uko:MiddleSchool	uko:Building
+uko:MiddleSchool	uko:ChildFacility
 uko:MiddleSchool	uko:EducationalFacility
 uko:MiddleSchool	uko:GeographicFeature
 uko:MiddleSchool	uko:MiddleSchool
@@ -1843,6 +1851,7 @@ uko:MiddleSchool	uko:PhysicalStructure
 uko:MiddleSchool	uko:PointOfInterest
 uko:MiddleSchool	uko:School
 uko:MiddleSchool	uko:SpatialEntity
+uko:MiddleSchool	uko:VulnerablePopulationFacility
 uko:Midtown	geo:Feature
 uko:Midtown	uko:ConceptualArea
 uko:Midtown	uko:District
@@ -2255,6 +2264,7 @@ uko:PrivateRoad	uko:RoadInfrastructure
 uko:PrivateRoad	uko:SpatialEntity
 uko:PrivateSchool	geo:Feature
 uko:PrivateSchool	uko:Building
+uko:PrivateSchool	uko:ChildFacility
 uko:PrivateSchool	uko:EducationalFacility
 uko:PrivateSchool	uko:GeographicFeature
 uko:PrivateSchool	uko:PhysicalStructure
@@ -2262,6 +2272,7 @@ uko:PrivateSchool	uko:PointOfInterest
 uko:PrivateSchool	uko:PrivateSchool
 uko:PrivateSchool	uko:School
 uko:PrivateSchool	uko:SpatialEntity
+uko:PrivateSchool	uko:VulnerablePopulationFacility
 uko:ProactiveSafetyNetwork	uko:ProactiveSafetyNetwork
 uko:ProactiveSafetyNetwork	uko:SpatialEntity
 uko:ProactiveSafetyNetwork	uko:TransportationSafetyFeature
@@ -2464,12 +2475,14 @@ uko:ScheduledTrip	uko:ScheduledTrip
 uko:ScheduledTrip	uko:TransitTrip
 uko:School	geo:Feature
 uko:School	uko:Building
+uko:School	uko:ChildFacility
 uko:School	uko:EducationalFacility
 uko:School	uko:GeographicFeature
 uko:School	uko:PhysicalStructure
 uko:School	uko:PointOfInterest
 uko:School	uko:School
 uko:School	uko:SpatialEntity
+uko:School	uko:VulnerablePopulationFacility
 uko:SchoolDistrict	geo:Feature
 uko:SchoolDistrict	uko:ConceptualArea
 uko:SchoolDistrict	uko:GeographicFeature
