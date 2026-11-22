@@ -1,0 +1,369 @@
+###############################################################################
+#    v15.8.0 ADDITIONS (2026-11-22)
+#    Design note "O4 O5 incidents", approved by Evangelos on 2026-11-22.
+###############################################################################
+
+### (1) Measured values, aligned with SOSA ###
+
+uko:MeasuredValue rdf:type owl:Class ;
+    rdfs:subClassOf sosa:Observation ;
+    rdfs:label "Measured Value"@en ;
+    rdfs:comment "A number that describes a feature, kept with its context: the feature it describes (sosa:hasFeatureOfInterest or a UKO subproperty), the variable (sosa:observedProperty), the number (uko:numericValue), the period it covers (uko:periodStart and uko:periodEnd), the method (sosa:usedProcedure), its unit, its margin of error and its source. Several vintages of the same figure can coexist. Place statistics, fingerprint factor values, traffic volumes and incident counts are measured values."@en .
+
+uko:numericValue rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf sosa:hasSimpleResult ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "numeric value"@en ;
+    rdfs:comment "The number a measured value records, in the unit named by uko:valueUnit."@en .
+
+uko:valueUnit rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range xsd:string ;
+    rdfs:label "value unit"@en ;
+    rdfs:comment "The unit of uko:numericValue, written out (for example 'persons', 'square kilometers', 'US dollars, inflation-adjusted to 2024', 'share 0-1', 'jobs', 'incidents')."@en .
+
+uko:marginOfError rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "margin of error"@en ;
+    rdfs:comment "Margin of error of uko:numericValue, in the same unit, at the confidence level in uko:marginConfidenceLevel."@en .
+
+uko:marginConfidenceLevel rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "margin confidence level"@en ;
+    rdfs:comment "Confidence level of uko:marginOfError as a fraction (0.90 for American Community Survey margins, which the Census Bureau publishes at the 90 percent level)."@en .
+
+uko:valueSource rdf:type owl:ObjectProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range uko:DataSource ;
+    rdfs:label "value source"@en ;
+    rdfs:comment "The data source release the value comes from."@en .
+
+uko:sourceTable rdf:type owl:DatatypeProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range xsd:string ;
+    rdfs:label "source table"@en ;
+    rdfs:comment "The table or field in the source (for example 'B19013' for ACS median household income)."@en .
+
+uko:periodStart rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range uko:CalendarDate ;
+    rdfs:label "period start"@en ;
+    rdfs:comment "First day of the period the value describes. With uko:periodEnd it gives the phenomenon time as two dates, which queries filter more easily than a sosa:phenomenonTime interval; a producer may state sosa:phenomenonTime as well."@en .
+
+uko:periodEnd rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range uko:CalendarDate ;
+    rdfs:label "period end"@en ;
+    rdfs:comment "Last day of the period the value describes."@en .
+
+uko:valueCrashDerived rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( uko:MeasuredValue uko:FingerprintFactor ) ] ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "value crash-derived"@en ;
+    rdfs:comment "True when the value, or every value of the factor, depends on crash or injury records. Exports that feed crash-prediction tests drop such values."@en .
+
+uko:EstimationProcedure rdf:type owl:Class ;
+    rdfs:subClassOf sosa:Procedure ;
+    rdfs:label "Estimation Procedure"@en ;
+    rdfs:comment "How a measured value was produced. The individuals are values of sosa:usedProcedure."@en .
+
+uko:PROC_ACS_5YR rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "ACS 5-year estimate, as published"@en .
+uko:PROC_ACS_DERIVED_SHARE rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "share computed from ACS counts"@en ;
+    rdfs:comment "Numerator over denominator from one ACS table; the margin follows the Census Bureau's formula for a proportion (or for a ratio when the proportion formula fails)."@en .
+uko:PROC_SUM_OF_PARTS rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "sum of smaller areas"@en ;
+    rdfs:comment "A total for a larger area summed from smaller areas; margins combined as the square root of the sum of squared margins."@en .
+uko:PROC_TIGER_LAND_AREA rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "land area from TIGER/Line ALAND"@en .
+uko:PROC_LODES_JOBS rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "jobs summed from LODES workplace area characteristics"@en .
+uko:PROC_NETWORK_REACH rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "count reached on a network within a travel-time limit"@en .
+uko:PROC_FINGERPRINT_FORMULA rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "fingerprint factor formula"@en ;
+    rdfs:comment "The formula named by the factor value's uko:formulaVersion."@en .
+
+### Traffic volumes join the pattern ###
+
+uko:TrafficVolumeObservation rdfs:subClassOf uko:MeasuredValue .
+uko:VolumeMode rdfs:subClassOf sosa:ObservableProperty .
+uko:VolumeMethod rdfs:subClassOf sosa:Procedure .
+uko:volumeMode rdfs:subPropertyOf sosa:observedProperty .
+uko:volumeMethod rdfs:subPropertyOf sosa:usedProcedure .
+uko:volumeValue rdfs:subPropertyOf uko:numericValue .
+uko:volumeSource rdfs:subPropertyOf uko:valueSource .
+uko:volumePeriodStart rdfs:subPropertyOf uko:periodStart .
+uko:volumePeriodEnd rdfs:subPropertyOf uko:periodEnd .
+
+uko:volumeObservationOf rdf:type owl:ObjectProperty ;
+    rdfs:subPropertyOf sosa:hasFeatureOfInterest ;
+    owl:inverseOf uko:hasVolumeObservation ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range [ rdf:type owl:Class ; owl:unionOf ( uko:RoadSegment uko:PedestrianNetworkEdge uko:IntersectionNode ) ] ;
+    rdfs:label "volume observation of"@en .
+
+### (2) O4: place statistics ###
+
+uko:PlaceStatistic rdf:type owl:Class ;
+    rdfs:subClassOf uko:MeasuredValue ;
+    rdfs:label "Place Statistic"@en ;
+    rdfs:comment "A figure that describes an area as a whole: a tract, a city, a neighborhood or a grid cell. The variable is an individual of uko:PlaceVariable, so a new variable needs a new individual, not a new property."@en .
+
+uko:statisticOf rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf sosa:hasFeatureOfInterest ;
+    rdfs:domain uko:PlaceStatistic ;
+    rdfs:range uko:SpatialEntity ;
+    rdfs:label "statistic of"@en .
+
+uko:hasPlaceStatistic rdf:type owl:ObjectProperty ;
+    owl:inverseOf uko:statisticOf ;
+    rdfs:domain uko:SpatialEntity ;
+    rdfs:range uko:PlaceStatistic ;
+    rdfs:label "has place statistic"@en .
+
+uko:PlaceVariable rdf:type owl:Class ;
+    rdfs:subClassOf sosa:ObservableProperty ;
+    rdfs:label "Place Variable"@en ;
+    rdfs:comment "What a place statistic measures. The individuals are values of sosa:observedProperty."@en .
+
+uko:VAR_POPULATION rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "population"@en .
+uko:VAR_LAND_AREA_KM2 rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "land area (km2)"@en .
+uko:VAR_HOUSEHOLDS rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "households"@en .
+uko:VAR_MEDIAN_HOUSEHOLD_INCOME rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "median household income"@en .
+uko:VAR_HOUSEHOLDS_INCOME_BELOW_35K rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "households with income below 35,000 dollars"@en .
+uko:VAR_HOUSEHOLDS_INCOME_100K_PLUS rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "households with income of 100,000 dollars or more"@en .
+uko:VAR_ZERO_VEHICLE_HOUSEHOLD_SHARE rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "share of households with no vehicle"@en .
+uko:VAR_JOB_COUNT rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "jobs located in the area"@en .
+uko:VAR_WORKERS_16_PLUS rdf:type owl:NamedIndividual, uko:PlaceVariable ; rdfs:label "workers 16 years and over (commute universe)"@en .
+uko:VAR_COMMUTE_MODE_SHARE rdf:type owl:NamedIndividual, uko:PlaceVariable ;
+    rdfs:label "commute mode share"@en ;
+    rdfs:comment "Share of workers 16 and over whose usual means of transportation to work is the mode in uko:travelMode (ACS table B08301)."@en .
+uko:VAR_JOBS_REACHABLE rdf:type owl:NamedIndividual, uko:PlaceVariable ;
+    rdfs:label "jobs reachable"@en ;
+    rdfs:comment "Jobs reachable by the mode in uko:travelMode within uko:travelTimeThresholdMinutes."@en .
+
+uko:TravelMode rdf:type owl:Class ;
+    rdfs:label "Travel Mode"@en ;
+    rdfs:comment "A means of travel, for statistics that depend on one."@en .
+uko:MODE_CAR rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "car, truck or van"@en .
+uko:MODE_CAR_ALONE rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "car, truck or van, drove alone"@en .
+uko:MODE_CARPOOL rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "car, truck or van, carpooled"@en .
+uko:MODE_TRANSIT rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "public transportation (excluding taxi)"@en .
+uko:MODE_TAXI rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "taxi or ride-hail"@en .
+uko:MODE_MOTORCYCLE rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "motorcycle"@en .
+uko:MODE_BICYCLE rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "bicycle"@en .
+uko:MODE_WALK rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "walked"@en .
+uko:MODE_OTHER rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "other means"@en .
+uko:MODE_WORK_FROM_HOME rdf:type owl:NamedIndividual, uko:TravelMode ; rdfs:label "worked from home"@en .
+
+uko:travelMode rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range uko:TravelMode ;
+    rdfs:label "travel mode"@en .
+
+uko:travelTimeThresholdMinutes rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:MeasuredValue ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "travel-time threshold (minutes)"@en .
+
+uko:GridCell rdf:type owl:Class ;
+    rdfs:subClassOf uko:ConceptualArea ;
+    rdfs:label "Grid Cell"@en ;
+    rdfs:comment "A cell of a discrete global grid, for example an H3 hexagon."@en .
+
+uko:gridSystem rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:GridCell ;
+    rdfs:range xsd:string ;
+    rdfs:label "grid system"@en ;
+    rdfs:comment "The grid's name, for example 'H3'."@en .
+
+uko:gridResolution rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:GridCell ;
+    rdfs:range xsd:integer ;
+    rdfs:label "grid resolution"@en .
+
+uko:gridIndex rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:GridCell ;
+    rdfs:range xsd:string ;
+    rdfs:label "grid index"@en ;
+    rdfs:comment "The cell's identifier in its grid (an H3 index as a hexadecimal string)."@en .
+
+### (3) O5: the fingerprint ###
+
+uko:Fingerprint rdf:type owl:Class ;
+    rdfs:label "Fingerprint"@en ;
+    rdfs:comment "One fingerprint of one area (a city or a tract) at one version: the set of its factor values, standardized against a reference set."@en .
+
+uko:fingerprintOf rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:Fingerprint ;
+    rdfs:range uko:SpatialEntity ;
+    rdfs:label "fingerprint of"@en .
+
+uko:fingerprintVersion rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:Fingerprint ;
+    rdfs:range xsd:string ;
+    rdfs:label "fingerprint version"@en .
+
+uko:computedOn rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( uko:Fingerprint uko:FingerprintDistance ) ] ;
+    rdfs:range uko:CalendarDate ;
+    rdfs:label "computed on"@en .
+
+uko:ReferenceSet rdf:type owl:Class ;
+    rdfs:label "Reference Set"@en ;
+    rdfs:comment "The areas whose factor values standardize a fingerprint (mean and standard deviation of each component), with its version."@en .
+
+uko:referenceSetVersion rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:ReferenceSet ;
+    rdfs:range xsd:string ;
+    rdfs:label "reference set version"@en .
+
+uko:hasReferenceMember rdf:type owl:ObjectProperty ;
+    rdfs:domain uko:ReferenceSet ;
+    rdfs:range uko:SpatialEntity ;
+    rdfs:label "has reference member"@en .
+
+uko:usesReferenceSet rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:Fingerprint ;
+    rdfs:range uko:ReferenceSet ;
+    rdfs:label "uses reference set"@en .
+
+uko:FingerprintFactor rdf:type owl:Class ;
+    rdfs:subClassOf sosa:ObservableProperty ;
+    rdfs:label "Fingerprint Factor"@en ;
+    rdfs:comment "A factor of the fingerprint: factors 1 to 17 of the Fingerprint Factor Specification (draft v0.1, November 3, 2026) and the six graded questions of the city evidence packs. Each factor states its layer and its smallest area, so that a query can select the factors a test allows."@en .
+
+uko:factorNumber rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintFactor ;
+    rdfs:range xsd:string ;
+    rdfs:label "factor number"@en .
+
+uko:factorLayer rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintFactor ;
+    rdfs:range xsd:string ;
+    rdfs:label "factor layer"@en ;
+    rdfs:comment "'structural', 'operating', 'governance and market', 'behavior' or 'graded'."@en .
+
+uko:factorSmallestArea rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintFactor ;
+    rdfs:range xsd:string ;
+    rdfs:label "factor smallest area"@en .
+
+uko:FACTOR_01 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "1 Street-pattern signature"@en ; uko:factorNumber "1" ; uko:factorLayer "structural" ; uko:factorSmallestArea "tract" .
+uko:FACTOR_02 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "2 Multimodal network overlap"@en ; uko:factorNumber "2" ; uko:factorLayer "structural" ; uko:factorSmallestArea "city" .
+uko:FACTOR_03 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "3 Destination accessibility"@en ; uko:factorNumber "3" ; uko:factorLayer "structural" ; uko:factorSmallestArea "tract" .
+uko:FACTOR_04 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "4 Polycentricity"@en ; uko:factorNumber "4" ; uko:factorLayer "structural" ; uko:factorSmallestArea "city" .
+uko:FACTOR_05 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "5 Transit service intensity"@en ; uko:factorNumber "5" ; uko:factorLayer "structural" ; uko:factorSmallestArea "tract" .
+uko:FACTOR_06 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "6 Topography"@en ; uko:factorNumber "6" ; uko:factorLayer "structural" ; uko:factorSmallestArea "segment" .
+uko:FACTOR_07 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "7 Size, adjusted for scaling"@en ; uko:factorNumber "7" ; uko:factorLayer "structural" ; uko:factorSmallestArea "city" .
+uko:FACTOR_08 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "8 Socio-economic structure"@en ; uko:factorNumber "8" ; uko:factorLayer "structural" ; uko:factorSmallestArea "tract" .
+uko:FACTOR_09 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "9 Visitor load"@en ; uko:factorNumber "9" ; uko:factorLayer "structural" ; uko:factorSmallestArea "city and zone" .
+uko:FACTOR_10 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "10 Parking supply and price"@en ; uko:factorNumber "10" ; uko:factorLayer "structural" ; uko:factorSmallestArea "zone" .
+uko:FACTOR_11 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "11 Driving-task complexity"@en ; uko:factorNumber "11" ; uko:factorLayer "operating" ; uko:factorSmallestArea "segment" .
+uko:FACTOR_12 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "12 Vulnerable road user conflict"@en ; uko:factorNumber "12" ; uko:factorLayer "operating" ; uko:factorSmallestArea "segment" ;
+    uko:valueCrashDerived true ;
+    rdfs:comment "Built from injury collisions, so Test 3 excludes it from every distance."@en .
+uko:FACTOR_13 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "13 Weather exposure"@en ; uko:factorNumber "13" ; uko:factorLayer "operating" ; uko:factorSmallestArea "city" .
+uko:FACTOR_14 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "14 Traffic side and signage"@en ; uko:factorNumber "14" ; uko:factorLayer "operating" ; uko:factorSmallestArea "country" .
+uko:FACTOR_15 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "15 AV and ride-hail rules"@en ; uko:factorNumber "15" ; uko:factorLayer "governance and market" ; uko:factorSmallestArea "state or city" .
+uko:FACTOR_16 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "16 Existing on-demand market"@en ; uko:factorNumber "16" ; uko:factorLayer "governance and market" ; uko:factorSmallestArea "city and zone" .
+uko:FACTOR_17 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "17 Labour cost and fares"@en ; uko:factorNumber "17" ; uko:factorLayer "governance and market" ; uko:factorSmallestArea "metro" .
+uko:GRADED_Q1 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "Graded question 1: plans, targets, funding and continuity"@en ; uko:factorNumber "Q1" ; uko:factorLayer "graded" ; uko:factorSmallestArea "city" .
+uko:GRADED_Q2 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "Graded question 2: condition of streets, transit access, connected networks, real-time data"@en ; uko:factorNumber "Q2" ; uko:factorLayer "graded" ; uko:factorSmallestArea "city" .
+uko:GRADED_Q3 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "Graded question 3: mode-share and emissions targets, pricing, measured shift"@en ; uko:factorNumber "Q3" ; uko:factorLayer "graded" ; uko:factorSmallestArea "city" .
+uko:GRADED_Q4 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "Graded question 4: shared mobility, pilots and automated vehicles"@en ; uko:factorNumber "Q4" ; uko:factorLayer "graded" ; uko:factorSmallestArea "city" .
+uko:GRADED_Q5 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "Graded question 5: data requirements, contracts and integrated payment"@en ; uko:factorNumber "Q5" ; uko:factorLayer "graded" ; uko:factorSmallestArea "city" .
+uko:GRADED_Q6 rdf:type owl:NamedIndividual, uko:FingerprintFactor ; rdfs:label "Graded question 6: authority and coordination over streets, transit, parking and permits"@en ; uko:factorNumber "Q6" ; uko:factorLayer "graded" ; uko:factorSmallestArea "city or region" .
+
+uko:FactorValue rdf:type owl:Class ;
+    rdfs:subClassOf uko:MeasuredValue ;
+    rdfs:label "Factor Value"@en ;
+    rdfs:comment "One component of one factor's value for one fingerprint. A factor with several parts (factor 1 has four) has one factor value per part, named by uko:factorComponent."@en .
+
+uko:hasFactorValue rdf:type owl:ObjectProperty ;
+    rdfs:domain uko:Fingerprint ;
+    rdfs:range uko:FactorValue ;
+    rdfs:label "has factor value"@en .
+
+uko:valueOfFactor rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf sosa:observedProperty ;
+    rdfs:domain uko:FactorValue ;
+    rdfs:range uko:FingerprintFactor ;
+    rdfs:label "value of factor"@en .
+
+uko:factorComponent rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FactorValue ;
+    rdfs:range xsd:string ;
+    rdfs:label "factor component"@en .
+
+uko:formulaVersion rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FactorValue ;
+    rdfs:range xsd:string ;
+    rdfs:label "formula version"@en .
+
+uko:standardizedValue rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FactorValue ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "standardized value"@en ;
+    rdfs:comment "(value - mean) / standard deviation over the fingerprint's reference set."@en .
+
+uko:scalingResidual rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FactorValue ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "scaling residual"@en ;
+    rdfs:comment "True when the value is stored as its residual from the population scaling fit of factor 7."@en .
+
+uko:grader rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FactorValue ;
+    rdfs:range xsd:string ;
+    rdfs:label "grader"@en ;
+    rdfs:comment "Name of the grader of a graded question (text; the GKG holds no person class)."@en .
+
+uko:scoreKind rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FactorValue ;
+    rdfs:range xsd:string ;
+    rdfs:label "score kind"@en ;
+    rdfs:comment "'suggested' or 'highest possible'."@en .
+
+uko:FingerprintDistance rdf:type owl:Class ;
+    rdfs:label "Fingerprint Distance"@en ;
+    rdfs:comment "The distance between two fingerprints under a stated metric, factor set and weights."@en .
+
+uko:distanceFrom rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintDistance ;
+    rdfs:range uko:Fingerprint ;
+    rdfs:label "distance from"@en .
+
+uko:distanceTo rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintDistance ;
+    rdfs:range uko:Fingerprint ;
+    rdfs:label "distance to"@en .
+
+uko:distanceValue rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintDistance ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "distance value"@en .
+
+uko:distanceMetric rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintDistance ;
+    rdfs:range xsd:string ;
+    rdfs:label "distance metric"@en .
+
+uko:factorSetUsed rdf:type owl:ObjectProperty ;
+    rdfs:domain uko:FingerprintDistance ;
+    rdfs:range uko:FingerprintFactor ;
+    rdfs:label "factor set used"@en .
+
+uko:weightsVersion rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:FingerprintDistance ;
+    rdfs:range xsd:string ;
+    rdfs:label "weights version"@en .
+
+uko:FACTOR_12 uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+

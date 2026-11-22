@@ -1,0 +1,158 @@
+###############################################################################
+#    v1.8.0 ADDITIONS (2026-11-22)
+#    Design note "O4 O5 incidents", approved by Evangelos on 2026-11-22: police-reported incidents other than
+#    collisions, stored in the graph as counts only.
+###############################################################################
+
+### Parent class for all police-reported traffic incidents ###
+
+reo:ReportedTrafficIncident rdf:type owl:Class ;
+    rdfs:label "Reported Traffic Incident"@en ;
+    rdfs:comment "A traffic incident that a police department, a transportation agency or a caller reported. Collisions (reo:HistoricalIncidentRecord) and other incidents (reo:NonCollisionIncident) are its subclasses. Individual records stay in the loader's working tables; the GKG stores counts (reo:IncidentCount)."@en .
+
+reo:HistoricalIncidentRecord rdfs:subClassOf reo:ReportedTrafficIncident .
+
+reo:NonCollisionIncident rdf:type owl:Class ;
+    rdfs:subClassOf reo:ReportedTrafficIncident ;
+    rdfs:label "Non-Collision Incident"@en ;
+    rdfs:comment "A police-reported traffic incident that is not a collision: a curb or right-of-way violation, a dangerous-driving stop or arrest, or an incident involving an automated vehicle. Dangerous-driving incidents serve only as a secondary outcome and never as an input to crash prediction. A record linked to a collision (a hit-and-run report, an arrest after a collision) is crash-derived."@en .
+
+### Categories ###
+
+reo:NonCollisionCategory rdf:type owl:Class ;
+    rdfs:subClassOf sosa:ObservableProperty ;
+    rdfs:label "Non-Collision Category"@en ;
+    rdfs:comment "The kind of non-collision incident. The individuals sit in four groups (subclasses) that Evangelos approved on 2026-11-22."@en .
+
+reo:CurbRightOfWayViolation rdf:type owl:Class ;
+    rdfs:subClassOf reo:NonCollisionCategory ;
+    rdfs:label "Curb and right-of-way violation"@en ;
+    rdfs:comment "May serve as an input to the curb study (research question 3), which predicts no crashes."@en .
+reo:DangerousDrivingCategory rdf:type owl:Class ;
+    rdfs:subClassOf reo:NonCollisionCategory ;
+    rdfs:label "Dangerous driving"@en ;
+    rdfs:comment "Enforcement of dangerous driving. A secondary outcome only; never an input to crash prediction."@en .
+reo:AutomatedVehicleIncidentCategory rdf:type owl:Class ;
+    rdfs:subClassOf reo:NonCollisionCategory ;
+    rdfs:label "Incident involving an automated vehicle"@en .
+reo:CrashLinkedCategory rdf:type owl:Class ;
+    rdfs:subClassOf reo:NonCollisionCategory ;
+    rdfs:label "Crash-linked record"@en ;
+    rdfs:comment "A non-collision record that follows a collision. Every count in this group is crash-derived."@en .
+
+reo:NC_DOUBLE_PARKING rdf:type owl:NamedIndividual, reo:CurbRightOfWayViolation ; rdfs:label "double parking"@en .
+reo:NC_BLOCKING_BIKE_LANE rdf:type owl:NamedIndividual, reo:CurbRightOfWayViolation ; rdfs:label "blocking a bike lane"@en .
+reo:NC_BLOCKING_BUS_ZONE rdf:type owl:NamedIndividual, reo:CurbRightOfWayViolation ; rdfs:label "blocking a bus zone"@en .
+reo:NC_RED_ZONE rdf:type owl:NamedIndividual, reo:CurbRightOfWayViolation ; rdfs:label "stopping or parking in a red zone"@en .
+reo:NC_LOADING_ZONE_MISUSE rdf:type owl:NamedIndividual, reo:CurbRightOfWayViolation ; rdfs:label "misuse of a loading zone"@en .
+reo:NC_SPEEDING rdf:type owl:NamedIndividual, reo:DangerousDrivingCategory ; rdfs:label "speeding"@en .
+reo:NC_RED_LIGHT rdf:type owl:NamedIndividual, reo:DangerousDrivingCategory ; rdfs:label "running a red light"@en .
+reo:NC_FAIL_TO_YIELD_PEDESTRIAN rdf:type owl:NamedIndividual, reo:DangerousDrivingCategory ; rdfs:label "failing to yield to a pedestrian"@en .
+reo:NC_DUI rdf:type owl:NamedIndividual, reo:DangerousDrivingCategory ; rdfs:label "driving under the influence (no collision)"@en .
+reo:NC_RECKLESS_DRIVING rdf:type owl:NamedIndividual, reo:DangerousDrivingCategory ; rdfs:label "reckless driving"@en .
+reo:NC_SIDESHOW rdf:type owl:NamedIndividual, reo:DangerousDrivingCategory ; rdfs:label "sideshow or street takeover"@en .
+reo:NC_AV_OBSTRUCT_EMERGENCY rdf:type owl:NamedIndividual, reo:AutomatedVehicleIncidentCategory ; rdfs:label "automated vehicle obstructing an emergency vehicle"@en .
+reo:NC_AV_OBSTRUCT_TRAFFIC rdf:type owl:NamedIndividual, reo:AutomatedVehicleIncidentCategory ; rdfs:label "automated vehicle obstructing traffic"@en .
+reo:NC_AV_VANDALISM rdf:type owl:NamedIndividual, reo:AutomatedVehicleIncidentCategory ; rdfs:label "vandalism of an automated vehicle"@en .
+reo:NC_AV_NONCOMPLIANCE_NOTICE rdf:type owl:NamedIndividual, reo:AutomatedVehicleIncidentCategory ; rdfs:label "notice of noncompliance to an automated-vehicle operator"@en .
+reo:NC_HIT_AND_RUN_REPORT rdf:type owl:NamedIndividual, reo:CrashLinkedCategory ; rdfs:label "hit-and-run report"@en .
+reo:NC_ARREST_AFTER_COLLISION rdf:type owl:NamedIndividual, reo:CrashLinkedCategory ; rdfs:label "arrest after a collision (for example DUI)"@en .
+
+reo:incidentCategory rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:NonCollisionIncident ;
+    rdfs:range reo:NonCollisionCategory ;
+    rdfs:label "incident category"@en .
+
+### Record origin ###
+
+reo:RecordOrigin rdf:type owl:Class ;
+    rdfs:label "Record Origin"@en ;
+    rdfs:comment "How a record came about. Each origin measures something different: a citation or arrest measures enforcement; a dispatched call measures a complaint; an incident report measures what an officer or the public reported."@en .
+reo:ORIGIN_CITATION_OR_ARREST rdf:type owl:NamedIndividual, reo:RecordOrigin ; rdfs:label "citation or arrest"@en .
+reo:ORIGIN_CALL_FOR_SERVICE rdf:type owl:NamedIndividual, reo:RecordOrigin ; rdfs:label "dispatched call for service"@en .
+reo:ORIGIN_INCIDENT_REPORT rdf:type owl:NamedIndividual, reo:RecordOrigin ; rdfs:label "incident report"@en .
+
+reo:recordOrigin rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( reo:ReportedTrafficIncident reo:IncidentCount ) ] ;
+    rdfs:range reo:RecordOrigin ;
+    rdfs:label "record origin"@en .
+
+### Agencies, automated vehicles, collisions, location precision ###
+
+reo:issuingAgency rdf:type owl:ObjectProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( reo:ReportedTrafficIncident reo:IncidentCount ) ] ;
+    rdfs:range uko:Organization ;
+    rdfs:label "issuing agency"@en ;
+    rdfs:comment "The agency that issued or recorded the citation, call or report (for example the San Francisco Police Department or the San Francisco Municipal Transportation Agency)."@en .
+
+reo:involvesAutomatedVehicle rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:ReportedTrafficIncident ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "involves automated vehicle"@en .
+
+reo:avOperator rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:ReportedTrafficIncident ;
+    rdfs:range uko:Organization ;
+    rdfs:label "AV operator"@en ;
+    rdfs:comment "The operator of the automated vehicle involved."@en .
+
+reo:relatedCollision rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:NonCollisionIncident ;
+    rdfs:range reo:HistoricalIncidentRecord ;
+    rdfs:label "related collision"@en ;
+    rdfs:comment "The collision record a non-collision incident followed. An incident with this relation is crash-derived."@en ;
+    uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+
+reo:locationPrecision rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( reo:ReportedTrafficIncident reo:IncidentCount ) ] ;
+    rdfs:range xsd:string ;
+    rdfs:label "location precision"@en ;
+    rdfs:comment "How far the source rounds locations, for example 'nearest intersection', 'block midpoint' or 'geocoded street address'."@en .
+
+### Counts: what the graph stores ###
+
+reo:IncidentCount rdf:type owl:Class ;
+    rdfs:subClassOf uko:MeasuredValue ;
+    rdfs:label "Incident Count"@en ;
+    rdfs:comment "The number of incidents of one category and one origin at one place for one month (uko:periodStart and uko:periodEnd), in one time-of-day band and one day type. The place (sosa:hasFeatureOfInterest) is the unit the source supports: an intersection node for sources that round to the nearest intersection, a road segment for sources with street addresses. Every count is excluded from crash-prediction inputs; a count of a crash-linked category carries uko:valueCrashDerived true."@en .
+
+reo:countCategory rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf sosa:observedProperty ;
+    rdfs:domain reo:IncidentCount ;
+    rdfs:range reo:NonCollisionCategory ;
+    rdfs:label "count category"@en .
+
+reo:countPlace rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf sosa:hasFeatureOfInterest ;
+    rdfs:domain reo:IncidentCount ;
+    rdfs:range [ rdf:type owl:Class ; owl:unionOf ( uko:IntersectionNode uko:RoadSegment uko:SpatialEntity ) ] ;
+    rdfs:label "count place"@en .
+
+reo:TimeOfDayBand rdf:type owl:Class ;
+    rdfs:label "Time-of-Day Band"@en .
+reo:BAND_NIGHT_00_06 rdf:type owl:NamedIndividual, reo:TimeOfDayBand ; rdfs:label "night, 00:00-06:00"@en .
+reo:BAND_AM_PEAK_06_10 rdf:type owl:NamedIndividual, reo:TimeOfDayBand ; rdfs:label "morning peak, 06:00-10:00"@en .
+reo:BAND_MIDDAY_10_15 rdf:type owl:NamedIndividual, reo:TimeOfDayBand ; rdfs:label "midday, 10:00-15:00"@en .
+reo:BAND_PM_PEAK_15_19 rdf:type owl:NamedIndividual, reo:TimeOfDayBand ; rdfs:label "evening peak, 15:00-19:00"@en .
+reo:BAND_EVENING_19_24 rdf:type owl:NamedIndividual, reo:TimeOfDayBand ; rdfs:label "evening, 19:00-24:00"@en .
+
+reo:timeOfDayBand rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:IncidentCount ;
+    rdfs:range reo:TimeOfDayBand ;
+    rdfs:label "time-of-day band"@en .
+
+reo:DayType rdf:type owl:Class ;
+    rdfs:label "Day Type"@en .
+reo:DAYTYPE_WEEKDAY rdf:type owl:NamedIndividual, reo:DayType ; rdfs:label "weekday (Monday to Friday)"@en .
+reo:DAYTYPE_WEEKEND rdf:type owl:NamedIndividual, reo:DayType ; rdfs:label "weekend (Saturday and Sunday)"@en .
+
+reo:dayType rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:IncidentCount ;
+    rdfs:range reo:DayType ;
+    rdfs:label "day type"@en .
+
+reo:PROC_MONTHLY_INCIDENT_COUNT rdf:type owl:NamedIndividual, uko:EstimationProcedure ;
+    rdfs:label "monthly count of source records"@en ;
+    rdfs:comment "Records of one category and origin counted per place, month, time-of-day band and day type; the individual records are not exported."@en .
+

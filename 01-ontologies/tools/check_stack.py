@@ -1,6 +1,8 @@
 """Consistency checks across the ontology stack (no reasoner).
 
-Usage: python tools/check_stack.py uko.ttl tko.ttl mlo.ttl reo.ttl fko.ttl
+Usage: python tools/check_stack.py uko.ttl tko.ttl mlo.ttl reo.ttl fko.ttl [--ext external/sosa.ttl ...]
+Files after --ext are external modules (for example SOSA): they count as declared terms and satisfy imports of
+their ontology IRI, but their own terms are not checked.
 Reports, per namespace: terms used but never declared, object/datatype properties without domain or range,
 terms with more than one label, datatypes outside the OWL 2 datatype map, and imports that point at versions not
 in the file set.
@@ -15,15 +17,23 @@ OWL2 |= {RDF.PlainLiteral, RDF.XMLLiteral, RDFS.Literal, RDF.langString}
 NS = {"uko": "urn:urban-kg:", "tko": "urn:trip-kg:", "mlo": "urn:mobility-label-kg:", "reo": "urn:route-event-kg:",
       "fko": "urn:freight-kg:"}
 
-files = sys.argv[1:]
+args = sys.argv[1:]
+files = args[:args.index("--ext")] if "--ext" in args else args
+ext = args[args.index("--ext") + 1:] if "--ext" in args else []
 G = rdflib.Graph()
 per = {}
 for f in files:
     g = rdflib.Graph().parse(f)
     per[f] = g
     G += g
+ext_iris = set()
+for f in ext:
+    g = rdflib.Graph().parse(f)
+    G += g
+    ext_iris |= {str(s) for s in g.subjects(RDF.type, OWL.Ontology)}
 nm = lambda x: x.n3(G.namespace_manager) if not isinstance(x, rdflib.Literal) else repr(str(x)[:60])
 versions = {str(o) for g in per.values() for o in g.objects(None, OWL.versionIRI)}
+versions |= ext_iris
 datatypes = set(G.subjects(RDF.type, RDFS.Datatype))
 problems = 0
 for pfx, ns in NS.items():
@@ -42,7 +52,10 @@ for pfx, ns in NS.items():
             print(f"   {name}: {lst}")
             problems += len(lst)
 bad = collections.Counter()
-for s, p, o in G:
+OWN = rdflib.Graph()
+for g in per.values():
+    OWN += g
+for s, p, o in OWN:  # external modules keep their own metadata (SOSA dates its creation with xsd:date)
     if isinstance(o, rdflib.URIRef) and str(o).startswith(str(XSD)) and o not in OWL2:
         bad[nm(o)] += 1
     if isinstance(o, rdflib.Literal) and o.datatype and o.datatype not in OWL2 and o.datatype not in datatypes:

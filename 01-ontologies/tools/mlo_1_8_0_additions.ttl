@@ -1,0 +1,71 @@
+###############################################################################
+#    v1.8.0 ADDITIONS (2026-11-22)
+#    Design note "O4 O5 incidents", approved by Evangelos on 2026-11-22: transfer evaluations.
+###############################################################################
+
+mlo:TransferEvaluation rdf:type owl:Class ;
+    rdfs:label "Transfer Evaluation"@en ;
+    rdfs:comment "One evaluation of a model trained on a source area and applied to a target area: the feature set, the outcome, the error measure and its value, with the line of the append-only evaluation log that records it. The fingerprint (uko:Fingerprint) describes the areas; this class describes the model's result."@en .
+
+mlo:sourceArea rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range uko:SpatialEntity ;
+    rdfs:label "source area"@en ;
+    rdfs:comment "The area whose data trained the model."@en .
+
+mlo:targetArea rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range uko:SpatialEntity ;
+    rdfs:label "target area"@en ;
+    rdfs:comment "The area the model was applied to."@en .
+
+mlo:sourceFingerprint rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range uko:Fingerprint ;
+    rdfs:label "source fingerprint"@en ;
+    rdfs:comment "The source area's fingerprint version in force when the evaluation ran."@en .
+
+mlo:targetFingerprint rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range uko:Fingerprint ;
+    rdfs:label "target fingerprint"@en .
+
+mlo:evaluatesModel rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range mlo:AnalyticsModel ;
+    rdfs:label "evaluates model"@en .
+
+mlo:featureSet rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range xsd:string ;
+    rdfs:label "feature set"@en ;
+    rdfs:comment "The model's feature set, for example 'B2'."@en .
+
+mlo:outcomeDefinition rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range xsd:string ;
+    rdfs:label "outcome definition"@en ;
+    rdfs:comment "What the model predicts, for example 'KSI crashes, KABCO K and A, five complete years'."@en .
+
+mlo:errorMeasure rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range xsd:string ;
+    rdfs:label "error measure"@en ;
+    rdfs:comment "For example 'Poisson deviance, intercept-adjusted'."@en .
+
+mlo:errorValue rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "error value"@en .
+
+mlo:evaluatedOn rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range uko:CalendarDate ;
+    rdfs:label "evaluated on"@en .
+
+mlo:evaluationLogRef rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain mlo:TransferEvaluation ;
+    rdfs:range xsd:string ;
+    rdfs:label "evaluation log reference"@en ;
+    rdfs:comment "The file and line of the append-only evaluation log that records this evaluation."@en .
+
