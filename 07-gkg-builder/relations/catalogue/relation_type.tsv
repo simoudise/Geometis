@@ -72,11 +72,24 @@
 72	uko:derivedFrom	uko:GeographicFeature	uko:GeographicFeature	False	False		URN lineage (gkg.urn_lineage)
 73	uko:hasDataSource	owl:Thing	uko:DataSource	False	False		entity to the data source release it came from
 74	uko:hasDistanceMeasurement	uko:SpatialEntity	uko:DistanceMeasurement	False	False		stored in gkg.distance_measurement, not gkg.edge: place, stop or intersection to landmark or district within 2 km
-75	reo:atIntersectionNode	reo:HistoricalIncidentRecord	uko:IntersectionNode	True	False		crash record to its attached intersection node (50 m)
+75	reo:atIntersectionNode	reo:ReportedTrafficIncident	uko:IntersectionNode	True	False		crash record to its attached intersection node (50 m)
 76	reo:hasCollisionCausationFactor	reo:HistoricalIncidentRecord	reo:CollisionCausationFactor	True	False		crash record to its primary collision factor (exact SWITRS matches only)
 77	reo:incidentCollisionType	reo:HistoricalIncidentRecord	reo:CollisionType	True	False		crash record to its collision type
 78	reo:incidentLighting	reo:HistoricalIncidentRecord	reo:LightingCondition	True	False		crash record to its lighting condition
 79	reo:incidentRoadSurface	reo:HistoricalIncidentRecord	reo:RoadSurfaceCondition	True	False		crash record to its road surface
 80	reo:incidentWeatherCondition	reo:HistoricalIncidentRecord	reo:WeatherCondition	True	False		crash record to its weather (WEATHER_1)
-81	reo:onRoadSegment	reo:HistoricalIncidentRecord	uko:RoadSegment	True	False		crash record to the road segment stage 4 attached it to (value_m = snap distance)
+81	reo:onRoadSegment	reo:ReportedTrafficIncident	uko:RoadSegment	True	False		crash record to the road segment stage 4 attached it to (value_m = snap distance)
 82	reo:hasKABCOSeverity	reo:HistoricalIncidentRecord	reo:KABCOSeverity	True	False		crash record to its KABCO level through the SWITRS COLLISION_SEVERITY mapping rows (1 K, 2 A, 3 B, 4 C, 0 O)
+83	uko:hasPlaceStatistic	uko:SpatialEntity	uko:PlaceStatistic	False	False	uko:statisticOf	area (tract, city, grid cell) to each of its place statistics
+84	sosa:observedProperty			False	False		place statistic to its variable (uko:PlaceVariable)
+85	uko:valueSource	uko:MeasuredValue	uko:DataSource	False	False		measured value to the data source release it comes from
+86	sosa:usedProcedure			False	False		measured value to its estimation procedure
+87	uko:travelMode	uko:MeasuredValue	uko:TravelMode	False	False		mode-specific statistic (commute share, jobs reachable) to its mode
+88	uko:fingerprintOf	uko:Fingerprint	uko:SpatialEntity	False	False		fingerprint to the area it describes
+89	uko:usesReferenceSet	uko:Fingerprint	uko:ReferenceSet	False	False		fingerprint to the reference set that standardizes it
+90	uko:hasReferenceMember	uko:ReferenceSet	uko:SpatialEntity	False	False		reference set to each member area
+91	uko:hasFactorValue	uko:Fingerprint	uko:FactorValue	False	False		fingerprint to each of its factor values
+92	uko:valueOfFactor	uko:FactorValue	uko:FingerprintFactor	False	False		factor value to its fingerprint factor
+93	uko:distanceFrom	uko:FingerprintDistance	uko:Fingerprint	False	False		fingerprint distance to its first fingerprint (lower entity key)
+94	uko:distanceTo	uko:FingerprintDistance	uko:Fingerprint	False	False		fingerprint distance to its second fingerprint
+95	uko:factorSetUsed	uko:FingerprintDistance	uko:FingerprintFactor	False	False		fingerprint distance to each factor it uses

@@ -13,7 +13,7 @@ so a failed step can be rerun alone). Approved design (Evangelos, Nov 20):
   stops and intersections to landmark buildings and districts within 2 km.
 - gkg.provenance records source, method, versions and the crash flag; every edge points to one row.
 - uko:veryNear is not stored separately: it is uko:near with value_m <= 50.
-- Edges whose subject or object fails the property's rdfs:domain or rdfs:range (UKO 15.7 class hierarchy plus
+- Edges whose subject or object fails the property's rdfs:domain or rdfs:range (UKO 15.8 class hierarchy plus
   asserted extra types) are removed by the enforce step and counted in gkg.edge_rejected.
 Reads no trip table. Writes counts, never rows, to the log.
 """
@@ -35,7 +35,7 @@ TIMS_DIR = Path.home() / "Geometis-mini/tims-incoming"
 GEOFENCES = ["us-ca-contra-costa-5", "us-ca-san-francisco"]
 URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")
 CODE_VERSION = os.environ.get("GKG_CODE_VERSION", "gkg-full")
-ONTO_VERSION = "UKO 15.7.0 / REO 1.7.0 (release 2026-11-22)"
+ONTO_VERSION = "UKO 15.8.0 / REO 1.8.0 (release 2026-11-22b)"
 
 LANDMARK = ["Museum", "Theater", "ConcertHall", "OperaHouse", "CityHall", "Courthouse", "Library",
             "GovernmentBuilding", "Stadium", "Arena"]
@@ -164,6 +164,20 @@ RELATIONS = [
     # Added Nov 22 (REO 1.7.0, audit item O1). New relations go at the end so that existing relation codes stay fixed.
     ("reo:onRoadSegment", True, False, "crash record to the road segment stage 4 attached it to (value_m = snap distance)"),
     ("reo:hasKABCOSeverity", True, False, "crash record to its KABCO level through the SWITRS COLLISION_SEVERITY mapping rows (1 K, 2 A, 3 B, 4 C, 0 O)"),
+    # Added Nov 22 (UKO 15.8 / REO 1.8.0, design note O4 O5 incidents). Built by relations/stats_build.py.
+    ("uko:hasPlaceStatistic", False, False, "area (tract, city, grid cell) to each of its place statistics"),
+    ("sosa:observedProperty", False, False, "place statistic to its variable (uko:PlaceVariable)"),
+    ("uko:valueSource", False, False, "measured value to the data source release it comes from"),
+    ("sosa:usedProcedure", False, False, "measured value to its estimation procedure"),
+    ("uko:travelMode", False, False, "mode-specific statistic (commute share, jobs reachable) to its mode"),
+    ("uko:fingerprintOf", False, False, "fingerprint to the area it describes"),
+    ("uko:usesReferenceSet", False, False, "fingerprint to the reference set that standardizes it"),
+    ("uko:hasReferenceMember", False, False, "reference set to each member area"),
+    ("uko:hasFactorValue", False, False, "fingerprint to each of its factor values"),
+    ("uko:valueOfFactor", False, False, "factor value to its fingerprint factor"),
+    ("uko:distanceFrom", False, False, "fingerprint distance to its first fingerprint (lower entity key)"),
+    ("uko:distanceTo", False, False, "fingerprint distance to its second fingerprint"),
+    ("uko:factorSetUsed", False, False, "fingerprint distance to each factor it uses"),
 ]
 
 DDL = """
@@ -248,11 +262,11 @@ def step_schema():
 
 
 def catalogue_from_ontology(out_dir):
-    """Write relation_type.tsv and class_closure.tsv from UKO 15.7 + REO 1.7.0 (run where rdflib is installed)."""
+    """Write relation_type.tsv and class_closure.tsv from UKO 15.8 + REO 1.8.0 + MLO 1.8.0 + SOSA (run where rdflib is installed)."""
     import rdflib
     from rdflib.namespace import RDF, RDFS, OWL
     g = rdflib.Graph()
-    for f in ["uko_ontology_v15_7.ttl", "reo_ontology_v1_7_0.ttl"]:
+    for f in ["uko_ontology_v15_8.ttl", "reo_ontology_v1_8_0.ttl", "mlo_ontology_v1_8_0.ttl", "external/sosa.ttl"]:
         g.parse(ONTO / f)
     nm = g.namespace_manager
     q = lambda x: x.n3(nm)
