@@ -76,3 +76,14 @@ mapping; and the TIMS weather and road-surface fields as crash-derived REO relat
    (TKO 8.5.1, MLO 1.7.2, REO 1.7.0, FKO 1.2.3; `tools/make_companions_2026_11_22.py`); none uses a changed term
    except one TKO comment, which is corrected. check_stack: zero problems; HermiT: consistent. The complete method
    is in `docs/gkg-full-methodology.md`.
+4. Request of November 22, 09:34 Pacific: "Before finalizing UKO 15.7, read 'GeoMetis ontology sufficiency audit
+   part 1 (draft) 2026-11-22 10.15.md' in Drive SPECTRA, section 4. Evangelos wants items [O1, O2, O3, O12] in 15.7
+   alongside your build fixes. Any new crash-to-segment relation is crash-derived." Done: UKO 15.7 adds O2
+   (uko:hasControlType, uko:IntersectionControlType), O3 (uko:TrafficVolumeObservation and its properties) and O12
+   (uko:maxGradePercent, uko:typicalLaneWidthM, uko:pavementConditionIndex and date, uko:isRealTime,
+   uko:annualEnplanements and year); REO becomes 1.7.0 with O1 (reo:onRoadSegment, reo:KABCOSeverity,
+   reo:hasKABCOSeverity, reo:SeverityCodeMapping with California rows, source-neutral field comments,
+   reo:incidentState, reo:sourceSegmentKey and reo:sourceIntersectionKey, crash-derived marks). Both new crash
+   relations are crash-derived in the ontology and in the build. Left out: a class for non-collision police
+   incidents (audit question T3-9), pending Evangelos's decision. Jobs 224 and 225 built reo:onRoadSegment and
+   reo:hasKABCOSeverity.

@@ -45,7 +45,9 @@ in `docs/gkg-full-data-dictionary.md`. The build report with counts and checks i
 
 1. uko:crosses links a crosswalk to the road segment nearest its midpoint within 7 m and 30 degrees of perpendicular.
 2. Government buildings stay landmark targets for distance measurements.
-3. UKO 15.7 is in force; the build was re-checked against it.
+3. UKO 15.7 and REO 1.7.0 are in force; the build was re-checked against them. Crashes link to road segments
+   (reo:onRoadSegment) and carry KABCO severity (reo:hasKABCOSeverity); both are crash-derived, so
+   `gkg.edge_for_crash_prediction` drops them. KSI crashes are those with KABCO K or A.
 
 ## Known limits
 
