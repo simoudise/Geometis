@@ -38,18 +38,24 @@ size, SHA-256 and feature count of each file).
 ## 3. Ontologies
 
 The build classifies and checks against the coordinated release of November 22, 2026: UKO 15.7.0, TKO 8.5.1,
-MLO 1.7.2, REO 1.6.3 and FKO 1.2.3 (`01-ontologies/`). The generators `tools/make_uko_15_7.py` and
+MLO 1.7.2, REO 1.7.0 and FKO 1.2.3 (`01-ontologies/`). The generators `tools/make_uko_15_7.py` and
 `tools/make_companions_2026_11_22.py` produce the files from the November 20 release, and each file's header carries
 its change log. `tools/check_stack.py` reports zero problems (no undeclared term, every property with a domain and a
 range, OWL 2 datatypes only, every import present), and the HermiT reasoner finds the five ontologies consistent,
-also with test individuals of every class and property that 15.7 changed.
+also with test individuals of every class and property that 15.7 changed or added.
 
 UKO 15.7 exists because the November 20 build showed eight property domains to be narrower than the data
 (sharesBuildingWith, insideMall, partOfChain, operatedByOrg, nearestTransitStop, hasDataSource,
 pathThroughCommonSpace, constrainsSegment) and two subclass axioms to be missing (schools and hospitals as
-vulnerable-population facilities, Evangelos's decision B1). The companion ontologies change only because each one
-imports UKO by version; TKO also corrects one comment that cited the old domain of uko:hasDataSource. Tests 1 and 2
-stay frozen on UKO 15.5 and its companions.
+vulnerable-population facilities, Evangelos's decision B1). At Evangelos's request it also carries items O2, O3 and
+O12 of the ontology sufficiency audit, part 1 (November 22, section 4): an intersection control type on graph nodes
+(uko:hasControlType), traffic, pedestrian and cyclist volume observations (uko:TrafficVolumeObservation), and smaller
+additions (numeric maximum grade, typical lane width, pavement condition index, a real-time flag on data sources,
+airport enplanements). REO 1.7.0 carries item O1: a crash-to-segment relation (reo:onRoadSegment), the KABCO
+severity scale with a per-state mapping table (reo:SeverityCodeMapping; California SWITRS rows included),
+source-neutral crash fields, and crash-derived marks on every crash-record term. TKO, MLO and FKO change only
+because each imports UKO by version; TKO also corrects one comment that cited the old domain of uko:hasDataSource.
+Tests 1 and 2 stay frozen on UKO 15.5 and its companions.
 
 ## 4. Entities
 
@@ -137,11 +143,12 @@ Crash records link to REO individuals through SWITRS codes, exact matches only:
 | Road surface | A dry, B wet, C snowy or icy, D slippery, '-' not stated |
 | Weather (WEATHER_1) | A clear, B cloudy, C raining, D snowing, E fog, G windy, '-' not stated |
 | Primary collision factor category | 01 DUI, 03 unsafe speed, 04 following too closely, 07 unsafe lane change, 21 unsafe starting or backing, 00 unknown; other codes get no edge |
+| Collision severity -> KABCO | 1 fatal K, 2 severe injury A, 3 other visible injury B, 4 complaint of pain C, 0 property damage only O (REO rows reo:SEVMAP_SWITRS_CA_*) |
 
 ## 8. Crash-derived relations
 
-Nine relations come from crash data: uko:inHighInjuryNetwork, uko:hinSegmentOf, uko:hasIntersectionRiskProfile and
-the six REO crash relations. Each is marked in `gkg.relation_type` and `gkg.provenance`. A crash-prediction model
+Eleven relations come from crash data: uko:inHighInjuryNetwork, uko:hinSegmentOf, uko:hasIntersectionRiskProfile and
+the eight REO crash relations, including reo:onRoadSegment and reo:hasKABCOSeverity (REO 1.7.0). Each is marked in `gkg.relation_type` and `gkg.provenance`. A crash-prediction model
 reads edges only through the view `gkg.edge_for_crash_prediction`, which drops these relations and every edge that
 touches a crash record, a risk profile or a High Injury Network entity. Crash records may serve as labels only.
 
@@ -170,6 +177,12 @@ must run. The relation catalogue (`relations/catalogue/*.tsv`) comes from the on
 `python -m relations.validate OUT.json` before the cleanup step, because the geometry checks read the work tables.
 
 ## 11. Not built
+
+- uko:hasControlType: OpenStreetMap signal, roundabout, stop and give-way tags are not loaded (audit data gap D3).
+- uko:TrafficVolumeObservation: no volume source is loaded (audit data gap; public HPMS volumes cover arterials only).
+- O12 values: the maximum grade already sits in `gkg.road_segment.max_abs_grade` and maps to uko:maxGradePercent;
+  lane width, pavement condition and airport enplanements have no loaded source; the build does not yet set
+  uko:isRealTime on its data-source records (all loaded sources are static).
 
 - uko:hasStreetAddress, and the address rule of uko:servesAsMainAccess: the loaded place files have no address
   fields; servesAsMainAccess uses the nearest street.

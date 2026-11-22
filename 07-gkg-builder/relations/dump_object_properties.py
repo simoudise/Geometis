@@ -4,10 +4,10 @@ ONTO_DIR = os.environ.get("ONTO_DIR", os.path.join(os.path.dirname(__file__), ".
 from rdflib.namespace import RDF, RDFS, OWL
 # Release set: the Step 1 inventory of 20 November 2026 used the 2026-09-19 set (UKO 15.5); RELEASE=2026-11-20 uses
 # the coordinated release of that date (UKO 15.6, TKO 8.5, MLO 1.7.1, REO 1.6.2, FKO 1.2.2); RELEASE=2026-11-22 (the
-# default) uses UKO 15.7, TKO 8.5.1, MLO 1.7.2, REO 1.6.3, FKO 1.2.3.
+# default) uses UKO 15.7, TKO 8.5.1, MLO 1.7.2, REO 1.7.0, FKO 1.2.3.
 SETS={'2026-09-19':{'UKO':'uko_ontology_v15_5.ttl','TKO':'tko_ontology_v8_4.ttl','MLO':'mlo_ontology_v1_7.ttl','REO':'reo_ontology_v1_6_1.ttl','FKO':'fko_ontology_v1_2_1.ttl'},
       '2026-11-20':{'UKO':'uko_ontology_v15_6.ttl','TKO':'tko_ontology_v8_5.ttl','MLO':'mlo_ontology_v1_7_1.ttl','REO':'reo_ontology_v1_6_2.ttl','FKO':'fko_ontology_v1_2_2.ttl'},
-      '2026-11-22':{'UKO':'uko_ontology_v15_7.ttl','TKO':'tko_ontology_v8_5_1.ttl','MLO':'mlo_ontology_v1_7_2.ttl','REO':'reo_ontology_v1_6_3.ttl','FKO':'fko_ontology_v1_2_3.ttl'}}
+      '2026-11-22':{'UKO':'uko_ontology_v15_7.ttl','TKO':'tko_ontology_v8_5_1.ttl','MLO':'mlo_ontology_v1_7_2.ttl','REO':'reo_ontology_v1_7_0.ttl','FKO':'fko_ontology_v1_2_3.ttl'}}
 files=SETS[os.environ.get('RELEASE','2026-11-22')]
 out=csv.writer(open('props.csv','w'))
 out.writerow(['onto','prop','domain','range','inverse','subprop','deprecated','functional','comment'])

@@ -12,7 +12,7 @@ in `docs/gkg-full-data-dictionary.md`. The build report with counts and checks i
   build added `gkg.entity`, `gkg.entity_type`, `gkg.aux_entity`, `gkg.relation_type`, `gkg.provenance`, `gkg.edge`,
   `gkg.distance_measurement`, `gkg.edge_rejected` and `gkg.class_closure`, and the views `gkg.edge_named`,
   `gkg.rel_very_near` and `gkg.edge_for_crash_prediction`.
-- Ontologies: coordinated release 2026-11-22 in `01-ontologies` (UKO 15.7.0, TKO 8.5.1, MLO 1.7.2, REO 1.6.3,
+- Ontologies: coordinated release 2026-11-22 in `01-ontologies` (UKO 15.7.0, TKO 8.5.1, MLO 1.7.2, REO 1.7.0,
   FKO 1.2.3). Tests 1 and 2 stay frozen on UKO 15.5.
 - Method: `docs/gkg-full-methodology.md` is the complete method (inputs, entities, every relation rule, checks,
   how to rebuild).
@@ -38,7 +38,7 @@ in `docs/gkg-full-data-dictionary.md`. The build report with counts and checks i
 - For an inverse pair only one property is stored (for example uko:within, not uko:contains).
 - `value_m` holds meters for distance-bearing relations (near, nearTransitStop, hasParking and others).
 - A walking distance in `gkg.distance_measurement` is null when the walk exceeds 2 km.
-- Test class membership with `gkg.class_closure` (built from UKO 15.7 and REO 1.6.3). `gkg.entity_type` is empty
+- Test class membership with `gkg.class_closure` (built from UKO 15.7 and REO 1.7.0). `gkg.entity_type` is empty
   under UKO 15.7; if a later build adds rows, use them too.
 
 ## Decisions already taken on the build (November 22)

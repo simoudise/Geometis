@@ -1,6 +1,6 @@
 # GKG full build: data dictionary for the new relations
 
-Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.7.0 and REO 1.6.3. The method is in `docs/gkg-full-methodology.md`. Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.
+Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.7.0 and REO 1.7.0. The method is in `docs/gkg-full-methodology.md`. Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.
 
 ## Tables
 
@@ -14,7 +14,7 @@ Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mi
 | `gkg.edge` | one edge | `rid`, `subj`, `obj` (entity keys), `pid`, `value_m` (meters, where the relation has a distance) |
 | `gkg.distance_measurement` | one uko:DistanceMeasurement | `subj`, `target`, `straight_m`, `walk_m`, `measured_to` (`point` or `boundary`), `inside_target`, `pid` |
 | `gkg.edge_rejected` | edges removed because the subject or object failed the property's domain or range | `rid`, `reason`, `n`, example classes |
-| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.7 + REO 1.6.3) | `uko_class`, `ancestor` |
+| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.7 + REO 1.7.0) | `uko_class`, `ancestor` |
 
 ## Views
 
@@ -417,6 +417,16 @@ None under UKO 15.7. The November 20 build asserted types per entity that UKO 15
 
 - Domain: reo:HistoricalIncidentRecord; range: uko:IntersectionNode. **Crash-derived.**
 - Rule: crash record to its attached intersection node (50 m).
+
+### reo:onRoadSegment
+
+- Domain: reo:HistoricalIncidentRecord; range: uko:RoadSegment. **Crash-derived.**
+- Rule: crash record to the road segment stage 4 attached it to (value_m = snap distance).
+
+### reo:hasKABCOSeverity
+
+- Domain: reo:HistoricalIncidentRecord; range: reo:KABCOSeverity. **Crash-derived.**
+- Rule: crash record to its KABCO level through the SWITRS COLLISION_SEVERITY mapping rows (1 K, 2 A, 3 B, 4 C, 0 O).
 
 ### reo:hasCollisionCausationFactor
 

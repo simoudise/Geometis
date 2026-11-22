@@ -29,7 +29,7 @@
 #       OrganizationalAccount  — identity, roles, access governance
 #
 #    Change Log:
-#    - v1.7.2: Coordinated release 2026-11-22 (release set: UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.6.3, FKO v1.2.3).
+#    - v1.7.2: Coordinated release 2026-11-22 (release set: UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.7.0, FKO v1.2.3).
 #              (1) Imports UKO v15.7.0, TKO v8.5.1 and FKO v1.2.3. Import alignment only; no term added or changed.
 #    - v1.7.1: Coordinated release 2026-11-20 (release set: UKO v15.6.0, TKO v8.5.0, MLO v1.7.1, REO v1.6.2, FKO v1.2.2).
 #              (1) Imports UKO v15.6.0, TKO v8.5.0 and FKO v1.2.2.

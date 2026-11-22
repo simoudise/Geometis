@@ -35,7 +35,7 @@ TIMS_DIR = Path.home() / "Geometis-mini/tims-incoming"
 GEOFENCES = ["us-ca-contra-costa-5", "us-ca-san-francisco"]
 URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")
 CODE_VERSION = os.environ.get("GKG_CODE_VERSION", "gkg-full")
-ONTO_VERSION = "UKO 15.7.0 / REO 1.6.3 (release 2026-11-22)"
+ONTO_VERSION = "UKO 15.7.0 / REO 1.7.0 (release 2026-11-22)"
 
 LANDMARK = ["Museum", "Theater", "ConcertHall", "OperaHouse", "CityHall", "Courthouse", "Library",
             "GovernmentBuilding", "Stadium", "Arena"]
@@ -161,6 +161,9 @@ RELATIONS = [
     ("reo:incidentLighting", True, False, "crash record to its lighting condition"),
     ("reo:incidentRoadSurface", True, False, "crash record to its road surface"),
     ("reo:incidentWeatherCondition", True, False, "crash record to its weather (WEATHER_1)"),
+    # Added Nov 22 (REO 1.7.0, audit item O1). New relations go at the end so that existing relation codes stay fixed.
+    ("reo:onRoadSegment", True, False, "crash record to the road segment stage 4 attached it to (value_m = snap distance)"),
+    ("reo:hasKABCOSeverity", True, False, "crash record to its KABCO level through the SWITRS COLLISION_SEVERITY mapping rows (1 K, 2 A, 3 B, 4 C, 0 O)"),
 ]
 
 DDL = """
@@ -245,11 +248,11 @@ def step_schema():
 
 
 def catalogue_from_ontology(out_dir):
-    """Write relation_type.tsv and class_closure.tsv from UKO 15.7 + REO 1.6.3 (run where rdflib is installed)."""
+    """Write relation_type.tsv and class_closure.tsv from UKO 15.7 + REO 1.7.0 (run where rdflib is installed)."""
     import rdflib
     from rdflib.namespace import RDF, RDFS, OWL
     g = rdflib.Graph()
-    for f in ["uko_ontology_v15_7.ttl", "reo_ontology_v1_6_3.ttl"]:
+    for f in ["uko_ontology_v15_7.ttl", "reo_ontology_v1_7_0.ttl"]:
         g.parse(ONTO / f)
     nm = g.namespace_manager
     q = lambda x: x.n3(nm)
@@ -860,10 +863,10 @@ def step_tims():
     X("drop table _w")
     log(step="tims", rows_read=len(rows), crashes_updated=n)
     for c in ["reo:atIntersectionNode", "reo:hasCollisionCausationFactor", "reo:incidentCollisionType", "reo:incidentLighting",
-              "reo:incidentRoadSurface", "reo:incidentWeatherCondition"]:
+              "reo:incidentRoadSurface", "reo:incidentWeatherCondition", "reo:onRoadSegment", "reo:hasKABCOSeverity"]:
         reset(c)
     X("delete from gkg.entity where src='reo_individual'")
-    maps = {  # SWITRS codes -> REO 1.6.3 individuals; codes without an exact REO match get no edge
+    maps = {  # SWITRS codes -> REO 1.7.0 individuals; codes without an exact REO match get no edge
         "collision_type": ("reo:incidentCollisionType", {"A": "HEAD_ON", "B": "SIDESWIPE", "C": "REAR_END", "D": "BROADSIDE",
                            "F": "OVERTURNED", "G": "VEHICLE_PEDESTRIAN", "H": "COLLISION_TYPE_OTHER", "E": "COLLISION_TYPE_OTHER"}),
         "lighting": ("reo:incidentLighting", {"A": "LIGHTING_DAYLIGHT", "B": "LIGHTING_DUSK_DAWN", "C": "LIGHTING_DARK_STREET_LIGHTS",
@@ -893,6 +896,20 @@ def step_tims():
           """select r.eid, n.eid, a.node_snap_m::real from gkg.crash_attachment a
              join gkg.entity r on r.geofence_id=a.geofence_id and r.urn='urn:route-event-kg:HistoricalIncidentRecord:tims:'||a.case_id
              join gkg.entity n on n.geofence_id=a.geofence_id and n.urn=a.node_urn""")
+    # REO 1.7.0 (audit item O1): crash to road segment, and KABCO severity. Both crash-derived.
+    edges("reo:onRoadSegment", "TIMS SWITRS; Overture", "crash attached to road segment (stage 4 snap; value_m = snap distance)",
+          """select r.eid, s.eid, a.segment_snap_m::real from gkg.crash_attachment a
+             join gkg.entity r on r.geofence_id=a.geofence_id and r.urn='urn:route-event-kg:HistoricalIncidentRecord:tims:'||a.case_id
+             join gkg.entity s on s.geofence_id=a.geofence_id and s.urn=a.segment_urn""")
+    for g in GEOFENCES:
+        for k in "KABCO":
+            X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, 'reo:KABCOSeverity', 'reo_individual') "
+              "on conflict do nothing", {"u": "urn:route-event-kg:KABCO_" + k, "g": g})
+    edges("reo:hasKABCOSeverity", "TIMS SWITRS", "SWITRS COLLISION_SEVERITY to KABCO through reo:SeverityCodeMapping rows SEVMAP_SWITRS_CA_*",
+          """select r.eid, i.eid, null::real from gkg.crash_attachment a join gkg.tims_crash t using (case_id)
+             join (values (1,'K'),(2,'A'),(3,'B'),(4,'C'),(0,'O')) m(code, k) on m.code = t.severity
+             join gkg.entity r on r.geofence_id=a.geofence_id and r.urn='urn:route-event-kg:HistoricalIncidentRecord:tims:'||a.case_id
+             join gkg.entity i on i.geofence_id=a.geofence_id and i.urn='urn:route-event-kg:KABCO_'||m.k""")
 
 
 def step_transit():

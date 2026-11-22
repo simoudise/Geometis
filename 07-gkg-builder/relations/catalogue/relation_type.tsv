@@ -78,3 +78,5 @@
 78	reo:incidentLighting	reo:HistoricalIncidentRecord	reo:LightingCondition	True	False		crash record to its lighting condition
 79	reo:incidentRoadSurface	reo:HistoricalIncidentRecord	reo:RoadSurfaceCondition	True	False		crash record to its road surface
 80	reo:incidentWeatherCondition	reo:HistoricalIncidentRecord	reo:WeatherCondition	True	False		crash record to its weather (WEATHER_1)
+81	reo:onRoadSegment	reo:HistoricalIncidentRecord	uko:RoadSegment	True	False		crash record to the road segment stage 4 attached it to (value_m = snap distance)
+82	reo:hasKABCOSeverity	reo:HistoricalIncidentRecord	reo:KABCOSeverity	True	False		crash record to its KABCO level through the SWITRS COLLISION_SEVERITY mapping rows (1 K, 2 A, 3 B, 4 C, 0 O)

@@ -82,7 +82,7 @@ docs/gkg-full-data-dictionary.md. Handoff for Chats 3a and 3b: docs/gkg-full-han
 counts, gaps and three open decisions: Drive SPECTRA > GKG FULL. The scratch schemas gkg_work and gkg_load were dropped.
 Nov 22 (Evangelos, 08:59 Pacific): (1) tighter crosswalk rule approved, now nearest road within 7 m and 30 degrees
 of perpendicular; (2) government buildings stay landmarks; (3) UKO 15.7 generated. Coordinated release 2026-11-22:
-uko_ontology_v15_7.ttl, tko_ontology_v8_5_1.ttl, mlo_ontology_v1_7_2.ttl, reo_ontology_v1_6_3.ttl,
+uko_ontology_v15_7.ttl, tko_ontology_v8_5_1.ttl, mlo_ontology_v1_7_2.ttl, reo_ontology_v1_7_0.ttl,
 fko_ontology_v1_2_3.ttl (tools/make_uko_15_7.py, tools/make_companions_2026_11_22.py); check_stack zero problems,
 HermiT consistent with witness individuals. The builder reads 15.7 (gkg/config.py). Job 222 rebuilt the affected
 relations: 59,444,055 edges, 1,334 removed by enforcement, gkg.entity_type empty; validation file

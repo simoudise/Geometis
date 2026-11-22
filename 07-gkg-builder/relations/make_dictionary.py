@@ -32,7 +32,7 @@ FAMILY = [
                        "uko:providesRecreationFor"]),
     ("Freight", ["uko:hasTruckRoutingConstraint", "uko:constrainsSegment", "uko:hasTruckParkingFacility"]),
     ("Safety (crash-derived: never an input to crash prediction)", ["uko:inHighInjuryNetwork", "uko:hinSegmentOf",
-        "uko:hasIntersectionRiskProfile", "reo:atIntersectionNode", "reo:hasCollisionCausationFactor", "reo:incidentCollisionType",
+        "uko:hasIntersectionRiskProfile", "reo:atIntersectionNode", "reo:onRoadSegment", "reo:hasKABCOSeverity", "reo:hasCollisionCausationFactor", "reo:incidentCollisionType",
         "reo:incidentLighting", "reo:incidentRoadSurface", "reo:incidentWeatherCondition"]),
     ("Lineage and sources", ["uko:derivedFrom", "uko:hasDataSource"]),
 ]
@@ -52,7 +52,7 @@ def main():
         for p in val["provenance"]:
             methods.setdefault(p["curie"], []).append(f'{p["method"]} (source: {p["source"]})')
     L = ["# GKG full build: data dictionary for the new relations", "",
-         "Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.7.0 and REO 1.6.3. "
+         "Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.7.0 and REO 1.7.0. "
      "The method is in `docs/gkg-full-methodology.md`. "
          "Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.", "",
          "## Tables", "",
@@ -65,7 +65,7 @@ def main():
          "| `gkg.edge` | one edge | `rid`, `subj`, `obj` (entity keys), `pid`, `value_m` (meters, where the relation has a distance) |",
          "| `gkg.distance_measurement` | one uko:DistanceMeasurement | `subj`, `target`, `straight_m`, `walk_m`, `measured_to` (`point` or `boundary`), `inside_target`, `pid` |",
          "| `gkg.edge_rejected` | edges removed because the subject or object failed the property's domain or range | `rid`, `reason`, `n`, example classes |",
-         "| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.7 + REO 1.6.3) | `uko_class`, `ancestor` |", "",
+         "| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.7 + REO 1.7.0) | `uko_class`, `ancestor` |", "",
          "## Views", "",
          "- `gkg.edge_named`: every edge with relation name, URNs, classes, geofence and provenance.",
          "- `gkg.rel_very_near`: uko:veryNear, which is uko:near with `value_m` <= 50. The build stores no separate veryNear rows.",

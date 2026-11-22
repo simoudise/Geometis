@@ -73,6 +73,6 @@ mapping; and the TIMS weather and road-surface fields as crash-derived REO relat
 3. "Generate UKO 15.7 now ... Determine whether the updates to UKO necessitate updates to the other ontologies."
    Done: UKO 15.7.0 (`01-ontologies/tools/make_uko_15_7.py`) widens eight property domains and makes schools and
    hospitals vulnerable-population facilities. Every companion imports UKO by version, so each needed a new version
-   (TKO 8.5.1, MLO 1.7.2, REO 1.6.3, FKO 1.2.3; `tools/make_companions_2026_11_22.py`); none uses a changed term
+   (TKO 8.5.1, MLO 1.7.2, REO 1.7.0, FKO 1.2.3; `tools/make_companions_2026_11_22.py`); none uses a changed term
    except one TKO comment, which is corrected. check_stack: zero problems; HermiT: consistent. The complete method
    is in `docs/gkg-full-methodology.md`.

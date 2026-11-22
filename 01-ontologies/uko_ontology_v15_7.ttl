@@ -17,7 +17,7 @@
 #    Synapse Partners, LLC
 #
 #    Change Log:
-#    - v15.7.0: GKG-build corrections, coordinated release 2026-11-22 (release set: UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.6.3, FKO v1.2.3;
+#    - v15.7.0: GKG-build corrections, coordinated release 2026-11-22 (release set: UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.7.0, FKO v1.2.3;
 #               Synapse Partners). The GKG full build of 2026-11-20 removed 352,082 edges whose
 #               subject or object UKO 15.6 did not admit; this release admits them where the data
 #               is right and the declaration was too narrow.
@@ -41,6 +41,25 @@
 #               (7) uko:School is a uko:ChildFacility (and so a uko:VulnerablePopulationFacility);
 #                   uko:Hospital is a uko:VulnerablePopulationFacility (Evangelos's decision B1,
 #                   2026-11-20: schools and hospitals count as vulnerable-population facilities).
+#               Items from the ontology sufficiency audit, part 1 (2026-11-22, section 4), which
+#               Evangelos asked to include in 15.7:
+#               (8) O2, intersection control: uko:IntersectionControlType with seven individuals
+#                   (signal, roundabout, all-way stop, minor-road stop, yield, uncontrolled,
+#                   unknown) and uko:hasControlType on uko:IntersectionNode and uko:Intersection.
+#                   uko:SignalizedIntersection, uko:StopControlledIntersection and uko:Roundabout
+#                   stay under uko:Intersection; their comments point to the control type, so a
+#                   GKG node can state its control without becoming a uko:Intersection.
+#               (9) O3, exposure: uko:TrafficVolumeObservation (a count or estimate of motor
+#                   vehicles, trucks, pedestrians or cyclists on a segment, edge or intersection
+#                   for a stated period) with uko:hasVolumeObservation, uko:volumeMode,
+#                   uko:volumeStatistic, uko:volumeValue, uko:volumePeriodStart,
+#                   uko:volumePeriodEnd, uko:volumeMethod, uko:volumeDirection and
+#                   uko:volumeSource, and the individuals of uko:VolumeMode and uko:VolumeMethod.
+#               (10) O12, smaller additions: uko:maxGradePercent (numeric peak absolute grade
+#                   beside the serialized uko:elevationGradient); uko:typicalLaneWidthM on road
+#                   segments (uko:laneWidth stays on uko:Lane); uko:pavementConditionIndex and
+#                   uko:pavementConditionDate; uko:isRealTime on uko:DataSource; and
+#                   uko:annualEnplanements with uko:enplanementYear on uko:Airport.
 #    - v15.6.0: Consistency and GKG-build release, coordinated release 2026-11-20 (release set:
 #               UKO v15.6.0, TKO v8.5.0, MLO v1.7.1, REO v1.6.2, FKO v1.2.2; Synapse Partners).
 #               (1) Declared seven classes and three annotation properties that 15.5 used but
@@ -150,8 +169,8 @@
     owl:versionIRI <urn:urban-kg:15.7.0> ;
     owl:priorVersion <urn:urban-kg:15.6.0> ;
     dcterms:title "Urban Knowledge Ontology (UKO) v15.7.0"@en ;
-    dcterms:description "Comprehensive neurosymbolic ontology for urban geospatial knowledge graphs. Companion ontologies: TKO v8.5.1, MLO v1.7.2, REO v1.6.3, FKO v1.2.3 (coordinated release 2026-11-22). UKO is the foundational ontology and has no imports. Event-to-segment links are defined in REO via reo:affectsSegment to maintain an acyclic ontology import graph."@en ;
-    rdfs:comment "Version 15.7.0 widens eight property domains that the GKG full build found too narrow (sharesBuildingWith, insideMall, partOfChain, operatedByOrg, nearestTransitStop, hasDataSource, pathThroughCommonSpace, constrainsSegment) and makes schools and hospitals vulnerable-population facilities. Version 15.6.0 declares every UKO term the stack uses, repairs the class hierarchy (IntersectionNode, Trail, SpatialEntity), adds rail segments, priority development areas, distance measurements to landmarks and districts, reified edge provenance, and crash-derivation annotations. Version 15.5.0 delivers the Causal Effect Library effect-attribute complement (making GKG Subgraph 3 fully ontology-generated), the equity/air-quality and shared-mobility (GBFS/MDS) extensions, GTFS Pathways and Fares v2 support, and folds in the v15.4.1 weather-conditional operational constraint patch. Version 15.4.0 integrated Sevtsuk/Basu Urban Network Analysis (UNA) requirements, establishing a Multiplex Graph architecture connecting pedestrian and vehicular layers. Building on v15.2.0 which removed the erroneous import of <urn:synapse:tko:>, removed redundant file concatenations, and downgraded compoundConditionRiskMap keys to a 2D format."@en .
+    dcterms:description "Comprehensive neurosymbolic ontology for urban geospatial knowledge graphs. Companion ontologies: TKO v8.5.1, MLO v1.7.2, REO v1.7.0, FKO v1.2.3 (coordinated release 2026-11-22). UKO is the foundational ontology and has no imports. Event-to-segment links are defined in REO via reo:affectsSegment to maintain an acyclic ontology import graph."@en ;
+    rdfs:comment "Version 15.7.0 widens eight property domains that the GKG full build found too narrow (sharesBuildingWith, insideMall, partOfChain, operatedByOrg, nearestTransitStop, hasDataSource, pathThroughCommonSpace, constrainsSegment), makes schools and hospitals vulnerable-population facilities, and adds intersection control types, traffic and pedestrian volume observations, numeric maximum grade, lane width, pavement condition, a real-time flag on data sources and airport enplanements. Version 15.6.0 declares every UKO term the stack uses, repairs the class hierarchy (IntersectionNode, Trail, SpatialEntity), adds rail segments, priority development areas, distance measurements to landmarks and districts, reified edge provenance, and crash-derivation annotations. Version 15.5.0 delivers the Causal Effect Library effect-attribute complement (making GKG Subgraph 3 fully ontology-generated), the equity/air-quality and shared-mobility (GBFS/MDS) extensions, GTFS Pathways and Fares v2 support, and folds in the v15.4.1 weather-conditional operational constraint patch. Version 15.4.0 integrated Sevtsuk/Basu Urban Network Analysis (UNA) requirements, establishing a Multiplex Graph architecture connecting pedestrian and vehicular layers. Building on v15.2.0 which removed the erroneous import of <urn:synapse:tko:>, removed redundant file concatenations, and downgraded compoundConditionRiskMap keys to a 2D format."@en .
 
 #################################################################
 #    PART 1: FOUNDATIONAL CLASSES
@@ -1018,17 +1037,17 @@ uko:Intersection rdf:type owl:Class ;
 
 uko:SignalizedIntersection rdf:type owl:Class ;
     rdfs:subClassOf uko:Intersection ;
-    rdfs:comment "An intersection with traffic signals"@en ;
+    rdfs:comment "An intersection with traffic signals. A GKG uko:IntersectionNode states the same fact with uko:hasControlType uko:CONTROL_SIGNAL (UKO 15.7)."@en ;
     rdfs:label "Signalized Intersection"@en .
 
 uko:StopControlledIntersection rdf:type owl:Class ;
     rdfs:subClassOf uko:Intersection ;
-    rdfs:comment "An intersection with stop signs"@en ;
+    rdfs:comment "An intersection with stop signs. A GKG uko:IntersectionNode states the same fact with uko:hasControlType uko:CONTROL_ALL_WAY_STOP or uko:CONTROL_MINOR_STOP (UKO 15.7)."@en ;
     rdfs:label "Stop Controlled Intersection"@en .
 
 uko:Roundabout rdf:type owl:Class ;
     rdfs:subClassOf uko:Intersection ;
-    rdfs:comment "A circular intersection"@en ;
+    rdfs:comment "A circular intersection. A GKG uko:IntersectionNode states the same fact with uko:hasControlType uko:CONTROL_ROUNDABOUT (UKO 15.7)."@en ;
     rdfs:label "Roundabout"@en .
 
 uko:Junction rdf:type owl:Class ;
@@ -5561,6 +5580,166 @@ uko:gtfsFaresVersion rdf:type owl:DatatypeProperty ;
     rdfs:range xsd:string ;
     rdfs:label "GTFS fares version"@en ;
     rdfs:comment "Which GTFS fares specification the fare product came from: 'v1' (fare_attributes.txt) or 'v2' (fare_products.txt). UKO's FareProduct follows Fares v2; v1 rows are admitted and labeled."@en .
+
+###############################################################################
+#    v15.7.0 ADDITIONS (2026-11-22)
+#    Items O2, O3 and O12 of the ontology sufficiency audit, part 1 (section 4).
+###############################################################################
+
+### (8) O2: intersection control type ###
+
+uko:IntersectionControlType rdf:type owl:Class ;
+    rdfs:label "Intersection Control Type"@en ;
+    rdfs:comment "How traffic is controlled where roads meet. The individuals below are the values of uko:hasControlType. Typical sources: OpenStreetMap tags highway=traffic_signals, junction=roundabout, highway=stop with stop=all or stop=minor, highway=give_way; city signal inventories."@en .
+
+uko:CONTROL_SIGNAL rdf:type owl:NamedIndividual, uko:IntersectionControlType ;
+    rdfs:label "traffic signal"@en .
+uko:CONTROL_ROUNDABOUT rdf:type owl:NamedIndividual, uko:IntersectionControlType ;
+    rdfs:label "roundabout"@en .
+uko:CONTROL_ALL_WAY_STOP rdf:type owl:NamedIndividual, uko:IntersectionControlType ;
+    rdfs:label "all-way stop"@en .
+uko:CONTROL_MINOR_STOP rdf:type owl:NamedIndividual, uko:IntersectionControlType ;
+    rdfs:label "minor-road stop"@en ;
+    rdfs:comment "Stop signs on the minor approaches only (two-way stop)."@en .
+uko:CONTROL_YIELD rdf:type owl:NamedIndividual, uko:IntersectionControlType ;
+    rdfs:label "yield"@en .
+uko:CONTROL_UNCONTROLLED rdf:type owl:NamedIndividual, uko:IntersectionControlType ;
+    rdfs:label "uncontrolled"@en ;
+    rdfs:comment "The source states that no signal, stop or yield control exists."@en .
+uko:CONTROL_UNKNOWN rdf:type owl:NamedIndividual, uko:IntersectionControlType ;
+    rdfs:label "unknown"@en ;
+    rdfs:comment "No source states the control. Kept apart from uncontrolled, because missing tags are not evidence of no control."@en .
+
+uko:hasControlType rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( uko:IntersectionNode uko:Intersection ) ] ;
+    rdfs:range uko:IntersectionControlType ;
+    rdfs:label "has control type"@en ;
+    rdfs:comment "The control type of an intersection node or intersection. One value per node; where approaches differ, the most restrictive control applies (signal, then roundabout, then all-way stop, then minor-road stop, then yield). Not derived from crash data."@en .
+
+### (9) O3: traffic, pedestrian and cyclist volume ###
+
+uko:TrafficVolumeObservation rdf:type owl:Class ;
+    rdfs:label "Traffic Volume Observation"@en ;
+    rdfs:comment "A count or an estimate of how many motor vehicles, trucks, pedestrians or cyclists pass a road segment, a pedestrian edge or an intersection, for a stated statistic and period, by a stated method, from a stated source. Turns crash counts into crash rates (exposure)."@en .
+
+uko:hasVolumeObservation rdf:type owl:ObjectProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( uko:RoadSegment uko:PedestrianNetworkEdge uko:IntersectionNode ) ] ;
+    rdfs:range uko:TrafficVolumeObservation ;
+    rdfs:label "has volume observation"@en ;
+    rdfs:comment "Links a segment, a pedestrian edge or an intersection node to a volume observation. A feature may have many observations (modes, years, directions, methods)."@en .
+
+uko:VolumeMode rdf:type owl:Class ;
+    rdfs:label "Volume Mode"@en ;
+    rdfs:comment "What a volume observation counts."@en .
+uko:VOLUME_MOTOR_VEHICLE rdf:type owl:NamedIndividual, uko:VolumeMode ;
+    rdfs:label "motor vehicles (all)"@en .
+uko:VOLUME_TRUCK rdf:type owl:NamedIndividual, uko:VolumeMode ;
+    rdfs:label "trucks"@en .
+uko:VOLUME_PEDESTRIAN rdf:type owl:NamedIndividual, uko:VolumeMode ;
+    rdfs:label "pedestrians"@en .
+uko:VOLUME_BICYCLE rdf:type owl:NamedIndividual, uko:VolumeMode ;
+    rdfs:label "cyclists"@en .
+
+uko:VolumeMethod rdf:type owl:Class ;
+    rdfs:label "Volume Method"@en ;
+    rdfs:comment "How a volume figure was obtained."@en .
+uko:VOLUME_PERMANENT_COUNTER rdf:type owl:NamedIndividual, uko:VolumeMethod ;
+    rdfs:label "permanent counter"@en .
+uko:VOLUME_SHORT_COUNT rdf:type owl:NamedIndividual, uko:VolumeMethod ;
+    rdfs:label "short-duration count, factored"@en ;
+    rdfs:comment "A count of hours or days expanded to the stated statistic with seasonal and day-of-week factors."@en .
+uko:VOLUME_MODEL_ESTIMATE rdf:type owl:NamedIndividual, uko:VolumeMethod ;
+    rdfs:label "model estimate"@en ;
+    rdfs:comment "A travel-demand model or statistical estimate, with no count on this feature."@en .
+uko:VOLUME_PROBE_EXPANSION rdf:type owl:NamedIndividual, uko:VolumeMethod ;
+    rdfs:label "probe data, expanded"@en ;
+    rdfs:comment "Connected-vehicle, phone or app samples expanded to totals."@en .
+
+uko:volumeMode rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range uko:VolumeMode ;
+    rdfs:label "volume mode"@en .
+
+uko:volumeMethod rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range uko:VolumeMethod ;
+    rdfs:label "volume method"@en .
+
+uko:volumeSource rdf:type owl:ObjectProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range uko:DataSource ;
+    rdfs:label "volume source"@en ;
+    rdfs:comment "The data source the figure comes from (for example a state DOT traffic census, HPMS, a city count program)."@en .
+
+uko:volumeStatistic rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range xsd:string ;
+    rdfs:label "volume statistic"@en ;
+    rdfs:comment "What the value measures: 'AADT' (annual average daily), 'AAWDT' (annual average weekday daily), 'ADT' (average daily over the stated period), 'PEAK_HOUR', or 'COUNT' (total over the stated period)."@en .
+
+uko:volumeValue rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "volume value"@en ;
+    rdfs:comment "The figure itself, in persons or vehicles for the stated statistic."@en .
+
+uko:volumePeriodStart rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range uko:CalendarDate ;
+    rdfs:label "volume period start"@en .
+
+uko:volumePeriodEnd rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range uko:CalendarDate ;
+    rdfs:label "volume period end"@en .
+
+uko:volumeDirection rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:TrafficVolumeObservation ;
+    rdfs:range xsd:string ;
+    rdfs:label "volume direction"@en ;
+    rdfs:comment "'both' for two-way totals, otherwise 'forward' or 'backward' relative to the segment's digitized direction."@en .
+
+### (10) O12: smaller additions ###
+
+uko:maxGradePercent rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain [ rdf:type owl:Class ; owl:unionOf ( uko:RoadSegment uko:PedestrianNetworkEdge ) ] ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "maximum grade (percent)"@en ;
+    rdfs:comment "The steepest absolute grade along the segment, in percent, as a number that queries can filter on. The full profile stays in uko:elevationGradient."@en .
+
+uko:typicalLaneWidthM rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "typical lane width (m)"@en ;
+    rdfs:comment "Width of a typical through lane on the segment, in meters. uko:laneWidth keeps the width of an individual uko:Lane."@en .
+
+uko:pavementConditionIndex rdf:type owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "pavement condition index"@en ;
+    rdfs:comment "Pavement Condition Index on the 0 to 100 scale (100 = new). Record the survey date in uko:pavementConditionDate."@en .
+
+uko:pavementConditionDate rdf:type owl:DatatypeProperty ;
+    rdfs:domain uko:RoadSegment ;
+    rdfs:range uko:CalendarDate ;
+    rdfs:label "pavement condition date"@en .
+
+uko:isRealTime rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:DataSource ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is real-time"@en ;
+    rdfs:comment "True when the source publishes live data (for example GTFS Realtime vehicle positions or trip updates); false for static releases."@en .
+
+uko:annualEnplanements rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:Airport ;
+    rdfs:range xsd:integer ;
+    rdfs:label "annual enplanements"@en ;
+    rdfs:comment "Passengers boarding at the airport in one calendar year (enplanements). The GKG stores the most recent published year, named in uko:enplanementYear."@en .
+
+uko:enplanementYear rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain uko:Airport ;
+    rdfs:range xsd:integer ;
+    rdfs:label "enplanement year"@en .
 
 ###############################################################################
 #    END OF UKO v15.7.0 ONTOLOGY

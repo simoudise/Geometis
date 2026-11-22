@@ -121,6 +121,7 @@ reo:IcyRoadwayEvent	reo:Event
 reo:IcyRoadwayEvent	reo:IcyRoadwayEvent
 reo:IcyRoadwayEvent	reo:RouteEvent
 reo:IcyRoadwayEvent	reo:WeatherEvent
+reo:KABCOSeverity	reo:KABCOSeverity
 reo:LaneClosureEvent	reo:Event
 reo:LaneClosureEvent	reo:LaneClosureEvent
 reo:LaneClosureEvent	reo:RoadClosureEvent
@@ -212,6 +213,7 @@ reo:SevereCongestionEvent	reo:Event
 reo:SevereCongestionEvent	reo:RouteEvent
 reo:SevereCongestionEvent	reo:SevereCongestionEvent
 reo:SevereCongestionEvent	reo:TrafficIncidentEvent
+reo:SeverityCodeMapping	reo:SeverityCodeMapping
 reo:SleetEvent	reo:Event
 reo:SleetEvent	reo:HeavyPrecipitationEvent
 reo:SleetEvent	reo:RouteEvent
@@ -1593,6 +1595,7 @@ uko:Intersection	uko:LinearFeature
 uko:Intersection	uko:PhysicalStructure
 uko:Intersection	uko:RoadInfrastructure
 uko:Intersection	uko:SpatialEntity
+uko:IntersectionControlType	uko:IntersectionControlType
 uko:IntersectionNode	geo:Feature
 uko:IntersectionNode	uko:GeographicFeature
 uko:IntersectionNode	uko:IntersectionNode
@@ -2902,6 +2905,7 @@ uko:TrafficSignalTiming	uko:GeographicFeature
 uko:TrafficSignalTiming	uko:RoadFeature
 uko:TrafficSignalTiming	uko:SpatialEntity
 uko:TrafficSignalTiming	uko:TrafficSignalTiming
+uko:TrafficVolumeObservation	uko:TrafficVolumeObservation
 uko:Trail	geo:Feature
 uko:Trail	uko:GeographicFeature
 uko:Trail	uko:LinearFeature
@@ -3046,6 +3050,8 @@ uko:VisionZeroCorridorArea	uko:SpatialEntity
 uko:VisionZeroCorridorArea	uko:TransportationSafetyFeature
 uko:VisionZeroCorridorArea	uko:VisionZeroCorridorArea
 uko:VisionZeroStatus	uko:VisionZeroStatus
+uko:VolumeMethod	uko:VolumeMethod
+uko:VolumeMode	uko:VolumeMode
 uko:VulnerableExposureProfile	uko:AnalysisProduct
 uko:VulnerableExposureProfile	uko:VulnerableExposureProfile
 uko:VulnerablePopulationFacility	geo:Feature

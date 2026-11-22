@@ -6,7 +6,7 @@ admit, and the build had to assert extra types for schools, hospitals and pedest
 UKO 15.7 on November 22. Run from 01-ontologies/: python tools/make_uko_15_7.py
 """
 SRC, DST = "uko_ontology_v15_6.ttl", "uko_ontology_v15_7.ttl"
-SET = "UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.6.3, FKO v1.2.3"
+SET = "UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.7.0, FKO v1.2.3"
 s = open(SRC, encoding="utf-8").read()
 
 
@@ -45,6 +45,25 @@ rep("#    Change Log:\n", f"""#    Change Log:
 #               (7) uko:School is a uko:ChildFacility (and so a uko:VulnerablePopulationFacility);
 #                   uko:Hospital is a uko:VulnerablePopulationFacility (Evangelos's decision B1,
 #                   2026-11-20: schools and hospitals count as vulnerable-population facilities).
+#               Items from the ontology sufficiency audit, part 1 (2026-11-22, section 4), which
+#               Evangelos asked to include in 15.7:
+#               (8) O2, intersection control: uko:IntersectionControlType with seven individuals
+#                   (signal, roundabout, all-way stop, minor-road stop, yield, uncontrolled,
+#                   unknown) and uko:hasControlType on uko:IntersectionNode and uko:Intersection.
+#                   uko:SignalizedIntersection, uko:StopControlledIntersection and uko:Roundabout
+#                   stay under uko:Intersection; their comments point to the control type, so a
+#                   GKG node can state its control without becoming a uko:Intersection.
+#               (9) O3, exposure: uko:TrafficVolumeObservation (a count or estimate of motor
+#                   vehicles, trucks, pedestrians or cyclists on a segment, edge or intersection
+#                   for a stated period) with uko:hasVolumeObservation, uko:volumeMode,
+#                   uko:volumeStatistic, uko:volumeValue, uko:volumePeriodStart,
+#                   uko:volumePeriodEnd, uko:volumeMethod, uko:volumeDirection and
+#                   uko:volumeSource, and the individuals of uko:VolumeMode and uko:VolumeMethod.
+#               (10) O12, smaller additions: uko:maxGradePercent (numeric peak absolute grade
+#                   beside the serialized uko:elevationGradient); uko:typicalLaneWidthM on road
+#                   segments (uko:laneWidth stays on uko:Lane); uko:pavementConditionIndex and
+#                   uko:pavementConditionDate; uko:isRealTime on uko:DataSource; and
+#                   uko:annualEnplanements with uko:enplanementYear on uko:Airport.
 """)
 
 # Ontology header triples
@@ -52,12 +71,14 @@ rep("owl:versionIRI <urn:urban-kg:15.6.0> ;\n    owl:priorVersion <urn:urban-kg:
     "owl:versionIRI <urn:urban-kg:15.7.0> ;\n    owl:priorVersion <urn:urban-kg:15.6.0> ;")
 rep('dcterms:title "Urban Knowledge Ontology (UKO) v15.6.0"@en ;', 'dcterms:title "Urban Knowledge Ontology (UKO) v15.7.0"@en ;')
 rep("Companion ontologies: TKO v8.5.0, MLO v1.7.1, REO v1.6.2, FKO v1.2.2 (coordinated release 2026-11-20).",
-    "Companion ontologies: TKO v8.5.1, MLO v1.7.2, REO v1.6.3, FKO v1.2.3 (coordinated release 2026-11-22).")
+    "Companion ontologies: TKO v8.5.1, MLO v1.7.2, REO v1.7.0, FKO v1.2.3 (coordinated release 2026-11-22).")
 rep('rdfs:comment "Version 15.6.0 declares',
     'rdfs:comment "Version 15.7.0 widens eight property domains that the GKG full build found too narrow '
     '(sharesBuildingWith, insideMall, partOfChain, operatedByOrg, nearestTransitStop, hasDataSource, '
-    'pathThroughCommonSpace, constrainsSegment) and makes schools and hospitals vulnerable-population '
-    'facilities. Version 15.6.0 declares')
+    'pathThroughCommonSpace, constrainsSegment), makes schools and hospitals vulnerable-population '
+    'facilities, and adds intersection control types, traffic and pedestrian volume observations, numeric '
+    'maximum grade, lane width, pavement condition, a real-time flag on data sources and airport '
+    'enplanements. Version 15.6.0 declares')
 
 # (1) sharesBuildingWith
 rep('''uko:sharesBuildingWith rdf:type owl:ObjectProperty, owl:SymmetricProperty ;
@@ -131,6 +152,17 @@ rep('''uko:School rdf:type owl:Class ;
     '''uko:School rdf:type owl:Class ;
     rdfs:subClassOf uko:EducationalFacility, uko:ChildFacility ;''')
 
-rep("#    END OF UKO v15.6.0 ONTOLOGY", "#    END OF UKO v15.7.0 ONTOLOGY")
+# (8) O2: comments on the intersection control classes
+for cls, old, ind in (("SignalizedIntersection", "An intersection with traffic signals", "uko:CONTROL_SIGNAL"),
+                      ("StopControlledIntersection", "An intersection with stop signs", "uko:CONTROL_ALL_WAY_STOP or uko:CONTROL_MINOR_STOP"),
+                      ("Roundabout", "A circular intersection", "uko:CONTROL_ROUNDABOUT")):
+    rep(f'uko:{cls} rdf:type owl:Class ;\n    rdfs:subClassOf uko:Intersection ;\n    rdfs:comment "{old}"@en ;',
+        f'uko:{cls} rdf:type owl:Class ;\n    rdfs:subClassOf uko:Intersection ;\n    rdfs:comment "{old}. A GKG '
+        f'uko:IntersectionNode states the same fact with uko:hasControlType {ind} (UKO 15.7)."@en ;')
+
+# (8)-(10) appended declarations
+ADD = open("tools/uko_15_7_additions.ttl", encoding="utf-8").read()
+rep("###############################################################################\n#    END OF UKO v15.6.0 ONTOLOGY",
+    ADD + "###############################################################################\n#    END OF UKO v15.7.0 ONTOLOGY")
 open(DST, "w", encoding="utf-8").write(s)
 print("wrote", DST)

@@ -1,7 +1,7 @@
 #################################################################
 #
 #    Route Event Ontology (REO)
-#    Version 1.6.3 - Neurosymbolic Urban Mobility System
+#    Version 1.7.0 - Neurosymbolic Urban Mobility System
 #
 #    Purpose: Formal vocabulary for transportation events and their
 #    operational significance across fleet types. Models:
@@ -17,14 +17,37 @@
 #    Synapse Partners, LLC
 #
 #    Import graph (acyclic):
-#    UKO v15.5.0 ← (imported by) REO v1.6.1
-#    TKO v8.4.0  ← (imported by) REO v1.6.1
-#    MLO v1.7.0  ← (imported by) REO v1.6.1
+#    UKO v15.7.0 ← (imported by) REO v1.7.0
+#    TKO v8.5.1  ← (imported by) REO v1.7.0
+#    MLO v1.7.2  ← (imported by) REO v1.7.0
 #    REO is the terminal ontology in the import chain.
 #
 #    Change Log:
-#    - v1.6.3: Coordinated release 2026-11-22 (release set: UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.6.3, FKO v1.2.3).
-#              (1) Imports UKO v15.7.0, TKO v8.5.1 and MLO v1.7.2. Import alignment only; no term added or changed.
+#    - v1.7.0: Coordinated release 2026-11-22 (release set: UKO v15.7.0, TKO v8.5.1, MLO v1.7.2, REO v1.7.0, FKO v1.2.3).
+#              (1) Imports UKO v15.7.0, TKO v8.5.1 and MLO v1.7.2.
+#              Item O1 of the ontology sufficiency audit, part 1 (2026-11-22, section 4):
+#              (2) reo:onRoadSegment links a historical incident record to the road segment it
+#                  occurred on, for midblock crashes and crashes near an intersection alike.
+#                  reo:affectsSegment cannot serve: its domain is reo:Event, and a historical
+#                  record is not an event. The old class comment named reo:affectsSegment and is
+#                  corrected.
+#              (3) A common severity scale: reo:KABCOSeverity with the five KABCO individuals
+#                  (K fatal, A suspected serious injury, B suspected minor injury, C possible
+#                  injury, O no apparent injury) and reo:hasKABCOSeverity (crash level: the most
+#                  severe injury in the crash).
+#              (4) A per-state mapping table: reo:SeverityCodeMapping individuals that map a
+#                  source system's severity code to KABCO. California SWITRS COLLISION_SEVERITY
+#                  codes 1, 2, 3, 4 and 0 are included; other states add their rows.
+#              (5) Source-neutral crash fields: the HistoricalIncidentRecord fields keep their
+#                  names; their comments now name the California SWITRS field as one mapping,
+#                  reo:incidentState records the state, and reo:sourceSegmentKey and
+#                  reo:sourceIntersectionKey generalize the San Francisco CNN keys (now their
+#                  subproperties).
+#              (6) Crash-derived marks: reo:HistoricalIncidentRecord and every property whose
+#                  domain it is carry uko:derivedFromCrashData, so exports for crash-prediction
+#                  tests drop them by rule.
+#              Not included: a class for police-reported incidents other than collisions (audit
+#              question T3-9), which waits for Evangelos's decision on the outcome scope.
 #    - v1.6.2: Coordinated release 2026-11-20 (release set: UKO v15.6.0, TKO v8.5.0, MLO v1.7.1, REO v1.6.2, FKO v1.2.2).
 #              (1) Imports UKO v15.6.0, TKO v8.5.0 and MLO v1.7.1.
 #              (2) reo:sensitivityLabel and reo:sensitivityRationale change range from xsd:string
@@ -88,14 +111,14 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 <urn:route-event-kg:> rdf:type owl:Ontology ;
-    owl:versionIRI <urn:route-event-kg:1.6.3> ;
+    owl:versionIRI <urn:route-event-kg:1.7.0> ;
     owl:priorVersion <urn:route-event-kg:1.6.2> ;
     owl:imports <urn:urban-kg:15.7.0> ;
     owl:imports <urn:trip-kg:8.5.1> ;
     owl:imports <urn:mobility-label-kg:1.7.2> ;
-    dcterms:title "Route Event Ontology (REO) v1.6.3"@en ;
+    dcterms:title "Route Event Ontology (REO) v1.7.0"@en ;
     dcterms:description "Formal vocabulary for transportation events and their operational significance for fleet routing decisions. REO connects the static road network knowledge in UKO, the behavioral trip knowledge in TKO, and the fleet persona definitions in MLO to support dynamic, prospective route risk monitoring. The central design artifact is reo:FleetEventSensitivity, which encodes how each combination of event type, fleet persona, and trip intent should weight safety, ETA, and cost considerations — and at what risk tier threshold the dispatcher should receive a reroute recommendation."@en ;
-    rdfs:comment "v1.6.3 imports UKO v15.7.0, TKO v8.5.1 and MLO v1.7.2; no term changes. v1.6.2 is a coordinated-release alignment to UKO v15.6.0, TKO v8.5.0 and MLO v1.7.1, and declares reo:PRIORITY_MODERATE. v1.6.1 is a coordinated-release import alignment (TKO v8.4.0, MLO v1.7.0, release set 2026-09-19); no new terms. v1.6.0 adds air-quality and public-safety event classes, the LaneClosureEvent hierarchy fix, and the formalized collision flags on HistoricalIncidentRecord; pins the coordinated-release import set. v1.5.0 updated imports for the UNA multiplex graph integration and introduced active mobility event classes."@en ;
+    rdfs:comment "v1.7.0 imports UKO v15.7.0, TKO v8.5.1 and MLO v1.7.2 and adds a crash-to-segment relation, the KABCO severity scale with a per-state mapping table, and source-neutral crash fields. v1.6.2 is a coordinated-release alignment to UKO v15.6.0, TKO v8.5.0 and MLO v1.7.1, and declares reo:PRIORITY_MODERATE. v1.6.1 is a coordinated-release import alignment (TKO v8.4.0, MLO v1.7.0, release set 2026-09-19); no new terms. v1.6.0 adds air-quality and public-safety event classes, the LaneClosureEvent hierarchy fix, and the formalized collision flags on HistoricalIncidentRecord; pins the coordinated-release import set. v1.5.0 updated imports for the UNA multiplex graph integration and introduced active mobility event classes."@en ;
     dcterms:creator "Synapse Partners, LLC"@en ;
     dcterms:rights "Confidential and Proprietary to Synapse Partners, LLC"@en .
 
@@ -1415,7 +1438,7 @@ reo:hasCollisionCausationFactor rdf:type owl:ObjectProperty ;
 
 reo:HistoricalIncidentRecord rdf:type owl:Class ;
     rdfs:label "Historical Incident Record"@en ;
-    rdfs:comment "An archival police-reported vehicle collision record ingested from an official collision database (SWITRS for California, NYPD MV-104 for New York, or equivalent). HistoricalIncidentRecord is distinct from live RouteEvent subclasses: it is a durable historical data point, not an ephemeral event. It is stored in the NebulaGraph GKG trip history subgraph alongside tko:Trip records, linked to uko:RoadSegment and uko:IntersectionNode via reo:affectsSegment and reo:atIntersectionNode. It is never read by the Dynamic Risk Monitor at runtime; it is consumed only by the Historical Incident Data Ingestion Pipeline during Setup and Learning Phase to compute aggregated analytics properties."@en ;
+    rdfs:comment "An archival police-reported vehicle collision record ingested from an official collision database (SWITRS for California, NYPD MV-104 for New York, or equivalent). HistoricalIncidentRecord is distinct from live RouteEvent subclasses: it is a durable historical data point, not an ephemeral event. It is stored in the NebulaGraph GKG trip history subgraph alongside tko:Trip records, linked to uko:RoadSegment and uko:IntersectionNode via reo:onRoadSegment (from REO 1.7.0) and reo:atIntersectionNode. Field comments name the California SWITRS source field as the reference mapping; adapters for other states map their own fields to the same properties, and reo:incidentSourceSystem and reo:incidentState say which mapping applies. It is never read by the Dynamic Risk Monitor at runtime; it is consumed only by the Historical Incident Data Ingestion Pipeline during Setup and Learning Phase to compute aggregated analytics properties."@en ;
     rdfs:isDefinedBy <urn:route-event-kg:> .
 
 # Core record identification
@@ -1435,13 +1458,13 @@ reo:incidentDatetime rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:dateTime ;
     rdfs:label "incident datetime"@en ;
-    rdfs:comment "Date and time of the collision. Maps to SWITRS collision_datetime. Used for temporal analytics (time-of-day and day-of-week patterns)."@en .
+    rdfs:comment "Date and time of the collision. California SWITRS field: collision_datetime. Used for temporal analytics (time-of-day and day-of-week patterns)."@en .
 
 reo:incidentYear rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:integer ;
     rdfs:label "incident year"@en ;
-    rdfs:comment "Calendar year of the collision. Maps to SWITRS accident_year. Used for year-range filtering during analytics computation."@en .
+    rdfs:comment "Calendar year of the collision. California SWITRS field: accident_year. Used for year-range filtering during analytics computation."@en .
 
 reo:incidentTimeCategory rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
@@ -1453,32 +1476,32 @@ reo:incidentDayOfWeek rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "incident day of week"@en ;
-    rdfs:comment "Day of week of the collision. Maps to SWITRS day_of_week."@en .
+    rdfs:comment "Day of week of the collision. California SWITRS field: day_of_week."@en .
 
 # Location
 reo:incidentLatitude rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:decimal ;
     rdfs:label "incident latitude"@en ;
-    rdfs:comment "WGS-84 latitude of the collision point. Maps to SWITRS tb_latitude."@en .
+    rdfs:comment "WGS-84 latitude of the collision point. California SWITRS field: tb_latitude."@en .
 
 reo:incidentLongitude rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:decimal ;
     rdfs:label "incident longitude"@en ;
-    rdfs:comment "WGS-84 longitude of the collision point. Maps to SWITRS tb_longitude."@en .
+    rdfs:comment "WGS-84 longitude of the collision point. California SWITRS field: tb_longitude."@en .
 
 reo:incidentPrimaryRoad rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "incident primary road"@en ;
-    rdfs:comment "Primary road name at the collision location. Maps to SWITRS primary_rd."@en .
+    rdfs:comment "Primary road name at the collision location. California SWITRS field: primary_rd."@en .
 
 reo:incidentSecondaryRoad rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "incident secondary road"@en ;
-    rdfs:comment "Cross-street name at the collision location. Maps to SWITRS secondary_rd. Null for midblock incidents."@en .
+    rdfs:comment "Cross-street name at the collision location. California SWITRS field: secondary_rd. Null for midblock incidents."@en .
 
 reo:isAtIntersection rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
@@ -1487,12 +1510,14 @@ reo:isAtIntersection rdf:type owl:DatatypeProperty ;
     rdfs:comment "True if the collision occurred at or within 20 feet of an intersection. Derived from SWITRS intersection field ('Intersection <= 20ft' → true; 'Midblock > 20ft' → false). Determines whether the record is matched to a uko:IntersectionNode (true) or a uko:RoadSegment midblock (false)."@en .
 
 reo:cnnIntersectionKey rdf:type owl:DatatypeProperty ;
+    rdfs:subPropertyOf reo:sourceIntersectionKey ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "CNN intersection key"@en ;
     rdfs:comment "San Francisco CNN intersection foreign key from SWITRS cnn_intrsctn_fkey. Populated only for SF records. Used for exact-match spatial linking to uko:IntersectionNode."@en .
 
 reo:cnnSegmentKey rdf:type owl:DatatypeProperty ;
+    rdfs:subPropertyOf reo:sourceSegmentKey ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "CNN segment key"@en ;
@@ -1515,38 +1540,38 @@ reo:incidentWeatherCondition rdf:type owl:ObjectProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range reo:WeatherCondition ;
     rdfs:label "incident weather condition"@en ;
-    rdfs:comment "Weather condition at the time of the collision. Maps to SWITRS weather_1. Used to compute the compound condition risk map."@en .
+    rdfs:comment "Weather condition at the time of the collision. California SWITRS field: weather_1. Used to compute the compound condition risk map."@en .
 
 reo:incidentRoadSurface rdf:type owl:ObjectProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range reo:RoadSurfaceCondition ;
     rdfs:label "incident road surface"@en ;
-    rdfs:comment "Road surface condition at the time of the collision. Maps to SWITRS road_surface."@en .
+    rdfs:comment "Road surface condition at the time of the collision. California SWITRS field: road_surface."@en .
 
 reo:incidentLighting rdf:type owl:ObjectProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range reo:LightingCondition ;
     rdfs:label "incident lighting"@en ;
-    rdfs:comment "Lighting condition at the time of the collision. Maps to SWITRS lighting."@en .
+    rdfs:comment "Lighting condition at the time of the collision. California SWITRS field: lighting."@en .
 
 reo:incidentRoadCondition rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "incident road condition"@en ;
-    rdfs:comment "Additional road condition notes beyond surface type. Maps to SWITRS road_cond_1 (e.g., 'Obstruction on Roadway', 'No Unusual Condition'). Stored as a string rather than a controlled enumeration due to variability across jurisdictions."@en .
+    rdfs:comment "Additional road condition notes beyond surface type. California SWITRS field: road_cond_1 (e.g., 'Obstruction on Roadway', 'No Unusual Condition'). Stored as a string rather than a controlled enumeration due to variability across jurisdictions."@en .
 
 # Collision characteristics
 reo:incidentCollisionType rdf:type owl:ObjectProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range reo:CollisionType ;
     rdfs:label "incident collision type"@en ;
-    rdfs:comment "Physical collision type. Maps to SWITRS type_of_collision, normalized to reo:CollisionType individuals."@en .
+    rdfs:comment "Physical collision type. California SWITRS field: type_of_collision, normalized to reo:CollisionType individuals."@en .
 
 reo:incidentSeverity rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "incident severity"@en ;
-    rdfs:comment "Collision severity from SWITRS collision_severity field. Values: 'Injury (Complaint of Pain)', 'Injury (Other Visible)', 'Injury (Severe)', 'Fatal', 'Property Damage Only'."@en .
+    rdfs:comment "Collision severity as the source system records it, kept verbatim. Compare across states with reo:hasKABCOSeverity. California SWITRS field collision_severity, values: 'Injury (Complaint of Pain)', 'Injury (Other Visible)', 'Injury (Severe)', 'Fatal', 'Property Damage Only'."@en .
 
 reo:incidentCollisionGroup rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
@@ -1558,49 +1583,49 @@ reo:numberKilled rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:integer ;
     rdfs:label "number killed"@en ;
-    rdfs:comment "Number of fatalities. Maps to SWITRS number_killed."@en .
+    rdfs:comment "Number of fatalities. California SWITRS field: number_killed."@en .
 
 reo:numberInjured rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:integer ;
     rdfs:label "number injured"@en ;
-    rdfs:comment "Number of injured parties. Maps to SWITRS number_injured."@en .
+    rdfs:comment "Number of injured parties. California SWITRS field: number_injured."@en .
 
 reo:motorVehicleInvolvedWith rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "motor vehicle involved with"@en ;
-    rdfs:comment "Object or party the vehicle collided with. Maps to SWITRS mviw (e.g., 'Pedestrian', 'Bicycle', 'Parked Motor Vehicle', 'Fixed Object'). Supplements incidentCollisionGroup for finer-grained classification."@en .
+    rdfs:comment "Object or party the vehicle collided with. California SWITRS field: mviw (e.g., 'Pedestrian', 'Bicycle', 'Parked Motor Vehicle', 'Fixed Object'). Supplements incidentCollisionGroup for finer-grained classification."@en .
 
 reo:party1Type rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "party 1 type"@en ;
-    rdfs:comment "Type of the first party in the collision. Maps to SWITRS party1_type (Driver, Bicyclist, Pedestrian). Party 1 is typically the at-fault or initiating party."@en .
+    rdfs:comment "Type of the first party in the collision. California SWITRS field: party1_type (Driver, Bicyclist, Pedestrian). Party 1 is typically the at-fault or initiating party."@en .
 
 reo:party2Type rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "party 2 type"@en ;
-    rdfs:comment "Type of the second party in the collision. Maps to SWITRS party2_type."@en .
+    rdfs:comment "Type of the second party in the collision. California SWITRS field: party2_type."@en .
 
 reo:party1MovementPreAccident rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "party 1 movement pre-accident"@en ;
-    rdfs:comment "Movement of party 1 immediately before the collision. Maps to SWITRS party1_move_pre_acc (e.g., 'Making Left Turn', 'Proceeding Straight', 'Backing'). Used in PCF-movement pattern analytics."@en .
+    rdfs:comment "Movement of party 1 immediately before the collision. California SWITRS field: party1_move_pre_acc (e.g., 'Making Left Turn', 'Proceeding Straight', 'Backing'). Used in PCF-movement pattern analytics."@en .
 
 reo:party2MovementPreAccident rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "party 2 movement pre-accident"@en ;
-    rdfs:comment "Movement of party 2 immediately before the collision. Maps to SWITRS party2_move_pre_acc."@en .
+    rdfs:comment "Movement of party 2 immediately before the collision. California SWITRS field: party2_move_pre_acc."@en .
 
 reo:controlDevice rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "control device"@en ;
-    rdfs:comment "Traffic control device present at the collision location. Maps to SWITRS control_device ('Functioning', 'None', 'Not Stated'). Intersections with control_device = 'None' have a different PCF profile than signalized intersections."@en .
+    rdfs:comment "Traffic control device present at the collision location. California SWITRS field: control_device ('Functioning', 'None', 'Not Stated'). Intersections with control_device = 'None' have a different PCF profile than signalized intersections."@en .
 
 reo:analysisNeighborhood rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
@@ -1612,7 +1637,7 @@ reo:geocodeSource rdf:type owl:DatatypeProperty ;
     rdfs:domain reo:HistoricalIncidentRecord ;
     rdfs:range xsd:string ;
     rdfs:label "geocode source"@en ;
-    rdfs:comment "Source system used to assign geographic coordinates to the record. Maps to SWITRS geocode_source (e.g., 'SFPD-CROSSROADS'). Used to assess coordinate precision."@en .
+    rdfs:comment "Source system used to assign geographic coordinates to the record. California SWITRS field: geocode_source (e.g., 'SFPD-CROSSROADS'). Used to assess coordinate precision."@en .
 
 #################################################################
 #    PART 17: NEW EVENT SOURCE INDIVIDUAL
@@ -1967,5 +1992,203 @@ reo:isVulnerableUserCollision rdf:type owl:DatatypeProperty ;
     rdfs:comment "True when the collision involved any vulnerable road user. Derivation: disjunction over the VRU accident event types (pedestrian OR bicyclist OR other VRU classes such as motorcyclist where the jurisdictional definition includes them), per the Appendix A.4 resolution. Materialized as a convenience boolean because no single REO event class covers the disjunction."@en .
 
 ###############################################################################
-#    END OF REO v1.6.3 ONTOLOGY
+#    v1.7.0 ADDITIONS (2026-11-22)
+#    Item O1 of the ontology sufficiency audit, part 1 (section 4).
+###############################################################################
+
+### (2) Crash to road segment ###
+
+reo:onRoadSegment rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range uko:RoadSegment ;
+    rdfs:label "on road segment"@en ;
+    rdfs:comment "Links a historical incident record to the road segment it occurred on. Midblock crashes and crashes near an intersection both carry it; an intersection crash also carries reo:atIntersectionNode. Record the match quality in reo:matchConfidence. Crash-derived: never an input to a crash-prediction model."@en .
+
+### (3) Common severity scale ###
+
+reo:KABCOSeverity rdf:type owl:Class ;
+    rdfs:label "KABCO Severity"@en ;
+    rdfs:comment "Injury severity on the KABCO scale that US crash reporting shares across states (Model Minimum Uniform Crash Criteria, MMUCC, 5th edition, NHTSA, 2017; citation to be verified against the published guideline). A crash takes the level of its most severe injury."@en .
+
+reo:KABCO_K rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "K: fatal injury"@en .
+reo:KABCO_A rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "A: suspected serious injury"@en .
+reo:KABCO_B rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "B: suspected minor injury"@en .
+reo:KABCO_C rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "C: possible injury"@en .
+reo:KABCO_O rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "O: no apparent injury"@en ;
+    rdfs:comment "Property damage only."@en .
+
+reo:hasKABCOSeverity rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range reo:KABCOSeverity ;
+    rdfs:label "has KABCO severity"@en ;
+    rdfs:comment "The crash's severity on the KABCO scale, set through the reo:SeverityCodeMapping row for the record's source system. Fatal and serious-injury (KSI) crashes are those with K or A."@en .
+
+### (4) Per-state mapping table ###
+
+reo:SeverityCodeMapping rdf:type owl:Class ;
+    rdfs:label "Severity Code Mapping"@en ;
+    rdfs:comment "One row of a mapping table: a source system's crash-severity code and the KABCO level it maps to. Each state's adapter adds its rows."@en .
+
+reo:mappingSourceSystem rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source system"@en ;
+    rdfs:comment "The value of reo:incidentSourceSystem this row applies to, for example 'SWITRS_CA'."@en .
+
+reo:mappingState rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping state"@en ;
+    rdfs:comment "Two-letter postal code of the state, for example 'CA'."@en .
+
+reo:mappingSourceField rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source field"@en .
+
+reo:mappingSourceCode rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source code"@en .
+
+reo:mappingSourceLabel rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source label"@en .
+
+reo:mapsToKABCO rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range reo:KABCOSeverity ;
+    rdfs:label "maps to KABCO"@en .
+
+reo:SEVMAP_SWITRS_CA_1 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "1" ; reo:mappingSourceLabel "Fatal" ; reo:mapsToKABCO reo:KABCO_K .
+reo:SEVMAP_SWITRS_CA_2 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "2" ; reo:mappingSourceLabel "Injury (Severe)" ; reo:mapsToKABCO reo:KABCO_A .
+reo:SEVMAP_SWITRS_CA_3 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "3" ; reo:mappingSourceLabel "Injury (Other Visible)" ; reo:mapsToKABCO reo:KABCO_B .
+reo:SEVMAP_SWITRS_CA_4 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "4" ; reo:mappingSourceLabel "Injury (Complaint of Pain)" ; reo:mapsToKABCO reo:KABCO_C .
+reo:SEVMAP_SWITRS_CA_0 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "0" ; reo:mappingSourceLabel "Property Damage Only" ; reo:mapsToKABCO reo:KABCO_O .
+
+### (5) Source-neutral fields ###
+
+reo:incidentState rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident state"@en ;
+    rdfs:comment "Two-letter postal code of the state where the crash occurred. With reo:incidentSourceSystem it selects the field mapping and the severity mapping rows."@en .
+
+reo:sourceSegmentKey rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "source segment key"@en ;
+    rdfs:comment "The source system's own identifier of the street segment, where it publishes one (San Francisco: CNN segment key, see reo:cnnSegmentKey)."@en .
+
+reo:sourceIntersectionKey rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "source intersection key"@en ;
+    rdfs:comment "The source system's own identifier of the intersection, where it publishes one (San Francisco: CNN intersection key, see reo:cnnIntersectionKey)."@en .
+
+### (6) Crash-derived marks ###
+
+reo:HistoricalIncidentRecord uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:analysisNeighborhood uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:atIntersectionNode uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:cnnIntersectionKey uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:cnnSegmentKey uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:controlDevice uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:geocodeSource uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:hasCollisionCausationFactor uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentCollisionGroup uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentCollisionType uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentDatetime uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentDayOfWeek uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentId uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentLatitude uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentLighting uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentLongitude uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentPrimaryRoad uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentRoadCondition uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentRoadSurface uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentSecondaryRoad uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentSeverity uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentSourceSystem uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentTimeCategory uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentWeatherCondition uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentYear uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:isAtIntersection uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:isBicycleCollision uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:isPedestrianCollision uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:isVulnerableUserCollision uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:matchConfidence uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:motorVehicleInvolvedWith uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:numberInjured uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:numberKilled uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:party1MovementPreAccident uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:party1Type uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:party2MovementPreAccident uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:party2Type uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:onRoadSegment uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:hasKABCOSeverity uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:incidentState uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:sourceSegmentKey uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+reo:sourceIntersectionKey uko:derivedFromCrashData "true"^^xsd:boolean ;
+    uko:crashDerivationBasis "stated" .
+
+###############################################################################
+#    END OF REO v1.7.0 ONTOLOGY
 ###############################################################################

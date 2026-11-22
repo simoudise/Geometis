@@ -1,0 +1,110 @@
+###############################################################################
+#    v1.7.0 ADDITIONS (2026-11-22)
+#    Item O1 of the ontology sufficiency audit, part 1 (section 4).
+###############################################################################
+
+### (2) Crash to road segment ###
+
+reo:onRoadSegment rdf:type owl:ObjectProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range uko:RoadSegment ;
+    rdfs:label "on road segment"@en ;
+    rdfs:comment "Links a historical incident record to the road segment it occurred on. Midblock crashes and crashes near an intersection both carry it; an intersection crash also carries reo:atIntersectionNode. Record the match quality in reo:matchConfidence. Crash-derived: never an input to a crash-prediction model."@en .
+
+### (3) Common severity scale ###
+
+reo:KABCOSeverity rdf:type owl:Class ;
+    rdfs:label "KABCO Severity"@en ;
+    rdfs:comment "Injury severity on the KABCO scale that US crash reporting shares across states (Model Minimum Uniform Crash Criteria, MMUCC, 5th edition, NHTSA, 2017; citation to be verified against the published guideline). A crash takes the level of its most severe injury."@en .
+
+reo:KABCO_K rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "K: fatal injury"@en .
+reo:KABCO_A rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "A: suspected serious injury"@en .
+reo:KABCO_B rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "B: suspected minor injury"@en .
+reo:KABCO_C rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "C: possible injury"@en .
+reo:KABCO_O rdf:type owl:NamedIndividual, reo:KABCOSeverity ;
+    rdfs:label "O: no apparent injury"@en ;
+    rdfs:comment "Property damage only."@en .
+
+reo:hasKABCOSeverity rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range reo:KABCOSeverity ;
+    rdfs:label "has KABCO severity"@en ;
+    rdfs:comment "The crash's severity on the KABCO scale, set through the reo:SeverityCodeMapping row for the record's source system. Fatal and serious-injury (KSI) crashes are those with K or A."@en .
+
+### (4) Per-state mapping table ###
+
+reo:SeverityCodeMapping rdf:type owl:Class ;
+    rdfs:label "Severity Code Mapping"@en ;
+    rdfs:comment "One row of a mapping table: a source system's crash-severity code and the KABCO level it maps to. Each state's adapter adds its rows."@en .
+
+reo:mappingSourceSystem rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source system"@en ;
+    rdfs:comment "The value of reo:incidentSourceSystem this row applies to, for example 'SWITRS_CA'."@en .
+
+reo:mappingState rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping state"@en ;
+    rdfs:comment "Two-letter postal code of the state, for example 'CA'."@en .
+
+reo:mappingSourceField rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source field"@en .
+
+reo:mappingSourceCode rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source code"@en .
+
+reo:mappingSourceLabel rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "mapping source label"@en .
+
+reo:mapsToKABCO rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:SeverityCodeMapping ;
+    rdfs:range reo:KABCOSeverity ;
+    rdfs:label "maps to KABCO"@en .
+
+reo:SEVMAP_SWITRS_CA_1 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "1" ; reo:mappingSourceLabel "Fatal" ; reo:mapsToKABCO reo:KABCO_K .
+reo:SEVMAP_SWITRS_CA_2 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "2" ; reo:mappingSourceLabel "Injury (Severe)" ; reo:mapsToKABCO reo:KABCO_A .
+reo:SEVMAP_SWITRS_CA_3 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "3" ; reo:mappingSourceLabel "Injury (Other Visible)" ; reo:mapsToKABCO reo:KABCO_B .
+reo:SEVMAP_SWITRS_CA_4 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "4" ; reo:mappingSourceLabel "Injury (Complaint of Pain)" ; reo:mapsToKABCO reo:KABCO_C .
+reo:SEVMAP_SWITRS_CA_0 rdf:type owl:NamedIndividual, reo:SeverityCodeMapping ;
+    reo:mappingSourceSystem "SWITRS_CA" ; reo:mappingState "CA" ; reo:mappingSourceField "COLLISION_SEVERITY" ;
+    reo:mappingSourceCode "0" ; reo:mappingSourceLabel "Property Damage Only" ; reo:mapsToKABCO reo:KABCO_O .
+
+### (5) Source-neutral fields ###
+
+reo:incidentState rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "incident state"@en ;
+    rdfs:comment "Two-letter postal code of the state where the crash occurred. With reo:incidentSourceSystem it selects the field mapping and the severity mapping rows."@en .
+
+reo:sourceSegmentKey rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "source segment key"@en ;
+    rdfs:comment "The source system's own identifier of the street segment, where it publishes one (San Francisco: CNN segment key, see reo:cnnSegmentKey)."@en .
+
+reo:sourceIntersectionKey rdf:type owl:DatatypeProperty ;
+    rdfs:domain reo:HistoricalIncidentRecord ;
+    rdfs:range xsd:string ;
+    rdfs:label "source intersection key"@en ;
+    rdfs:comment "The source system's own identifier of the intersection, where it publishes one (San Francisco: CNN intersection key, see reo:cnnIntersectionKey)."@en .
