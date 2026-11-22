@@ -12,8 +12,10 @@ in `docs/gkg-full-data-dictionary.md`. The build report with counts and checks i
   build added `gkg.entity`, `gkg.entity_type`, `gkg.aux_entity`, `gkg.relation_type`, `gkg.provenance`, `gkg.edge`,
   `gkg.distance_measurement`, `gkg.edge_rejected` and `gkg.class_closure`, and the views `gkg.edge_named`,
   `gkg.rel_very_near` and `gkg.edge_for_crash_prediction`.
-- Ontologies: coordinated release 2026-11-22 in `01-ontologies` (UKO 15.7.0, TKO 8.5.1, MLO 1.7.2, REO 1.7.0,
-  FKO 1.2.3). Tests 1 and 2 stay frozen on UKO 15.5.
+- Ontologies: coordinated release 2026-11-22b in `01-ontologies` (UKO 15.8.0, TKO 8.5.2, MLO 1.8.0, REO 1.8.0,
+  FKO 1.2.4; SOSA module in `01-ontologies/external/`).
+- Place statistics and tract fingerprints for San Francisco: `gkg.measured_value` (one row per value, joined to
+  `gkg.entity` by `eid`), `gkg.fingerprint_distance`, and the edges listed in the data dictionary. Tests 1 and 2 stay frozen on UKO 15.5.
 - Method: `docs/gkg-full-methodology.md` is the complete method (inputs, entities, every relation rule, checks,
   how to rebuild).
 - Code: `07-gkg-builder/relations/build.py` (numbered steps; `python -m relations.build STEP ...` reruns one step),

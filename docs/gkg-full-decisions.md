@@ -91,3 +91,9 @@ mapping; and the TIMS weather and road-surface fields as crash-derived REO relat
    are approved as secondary layers (curb and right-of-way violations; dangerous-driving enforcement as a secondary
    outcome only; incidents involving automated vehicles; crash-linked records are crash-derived). The audit chat
    drafts the REO design note and the O4 and O5 notes; this chat implements each only after Evangelos approves it.
+6. Design note "O4 O5 incidents", approved by Evangelos on November 22, 11:34 Pacific (request relayed at 11:48 and
+   again at 13:50): implemented as release 2026-11-22b (UKO 15.8.0, MLO 1.8.0, REO 1.8.0; TKO 8.5.2 and FKO 1.2.4 for
+   imports), commit 3531fef. San Francisco data loaded in the order he set (jobs 226-232). Incident counts wait for
+   the audit chat's source check. Adjustments to the note, recorded in the release change logs: individual names
+   (uko:VAR_*, uko:MODE_*, uko:FACTOR_01-17, uko:GRADED_Q1-Q6); the period as two dates; a fourth REO category group
+   for crash-linked records.

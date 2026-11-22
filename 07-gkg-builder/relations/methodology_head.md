@@ -1,6 +1,6 @@
 # GKG full build: methodology
 
-Version: November 22, 2026. This file is the complete method for the full geospatial knowledge graph (GKG) of San
+Version: November 22, 2026, 14:15 Pacific (ontology release 2026-11-22b). This file is the complete method for the full geospatial knowledge graph (GKG) of San
 Francisco and the five Contra Costa cities (Antioch, Concord, Pittsburg, Pleasant Hill, Walnut Creek). It replaces
 the method notes scattered across the Step 1 inventory, `docs/gkg-full-decisions.md`, the Step 2 feasibility study
 and the Step 3 build report; those files remain as the record of how each decision was reached. The relation-by-relation
@@ -32,15 +32,26 @@ The build ran in three steps, and each step stopped for Evangelos's approval:
 | MTC Priority Development Areas, Plan Bay Area 2050+ | downloaded 2026-11-20 | districts and transit-station anchors |
 | TIMS (SafeTREC) SWITRS crash records | downloaded 2026-11-10 | crash records, collision factors, lighting, weather, road surface (crash-derived only) |
 
+| American Community Survey (ACS) 5-year, table-based summary files | 2020-2024 | tract statistics with margins of error: B01003 population, B19013 median household income, B19001 households by income, B25044 vehicles available, B08301 means of transportation to work |
+| LEHD Origin-Destination Employment Statistics (LODES8), workplace area characteristics, all jobs (S000, JT00), with the LODES8 block crosswalk | 2024 | job counts by block, summed to tracts, the city and H3 cells |
+| 2020 Census block populations and internal points (TIGER/Line 2020 tabblock20, California file) | 2020 | population weights inside San Francisco tracts (factors 3 and 5) |
+| TIGER/Line 2024 tracts and places (ALAND) | 2024 | land area |
+
 The public downloads sit on the Mac mini in `~/geometis-data/gkg/public/2026-11-20/` with `MANIFEST.tsv` (URL, time,
-size, SHA-256 and feature count of each file).
+size, SHA-256 and feature count of each file); the November 22 downloads sit in `~/geometis-data/gkg/public/2026-11-22b/`
+and are listed with their SHA-256 in `gkg.download_manifest`. The ACS files are those the tract stage cached.
 
 ## 3. Ontologies
 
-The build classifies and checks against the coordinated release of November 22, 2026: UKO 15.7.0, TKO 8.5.1,
-MLO 1.7.2, REO 1.7.0 and FKO 1.2.3 (`01-ontologies/`). The generators `tools/make_uko_15_7.py` and
-`tools/make_companions_2026_11_22.py` produce the files from the November 20 release, and each file's header carries
-its change log. `tools/check_stack.py` reports zero problems (no undeclared term, every property with a domain and a
+The build classifies and checks against the coordinated release 2026-11-22b: UKO 15.8.0, TKO 8.5.2, MLO 1.8.0,
+REO 1.8.0 and FKO 1.2.4 (`01-ontologies/`, commit 3531fef). UKO 15.8 imports the SOSA module (Sensor, Observation,
+Sample, and Actuator, the core of the W3C Semantic Sensor Network ontology, Recommendation of October 19, 2017),
+stored with its provenance in `01-ontologies/external/`. `tools/make_release_2026_11_22b.py` produces 15.8 and its
+companions from the earlier release of the same day, which `tools/make_uko_15_7.py` and
+`tools/make_companions_2026_11_22.py` produce from the November 20 release; each file's header carries its change log.
+UKO 15.8, MLO 1.8.0 and REO 1.8.0 implement the design note "O4 O5 incidents" that Evangelos approved on November 22:
+measured values aligned with SOSA, place statistics (O4), the fingerprint (O5), transfer evaluations, and
+police-reported incidents other than collisions, stored as monthly counts. `tools/check_stack.py` reports zero problems (no undeclared term, every property with a domain and a
 range, OWL 2 datatypes only, every import present), and the HermiT reasoner finds the five ontologies consistent,
 also with test individuals of every class and property that 15.7 changed or added.
 
@@ -116,7 +127,7 @@ Tests 1 and 2 stay frozen on UKO 15.5 and its companions.
 
 ## 7. Relation rules
 
-Section 13 lists every relation with its ontology domain and range and the rule the build applies. The rules carry
+Section 14 lists every relation with its ontology domain and range and the rule the build applies. The rules carry
 Evangelos's decisions: the distances of decision B1 (near 200 m, veryNear 50 m, nearTransitStop 400 m, vulnerable
 facilities 200 m, street access 30 m, bike lane and sidewalk 50 m, parking 100 m, truck parking 500 m), the road
 hierarchy of B3, the commercial rule of B4, the transit rules of B5, the High Injury Network rule of B6, the
@@ -145,14 +156,66 @@ Crash records link to REO individuals through SWITRS codes, exact matches only:
 | Primary collision factor category | 01 DUI, 03 unsafe speed, 04 following too closely, 07 unsafe lane change, 21 unsafe starting or backing, 00 unknown; other codes get no edge |
 | Collision severity -> KABCO | 1 fatal K, 2 severe injury A, 3 other visible injury B, 4 complaint of pain C, 0 property damage only O (REO rows reo:SEVMAP_SWITRS_CA_*) |
 
-## 8. Crash-derived relations
+## 8. Place statistics and fingerprints (UKO 15.8)
+
+`relations/stats_build.py` loads these for the San Francisco geofence, in the order Evangelos set: statistics from
+`gkg.census_tract`, then LODES and ACS B08301, then the tract fingerprints.
+
+- **Storage.** Every measured value is an entity (uko:PlaceStatistic or uko:FactorValue) with one row in
+  `gkg.measured_value`: number, unit, margin of error and confidence level, period, procedure, source table and the
+  other value properties of UKO 15.8. Its area, variable, source, procedure and mode are edges.
+- **Tract statistics** (all 261 tracts of the geofence): population, households, median household income,
+  households below 35,000 dollars and at 100,000 dollars or more, share of households with no vehicle (ACS
+  2020-2024), land area (TIGER 2024 ALAND). Margins come from the summary files at the 90 percent level. A sum of
+  lines takes the square root of the summed squared margins; a share uses the Census Bureau's proportion formula and
+  falls back to the ratio formula when the proportion formula fails.
+- **City of San Francisco:** the same figures summed over its 244 tracts (the city and the county coincide), and
+  the land area of the TIGER place (GEOID 0667000). The city's median income is not derived from tract medians.
+- **Jobs:** LODES8 2024 jobs by block, placed by the block's internal point from the LODES crosswalk, summed per
+  tract, for the city, and per H3 cell at resolution 8 for every cell of the city that holds a job. The period
+  recorded is the second quarter of 2024, the LODES reference quarter; this reading of the LODES documentation still
+  needs checking.
+- **Commute mode shares:** ACS B08301, workers 16 and over and the share of each of ten modes per tract and for the
+  city, with margins.
+- **Jobs reachable on foot within 30 minutes** (variable uko:VAR_JOBS_REACHABLE, mode walk, threshold 30): from the
+  tract's population-weighted centroid (2020 block populations), on the walking network, at 4.8 km/h (2,400 m).
+  The walking speed is an assumption; jobs at blocks more than 200 m from the network are not counted. Car and
+  transit reach wait for a router.
+- **Tract fingerprints**, version `sf-tract-v1`, for the 244 San Francisco tracts, with nine components from the
+  factors defined at tract level in the Fingerprint Factor Specification (draft v0.1):
+  - Factor 1, street pattern, on vehicular segments (all road classes except tracks, parking aisles and driveways),
+    each assigned to the tract that holds its midpoint: (a) orientation order phi = 1 - ((H - 1.386)/(3.584 -
+    1.386))^2, with H the Shannon entropy of segment bearings (start to end, on the ellipsoid) in 36 bins of 10
+    degrees centered on multiples of 10, weighted by length and counted in both directions (Boeing 2019); (b)
+    circuity = total segment length / total straight-line distance between segment ends; (c) the shares of
+    intersection nodes with four or more ways and of dead ends, among nodes whose degree is not 2; (d) the median
+    block shape factor (block area / area of the circle on the block's longest internal distance) over the city
+    blocks whose point on surface lies in the tract. Part (d) stores the median, not the full histogram in
+    logarithmic area bins that the specification describes.
+  - Factor 3: jobs reachable on foot within 30 minutes, as above.
+  - Factor 5: share of residents (2020 block populations; the specification's scaling to ACS totals cancels in a
+    share) within 400 m of network walking of a stop with at least four departures in each hour from 07:00 to 19:00,
+    on each feed's stored reference service day (most San Francisco feeds: Wednesday, April 17, 2024; the
+    specification asks for the second Tuesday of the target month). The snap distance of the stop is not added.
+  - Factor 8: median household income and the share of households with no vehicle. The income segregation index
+    is a city-level measure and is computed at query time from the tract income bands.
+  - Reference set `sf-tracts-2026-11-22`: the tracts with population and all nine components (234 of 244). Each
+    component is standardized against it (sample standard deviation). Tracts outside the set keep their raw values
+    and no standardized value.
+  - Distances between every pair of reference-set tracts: weighted Euclidean over the standardized components; each
+    factor weighs 1, split equally over its components (weights version `equal-factor-v1`). Each pair is stored once.
+  - Factor 7's scaling adjustment applies across cities and is not used at tract level (uko:scalingResidual false).
+- **Incident counts** (REO 1.8.0) are not loaded: they wait for the ontology audit chat to confirm each source's
+  fields and licence.
+
+## 9. Crash-derived relations
 
 Eleven relations come from crash data: uko:inHighInjuryNetwork, uko:hinSegmentOf, uko:hasIntersectionRiskProfile and
 the eight REO crash relations, including reo:onRoadSegment and reo:hasKABCOSeverity (REO 1.7.0). Each is marked in `gkg.relation_type` and `gkg.provenance`. A crash-prediction model
 reads edges only through the view `gkg.edge_for_crash_prediction`, which drops these relations and every edge that
 touches a crash record, a risk profile or a High Injury Network entity. Crash records may serve as labels only.
 
-## 9. Checks
+## 10. Checks
 
 `relations/validate.py` writes a JSON file of counts and checks to the Mac mini share (never to the repository):
 
@@ -165,18 +228,20 @@ touches a crash record, a risk profile or a High Injury Network entity. Crash re
 - Geometry: 500 random near distances and 500 random building-in-tract links recomputed from the source geometry.
 - Examples: five random edges for each of 13 relations, with names, for reading by eye.
 
-## 10. Reproducing the build
+## 11. Reproducing the build
 
 On the Mac mini, from `~/Geometis-mini/work/07-gkg-builder`, through the job runner:
 `~/geometis-venv/bin/python -m relations.build [STEP ...]`. The steps run in this order: schema, catalogue,
 entities, aux, blocks, work, stored, containment, proximity, topology, roadnet, access, commons, other, tims,
-transit, distances, recreation, retype, index, enforce, views, cleanup. Each step deletes and rewrites its own
+transit, distances, recreation, retype, index, enforce, views, cleanup. Place statistics and fingerprints follow with
+`python -m relations.stats_build` (steps schema, individuals, tracts, downloads, lodes, commute, blocks,
+fingerprints, statedges, check), then the build's work, enforce and views steps. Each step deletes and rewrites its own
 output, so a failed step can run again alone; the entities step renumbers every key, so after it every later step
 must run. The relation catalogue (`relations/catalogue/*.tsv`) comes from the ontology files:
 `python -m relations.build --catalogue` in the cloud workspace, then copy the files to the Mac mini. Then run
 `python -m relations.validate OUT.json` before the cleanup step, because the geometry checks read the work tables.
 
-## 11. Not built
+## 12. Not built
 
 - uko:hasControlType: OpenStreetMap signal, roundabout, stop and give-way tags are not loaded (audit data gap D3).
 - uko:TrafficVolumeObservation: no volume source is loaded (audit data gap; public HPMS volumes cover arterials only).
@@ -191,9 +256,13 @@ must run. The relation catalogue (`relations/catalogue/*.tsv`) comes from the on
 - uko:servesVehicleType: Bay Wheels lists vehicle types per system, not per station.
 - North, south, east and west of (decision B2); acrossFrom, nearbyLandmark, segmentBetween, from and to cross
   street, and the commercial competition relations (skipped by decision).
+- Incident counts (REO 1.8.0): waiting for the audit chat's check of each source's fields and licence.
+- City-level fingerprints, factor values for factors other than 1, 3, 5 and 8, transfer evaluations
+  (mlo:TransferEvaluation) and a second fingerprint version: not computed yet. With one city, no city-to-city
+  distance exists.
 - uko:derivedFrom has no edges: `gkg.urn_lineage` is empty because one Overture release has been loaded.
 
-## 12. Known limits
+## 13. Known limits
 
 - Overture place classes are noisy (some places classed ShoppingMall are shops).
 - Transit relations cover the reference service day only.
@@ -204,4 +273,4 @@ must run. The relation catalogue (`relations/catalogue/*.tsv`) comes from the on
 - The architecture document (v19) lists uko:connectsToTransit from stop to road; the build follows UKO (road to
   stop). v19 has not been checked section by section against the build.
 
-## 13. Relations
+## 14. Relations

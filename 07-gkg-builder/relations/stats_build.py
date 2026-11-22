@@ -34,7 +34,7 @@ ACS_YEAR = 2024
 URLS = {
     "lodes_wac": f"https://lehd.ces.census.gov/data/lodes/LODES8/ca/wac/ca_wac_S000_JT00_{LODES_YEAR}.csv.gz",
     "lodes_xwalk": "https://lehd.ces.census.gov/data/lodes/LODES8/ca/ca_xwalk.csv.gz",
-    "blocks2020": "https://www2.census.gov/geo/tiger/TIGER2020PL/STATE/06_CALIFORNIA/06075/tl_2020_06075_tabblock20.zip",
+    "blocks2020": "https://www2.census.gov/geo/tiger/TIGER2020/TABBLOCK20/tl_2020_06_tabblock20.zip",  # statewide; the county PL file lacks POP20
 }
 TODAY = date.today().isoformat()
 ACS_PERIOD = (f"{ACS_YEAR - 4}-01-01", f"{ACS_YEAR}-12-31")
@@ -48,7 +48,7 @@ WEIGHTS_VERSION = "equal-factor-v1"
 SOURCES = {  # data-source entities added by this module (the build's own eight stay)
     "acs5y2024": "ACS 5-year 2020-2024, table-based summary files (Census Bureau)",
     "lodes8-2024": f"LEHD LODES8 workplace area characteristics {LODES_YEAR}, all jobs (S000, JT00), with the LODES8 block crosswalk",
-    "census2020-blocks": "2020 Census block populations (POP20) and internal points, TIGER/Line 2020 PL tabblock20, San Francisco County",
+    "census2020-blocks": "2020 Census block populations (POP20) and internal points, TIGER/Line 2020 tabblock20 (California file, San Francisco County rows)",
     "tiger2024": "TIGER/Line 2024 census tracts and places (ALAND land area)",
     "gkg-derived": "Computed in the GKG from the sources it cites (network reach, fingerprint formulas)",
 }
@@ -84,6 +84,8 @@ CREATE TABLE IF NOT EXISTS gkg.census_block_2020 (geoid text PRIMARY KEY, tract 
     housing20 integer, lon double precision, lat double precision);
 CREATE TABLE IF NOT EXISTS gkg.lodes_wac (year integer, geoid text, jobs integer, tract text, lon double precision,
     lat double precision, PRIMARY KEY (year, geoid));
+CREATE TABLE IF NOT EXISTS gkg.fingerprint_distance (eid bigint PRIMARY KEY, from_fp bigint, to_fp bigint,
+    value double precision, metric text, weights_version text, computed_on date);
 CREATE TABLE IF NOT EXISTS gkg.download_manifest (url text, local_path text, downloaded timestamptz, bytes bigint,
     sha256 text, note text);
 """
@@ -378,7 +380,7 @@ def step_commute():
 def step_blocks():
     """2020 Census block populations and internal points for San Francisco County."""
     import geopandas as gpd
-    b = gpd.read_file(f"zip://{_download('blocks2020')}", ignore_geometry=True)
+    b = gpd.read_file(f"zip://{_download('blocks2020')}", ignore_geometry=True, where="COUNTYFP20 = '075'")
     cols = {c.upper(): c for c in b.columns}
     need = ["GEOID20", "POP20", "HOUSING20", "INTPTLAT20", "INTPTLON20"]
     if any(n not in cols for n in need):
@@ -459,8 +461,9 @@ def _factor_inputs():
         jw.append(float(jobs.jobs.values[reach].sum()))
     tr["jobs_walk30"] = pd.Series(jw, index=cen.index)
     # Factor 5: share of residents within a 400 m walk of a stop with at least four departures in every hour 07-19.
-    st = pd.DataFrame(Q("""select s.stop_urn, substr(s.departure_time,1,2)::int h, count(*) from gkg.transit_stop_time s
-                          where s.geofence_id=%(g)s and substr(s.departure_time,1,2)::int between 7 and 18 group by 1,2""", {"g": G}),
+    st = pd.DataFrame(Q("""select s.stop_urn, split_part(s.departure_time,':',1)::int h, count(*) from gkg.transit_stop_time s
+                          where s.geofence_id=%(g)s and s.departure_time ~ '^[0-9]+:'
+                            and split_part(s.departure_time,':',1)::int between 7 and 18 group by 1,2""", {"g": G}),
                       columns=["stop", "h", "n"])
     ok = st[st.n >= 4].groupby("stop").h.nunique()
     freq = list(ok[ok == 12].index)
@@ -536,7 +539,7 @@ def step_fingerprints():
     X("insert into gkg.entity (urn, geofence_id, uko_class, src) select urn, %(g)s, 'uko:FingerprintDistance', 'fp:distance' from _d "
       "on conflict (geofence_id, urn) do nothing", {"g": G})
     X("""insert into gkg.aux_entity select %(g)s, urn, 'uko:FingerprintDistance', 'fingerprint_distance', a||' - '||b,
-         jsonb_build_object('distanceValue', d, 'distanceMetric', %(m)s, 'weightsVersion', %(w)s, 'computedOn', %(t)s), null from _d
+         jsonb_build_object('distanceValue', d, 'distanceMetric', %(m)s::text, 'weightsVersion', %(w)s::text, 'computedOn', %(t)s::text), null from _d
          on conflict (geofence_id, urn) do update set props=excluded.props""", {"g": G, "m": metric, "w": WEIGHTS_VERSION, "t": TODAY})
     X("create table if not exists gkg.fingerprint_distance (eid bigint primary key, from_fp bigint, to_fp bigint, value double precision, "
       "metric text, weights_version text, computed_on date)")
@@ -544,7 +547,7 @@ def step_fingerprints():
     fpmap = {g: e for g, e in fps.items()}
     X("create temp table _fp (geoid text, eid bigint)")
     copy("_fp", ["geoid", "eid"], fpmap.items())
-    X("""insert into gkg.fingerprint_distance select e.eid, a.eid, b.eid, d.d, %(m)s, %(w)s, %(t)s from _d d
+    X("""insert into gkg.fingerprint_distance select e.eid, a.eid, b.eid, d.d, %(m)s::text, %(w)s::text, %(t)s::date from _d d
          join gkg.entity e on e.geofence_id=%(g)s and e.urn=d.urn join _fp a on a.geoid=d.a join _fp b on b.geoid=d.b""",
       {"g": G, "m": metric, "w": WEIGHTS_VERSION, "t": TODAY})
     # Edges.

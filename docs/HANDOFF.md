@@ -33,12 +33,12 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 22, 2026, 10:05 Pacific (update this section at every handoff)
+## State on November 22, 2026, 14:15 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-225; status s200-s223. Reserved for the 15.7 work: main 224-239, status s224-s239. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-232; status s200-s228. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -100,6 +100,14 @@ crash-derived. The audit chat writes the design note for the new REO class; this
 (b) The audit chat will also send design notes for O4 (place statistics) and O5 (the fingerprint). This chat stays the
 only one that edits ontology files and builds the graph, and implements O4, O5 and the incident class only after
 Evangelos approves each note.
+(d) Nov 22 afternoon: the design note "O4 O5 incidents" (approved 11:34) is implemented as release 2026-11-22b,
+commit 3531fef: uko_ontology_v15_8.ttl, mlo_ontology_v1_8_0.ttl, reo_ontology_v1_8_0.ttl, tko_ontology_v8_5_2.ttl,
+fko_ontology_v1_2_4.ttl, external/sosa.ttl (tools/make_release_2026_11_22b.py; check_stack --ext external/sosa.ttl).
+relations/stats_build.py loaded San Francisco place statistics, LODES 2024 jobs (tracts, city, 173 H3 cells), ACS
+B08301 mode shares and tract fingerprints (244 tracts, 2,163 factor values, 27,261 distances) in jobs 226-231; job
+232 enforced and validated (validation-2026-11-22c.json; 59,767,659 edges in 93 relations). New tables:
+gkg.measured_value, gkg.fingerprint_distance, gkg.census_block_2020, gkg.lodes_wac, gkg.download_manifest. Next:
+incident counts after the audit chat confirms each source's fields and licence. Disk: 33 GiB free.
 (c) The audit chat uses Mac mini jobs 300-349 and s300-s349, runs read-only queries on the San Francisco geofence,
 records its state in docs/ontology-audit.md and does not edit this file. Before dropping or renaming any gkg table
 (including the relations steps schema, entities and cleanup, which truncate or drop tables), warn the audit chat

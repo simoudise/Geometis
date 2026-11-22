@@ -35,6 +35,10 @@ FAMILY = [
         "uko:hasIntersectionRiskProfile", "reo:atIntersectionNode", "reo:onRoadSegment", "reo:hasKABCOSeverity", "reo:hasCollisionCausationFactor", "reo:incidentCollisionType",
         "reo:incidentLighting", "reo:incidentRoadSurface", "reo:incidentWeatherCondition"]),
     ("Lineage and sources", ["uko:derivedFrom", "uko:hasDataSource"]),
+    ("Measured values: place statistics (O4)", ["uko:hasPlaceStatistic", "sosa:observedProperty", "uko:valueSource",
+                                                "sosa:usedProcedure", "uko:travelMode"]),
+    ("Fingerprints (O5)", ["uko:fingerprintOf", "uko:usesReferenceSet", "uko:hasReferenceMember", "uko:hasFactorValue",
+                           "uko:valueOfFactor", "uko:distanceFrom", "uko:distanceTo", "uko:factorSetUsed"]),
 ]
 listed = sum((f[1] for f in FAMILY), [])
 assert sorted(listed) == sorted(c for c, *_ in RELATIONS), set(listed) ^ {c for c, *_ in RELATIONS}
@@ -52,7 +56,7 @@ def main():
         for p in val["provenance"]:
             methods.setdefault(p["curie"], []).append(f'{p["method"]} (source: {p["source"]})')
     L = ["# GKG full build: data dictionary for the new relations", "",
-         "Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.7.0 and REO 1.7.0. "
+         "Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.8.0, REO 1.8.0 and MLO 1.8.0. "
      "The method is in `docs/gkg-full-methodology.md`. "
          "Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.", "",
          "## Tables", "",
@@ -65,7 +69,11 @@ def main():
          "| `gkg.edge` | one edge | `rid`, `subj`, `obj` (entity keys), `pid`, `value_m` (meters, where the relation has a distance) |",
          "| `gkg.distance_measurement` | one uko:DistanceMeasurement | `subj`, `target`, `straight_m`, `walk_m`, `measured_to` (`point` or `boundary`), `inside_target`, `pid` |",
          "| `gkg.edge_rejected` | edges removed because the subject or object failed the property's domain or range | `rid`, `reason`, `n`, example classes |",
-         "| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.7 + REO 1.7.0) | `uko_class`, `ancestor` |", "",
+         "| `gkg.measured_value` | one measured value (place statistic or fingerprint factor value): number, unit, margin of error and its confidence level, period, procedure, source table, source, travel mode and threshold, factor component, formula version, standardized value | `eid` (the value's entity), `kind`, `feature_eid`, `variable` |",
+     "| `gkg.fingerprint_distance` | one distance between two tract fingerprints | `eid`, `from_fp`, `to_fp`, `value`, `metric`, `weights_version`, `computed_on` |",
+     "| `gkg.census_block_2020`, `gkg.lodes_wac` | public block-level inputs (2020 block populations and internal points; LODES jobs by block) | `geoid` |",
+     "| `gkg.download_manifest` | one downloaded file: URL, path, time, size, SHA-256 | `url` |",
+     "| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.8 + REO 1.8.0 + MLO 1.8.0 + SOSA) | `uko_class`, `ancestor` |", "",
          "## Views", "",
          "- `gkg.edge_named`: every edge with relation name, URNs, classes, geofence and provenance.",
          "- `gkg.rel_very_near`: uko:veryNear, which is uko:near with `value_m` <= 50. The build stores no separate veryNear rows.",
@@ -81,7 +89,7 @@ def main():
          "- New URNs use the `gkgfull` source tag (for example `urn:urban-kg:CityBlock:gkgfull:<hash>`). Public-data URNs keep the "
          "publisher's identifier where one exists (DataSF, MTC, TIGER, OpenStreetMap, GBFS).",
          "- The enforce step removes edges whose subject or object is not an instance of the property's `rdfs:domain` or `rdfs:range` "
-         "under the UKO 15.7 class hierarchy plus `gkg.entity_type`. Removed counts are in `gkg.edge_rejected`.", "",
+         "under the UKO 15.8 class hierarchy plus `gkg.entity_type`. Removed counts are in `gkg.edge_rejected`.", "",
          "## Asserted extra types", "",
      "None under UKO 15.7. The November 20 build asserted types per entity that UKO 15.6 lacked (schools and hospitals as "
      "vulnerable-population facilities, pedestrian network edges as pedestrian infrastructure, truck restrictions as "

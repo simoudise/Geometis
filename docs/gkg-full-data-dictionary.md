@@ -1,6 +1,6 @@
 # GKG full build: data dictionary for the new relations
 
-Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.7.0 and REO 1.7.0. The method is in `docs/gkg-full-methodology.md`. Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.
+Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.8.0, REO 1.8.0 and MLO 1.8.0. The method is in `docs/gkg-full-methodology.md`. Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.
 
 ## Tables
 
@@ -14,7 +14,11 @@ Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mi
 | `gkg.edge` | one edge | `rid`, `subj`, `obj` (entity keys), `pid`, `value_m` (meters, where the relation has a distance) |
 | `gkg.distance_measurement` | one uko:DistanceMeasurement | `subj`, `target`, `straight_m`, `walk_m`, `measured_to` (`point` or `boundary`), `inside_target`, `pid` |
 | `gkg.edge_rejected` | edges removed because the subject or object failed the property's domain or range | `rid`, `reason`, `n`, example classes |
-| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.7 + REO 1.7.0) | `uko_class`, `ancestor` |
+| `gkg.measured_value` | one measured value (place statistic or fingerprint factor value): number, unit, margin of error and its confidence level, period, procedure, source table, source, travel mode and threshold, factor component, formula version, standardized value | `eid` (the value's entity), `kind`, `feature_eid`, `variable` |
+| `gkg.fingerprint_distance` | one distance between two tract fingerprints | `eid`, `from_fp`, `to_fp`, `value`, `metric`, `weights_version`, `computed_on` |
+| `gkg.census_block_2020`, `gkg.lodes_wac` | public block-level inputs (2020 block populations and internal points; LODES jobs by block) | `geoid` |
+| `gkg.download_manifest` | one downloaded file: URL, path, time, size, SHA-256 | `url` |
+| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.8 + REO 1.8.0 + MLO 1.8.0 + SOSA) | `uko_class`, `ancestor` |
 
 ## Views
 
@@ -29,7 +33,7 @@ Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mi
 - Metric work uses California Albers (EPSG:3310). Walking distances use the stored walking network: road segments except motorways, pedestrian edges and access points.
 - An edge never joins entities of two geofences. The Contra Costa and San Francisco extents overlap, so the same Overture feature can appear in both geofences with two entity keys.
 - New URNs use the `gkgfull` source tag (for example `urn:urban-kg:CityBlock:gkgfull:<hash>`). Public-data URNs keep the publisher's identifier where one exists (DataSF, MTC, TIGER, OpenStreetMap, GBFS).
-- The enforce step removes edges whose subject or object is not an instance of the property's `rdfs:domain` or `rdfs:range` under the UKO 15.7 class hierarchy plus `gkg.entity_type`. Removed counts are in `gkg.edge_rejected`.
+- The enforce step removes edges whose subject or object is not an instance of the property's `rdfs:domain` or `rdfs:range` under the UKO 15.8 class hierarchy plus `gkg.entity_type`. Removed counts are in `gkg.edge_rejected`.
 
 ## Asserted extra types
 
@@ -415,12 +419,12 @@ None under UKO 15.7. The November 20 build asserted types per entity that UKO 15
 
 ### reo:atIntersectionNode
 
-- Domain: reo:HistoricalIncidentRecord; range: uko:IntersectionNode. **Crash-derived.**
+- Domain: reo:ReportedTrafficIncident; range: uko:IntersectionNode. **Crash-derived.**
 - Rule: crash record to its attached intersection node (50 m).
 
 ### reo:onRoadSegment
 
-- Domain: reo:HistoricalIncidentRecord; range: uko:RoadSegment. **Crash-derived.**
+- Domain: reo:ReportedTrafficIncident; range: uko:RoadSegment. **Crash-derived.**
 - Rule: crash record to the road segment stage 4 attached it to (value_m = snap distance).
 
 ### reo:hasKABCOSeverity
@@ -464,6 +468,75 @@ None under UKO 15.7. The November 20 build asserted types per entity that UKO 15
 
 - Domain: owl:Thing; range: uko:DataSource.
 - Rule: entity to the data source release it came from.
+
+## Measured values: place statistics (O4)
+
+### uko:hasPlaceStatistic
+
+- Domain: uko:SpatialEntity; range: uko:PlaceStatistic. Inverse: uko:statisticOf.
+- Rule: area (tract, city, grid cell) to each of its place statistics.
+
+### sosa:observedProperty
+
+- Domain: (none); range: (none).
+- Rule: place statistic to its variable (uko:PlaceVariable).
+
+### uko:valueSource
+
+- Domain: uko:MeasuredValue; range: uko:DataSource.
+- Rule: measured value to the data source release it comes from.
+
+### sosa:usedProcedure
+
+- Domain: (none); range: (none).
+- Rule: measured value to its estimation procedure.
+
+### uko:travelMode
+
+- Domain: uko:MeasuredValue; range: uko:TravelMode.
+- Rule: mode-specific statistic (commute share, jobs reachable) to its mode.
+
+## Fingerprints (O5)
+
+### uko:fingerprintOf
+
+- Domain: uko:Fingerprint; range: uko:SpatialEntity.
+- Rule: fingerprint to the area it describes.
+
+### uko:usesReferenceSet
+
+- Domain: uko:Fingerprint; range: uko:ReferenceSet.
+- Rule: fingerprint to the reference set that standardizes it.
+
+### uko:hasReferenceMember
+
+- Domain: uko:ReferenceSet; range: uko:SpatialEntity.
+- Rule: reference set to each member area.
+
+### uko:hasFactorValue
+
+- Domain: uko:Fingerprint; range: uko:FactorValue.
+- Rule: fingerprint to each of its factor values.
+
+### uko:valueOfFactor
+
+- Domain: uko:FactorValue; range: uko:FingerprintFactor.
+- Rule: factor value to its fingerprint factor.
+
+### uko:distanceFrom
+
+- Domain: uko:FingerprintDistance; range: uko:Fingerprint.
+- Rule: fingerprint distance to its first fingerprint (lower entity key).
+
+### uko:distanceTo
+
+- Domain: uko:FingerprintDistance; range: uko:Fingerprint.
+- Rule: fingerprint distance to its second fingerprint.
+
+### uko:factorSetUsed
+
+- Domain: uko:FingerprintDistance; range: uko:FingerprintFactor.
+- Rule: fingerprint distance to each factor it uses.
 
 ## Not built, and why
 
