@@ -33,12 +33,12 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 23, 2026, 13:35 Pacific (update this section at every handoff)
+## State on November 23, 2026, 14:45 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-234; status s200-s234. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-246; status s200-s243. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -117,6 +117,31 @@ Free space stays at about 27 GiB until the 24 hourly local Time Machine snapshot
 job runner (protected folders or snapshots; System Settings > General > Storage shows which); clearing about 4 GB of
 download caches; the INRIX sample delivery (7 GB, ~/geometis-data/inrix-sample); excluding the database folder from
 Time Machine.
+Decisions by Evangelos, Nov 23 afternoon: (1) work covers San Francisco only; Contra Costa is ignored (its data stays
+in the database untouched; nothing new is built for it), because the trips proved useless; other cities only if Waymo
+funds the project. (2) Priority: a complete San Francisco GKG from which SPECTRA embeddings can be derived and which
+connects to the city fingerprint. Whether SPECTRA embeddings make sense without trip data waits on INRIX; SPECTRA
+training stays stopped. (3) Five tasks from the Waymo-research check: hourly incident counts (done), HPMS volumes and
+FHWA functional class, Waymo crash types, CCRS crashes without injury (DROPPED: California does not require local police
+to report property-damage-only crashes, Kusano et al. 2025), S2 cells (SKIPPED unless Waymo funds). No assumption
+without his prior approval.
+Done: REO 1.8.1 (commit 7c2f1ab; tools/make_reo_1_8_1.py): reo:countHourOfDay (0-23) and reo:countDayOfWeek
+(reo:DayOfWeek, ISO 8601 numbering); REO 1.8.0 bands and day type deprecated. check_stack 0 problems; HermiT consistent
+(hour 24 makes it inconsistent, as intended). Builder points at REO 1.8.1; class_closure.tsv gains reo:DayOfWeek
+(not yet loaded on the Mac mini; load with the next catalogue load). The audit chat was told before and after.
+Staged, NOT in the graph (schema gkg_stage; downloads in ~/geometis-data/gkg/public/2026-11-23 with MANIFEST.tsv and
+gkg.download_manifest rows): HPMS Spatial All Sections 2024 for SF (2,870 sections, 554 km, all with 2024 AADT; public
+domain); Caltrans CRS Functional Classification in the SF bounding box (4,247 lines; CC BY; job 235's partial copy is
+marked INCOMPLETE in the manifest, job 237's copy is complete); TIMS party fields for SF (no personal fields);
+match tests (jobs 239-243) and a draft crash-type table (job 246).
+Waiting for Evangelos (proposals sent Nov 23, 14:30-14:40): (a) HPMS rule A (20 degrees; 50% of length within 10 m, or
+within 30 m with agreeing names; motorways excluded) and functional-class rule B; UKO 15.8.1 additions (FHWA functional
+system class and uko:fhwaFunctionalSystem; volume method 'state-reported AADT'); excluding volume relations from
+gkg.edge_for_crash_prediction as exposure (Test 2 rule M7d). (b) Crash-type mapping (ours, built on Kusano et al.
+2025's 11 groups and Table A2 fields; first two parties; order pedestrian, cyclist, motorcycle, then vehicle-to-vehicle
+groups), passenger-vehicle flag, REO 1.8.2 terms (crash-derived). (c) San Francisco city fingerprint: factor groups A
+(1, 4, 5, 6, 8) and B (3, 7, 9, 13, 17) and whether to install a transit router. Ontology files go to Drive once
+these releases are approved.
 (c) The audit chat uses Mac mini jobs 300-349 and s300-s349, runs read-only queries on the San Francisco geofence,
 records its state in docs/ontology-audit.md and does not edit this file. Before dropping or renaming any gkg table
 (including the relations steps schema, entities and cleanup, which truncate or drop tables), warn the audit chat
