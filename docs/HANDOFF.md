@@ -33,12 +33,12 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 22, 2026, 14:15 Pacific (update this section at every handoff)
+## State on November 23, 2026, 13:35 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-232; status s200-s228. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-234; status s200-s234. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -108,6 +108,15 @@ B08301 mode shares and tract fingerprints (244 tracts, 2,163 factor values, 27,2
 232 enforced and validated (validation-2026-11-22c.json; 59,767,659 edges in 93 relations). New tables:
 gkg.measured_value, gkg.fingerprint_distance, gkg.census_block_2020, gkg.lodes_wac, gkg.download_manifest. Next:
 incident counts after the audit chat confirms each source's fields and licence. Disk: 33 GiB free.
+Mac mini cleanup (Nov 23, jobs 233-234, status s229-s234): Evangelos decided that Test 2 failed because it was not
+performed properly and that the trips carry too little information to be useful, so job 234 deleted the work/test2-*
+folders (29 GB) and dropped public.base_trips, base_trip_links, base_trips_carry, base_trips_file_log and
+tlp.link_conflation (database 63 GB -> 10 GB; no gkg object depended on them; the audit chat was warned first).
+Free space stays at about 27 GiB until the 24 hourly local Time Machine snapshots that hold the deleted data expire
+(up to 24 hours) or Evangelos thins them. Open for Evangelos: about 770 GB of the 933 GB in use is not visible to the
+job runner (protected folders or snapshots; System Settings > General > Storage shows which); clearing about 4 GB of
+download caches; the INRIX sample delivery (7 GB, ~/geometis-data/inrix-sample); excluding the database folder from
+Time Machine.
 (c) The audit chat uses Mac mini jobs 300-349 and s300-s349, runs read-only queries on the San Francisco geofence,
 records its state in docs/ontology-audit.md and does not edit this file. Before dropping or renaming any gkg table
 (including the relations steps schema, entities and cleanup, which truncate or drop tables), warn the audit chat
