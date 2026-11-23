@@ -56,7 +56,7 @@ def main():
         for p in val["provenance"]:
             methods.setdefault(p["curie"], []).append(f'{p["method"]} (source: {p["source"]})')
     L = ["# GKG full build: data dictionary for the new relations", "",
-         "Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.8.0, REO 1.8.0 and MLO 1.8.0. "
+         "Release: GKG full, built November 20, 2026 and revised November 22 on the Mac mini (database `geometis`, schema `gkg`), checked against UKO 15.8.0, REO 1.8.1 and MLO 1.8.0. "
      "The method is in `docs/gkg-full-methodology.md`. "
          "Code: `07-gkg-builder/relations/build.py`; checks: `relations/validate.py`.", "",
          "## Tables", "",
@@ -73,7 +73,7 @@ def main():
      "| `gkg.fingerprint_distance` | one distance between two tract fingerprints | `eid`, `from_fp`, `to_fp`, `value`, `metric`, `weights_version`, `computed_on` |",
      "| `gkg.census_block_2020`, `gkg.lodes_wac` | public block-level inputs (2020 block populations and internal points; LODES jobs by block) | `geoid` |",
      "| `gkg.download_manifest` | one downloaded file: URL, path, time, size, SHA-256 | `url` |",
-     "| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.8 + REO 1.8.0 + MLO 1.8.0 + SOSA) | `uko_class`, `ancestor` |", "",
+     "| `gkg.class_closure` | a class and one of its named ancestors (UKO 15.8 + REO 1.8.1 + MLO 1.8.0 + SOSA) | `uko_class`, `ancestor` |", "",
          "## Views", "",
          "- `gkg.edge_named`: every edge with relation name, URNs, classes, geofence and provenance.",
          "- `gkg.rel_very_near`: uko:veryNear, which is uko:near with `value_m` <= 50. The build stores no separate veryNear rows.",

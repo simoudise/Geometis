@@ -82,6 +82,7 @@ reo:CurbRightOfWayViolation	sosa:ObservableProperty
 reo:DangerousDrivingCategory	reo:DangerousDrivingCategory
 reo:DangerousDrivingCategory	reo:NonCollisionCategory
 reo:DangerousDrivingCategory	sosa:ObservableProperty
+reo:DayOfWeek	reo:DayOfWeek
 reo:DayType	reo:DayType
 reo:DebrisOnRoadEvent	reo:DebrisOnRoadEvent
 reo:DebrisOnRoadEvent	reo:Event

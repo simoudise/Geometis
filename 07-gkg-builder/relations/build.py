@@ -35,7 +35,7 @@ TIMS_DIR = Path.home() / "Geometis-mini/tims-incoming"
 GEOFENCES = ["us-ca-contra-costa-5", "us-ca-san-francisco"]
 URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")
 CODE_VERSION = os.environ.get("GKG_CODE_VERSION", "gkg-full")
-ONTO_VERSION = "UKO 15.8.0 / REO 1.8.0 (release 2026-11-22b)"
+ONTO_VERSION = "UKO 15.8.0 / REO 1.8.1 (release 2026-11-23)"
 
 LANDMARK = ["Museum", "Theater", "ConcertHall", "OperaHouse", "CityHall", "Courthouse", "Library",
             "GovernmentBuilding", "Stadium", "Arena"]
@@ -262,11 +262,11 @@ def step_schema():
 
 
 def catalogue_from_ontology(out_dir):
-    """Write relation_type.tsv and class_closure.tsv from UKO 15.8 + REO 1.8.0 + MLO 1.8.0 + SOSA (run where rdflib is installed)."""
+    """Write relation_type.tsv and class_closure.tsv from UKO 15.8 + REO 1.8.1 + MLO 1.8.0 + SOSA (run where rdflib is installed)."""
     import rdflib
     from rdflib.namespace import RDF, RDFS, OWL
     g = rdflib.Graph()
-    for f in ["uko_ontology_v15_8.ttl", "reo_ontology_v1_8_0.ttl", "mlo_ontology_v1_8_0.ttl", "external/sosa.ttl"]:
+    for f in ["uko_ontology_v15_8.ttl", "reo_ontology_v1_8_1.ttl", "mlo_ontology_v1_8_0.ttl", "external/sosa.ttl"]:
         g.parse(ONTO / f)
     nm = g.namespace_manager
     q = lambda x: x.n3(nm)
