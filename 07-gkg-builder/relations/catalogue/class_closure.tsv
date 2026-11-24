@@ -1233,7 +1233,6 @@ uko:EthnicEnclave	uko:GeographicFeature
 uko:EthnicEnclave	uko:InformalDistrict
 uko:EthnicEnclave	uko:SpatialEntity
 uko:FHWAFunctionalSystem	uko:FHWAFunctionalSystem
-uko:FHWAFunctionalSystem	uko:RoadFunctionalClassification
 uko:FactorValue	sosa:Observation
 uko:FactorValue	uko:FactorValue
 uko:FactorValue	uko:MeasuredValue

@@ -1,34 +1,34 @@
 
 #################################################################
-#    UKO 15.8.1 (2026-11-23): FHWA functional system, state-reported AADT, one-carriageway flag
+#    UKO 15.8.1 (2026-11-23c): FHWA functional system and HPMS volumes
+#    Approved by Evangelos on 2026-11-23 (rules A and B, 18:01 Pacific).
 #################################################################
 
 uko:FHWAFunctionalSystem rdf:type owl:Class ;
-    rdfs:subClassOf uko:RoadFunctionalClassification ;
     rdfs:label "FHWA Functional System"@en ;
-    rdfs:comment "One of the seven functional-system codes that the Federal Highway Administration uses in the Highway Performance Monitoring System (HPMS Field Manual, data item F_SYSTEM: IH, OFE, OPA, MiA, MaC, MiC, Local). States assign the codes; in California the source is the Caltrans CRS Functional Classification."@en .
+    rdfs:comment "One of the seven functional systems of the Federal Highway Administration (HPMS data item F_SYSTEM), as a state's FHWA-approved functional classification assigns them. Separate from uko:RoadFunctionalClassification, whose members follow the vocabulary of uko:roadClassification."@en .
 
-uko:FHWA_FS_1 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "1 Interstate"@en .
-uko:FHWA_FS_2 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "2 Principal Arterial - Other Freeways and Expressways"@en .
-uko:FHWA_FS_3 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "3 Principal Arterial - Other"@en .
-uko:FHWA_FS_4 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "4 Minor Arterial"@en .
-uko:FHWA_FS_5 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "5 Major Collector"@en .
-uko:FHWA_FS_6 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "6 Minor Collector"@en .
-uko:FHWA_FS_7 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "7 Local"@en .
+uko:FHWA_FS_1 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Interstate"@en ; rdfs:comment "F_SYSTEM code 1."@en .
+uko:FHWA_FS_2 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Principal Arterial - Other Freeways and Expressways"@en ; rdfs:comment "F_SYSTEM code 2."@en .
+uko:FHWA_FS_3 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Principal Arterial - Other"@en ; rdfs:comment "F_SYSTEM code 3."@en .
+uko:FHWA_FS_4 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Minor Arterial"@en ; rdfs:comment "F_SYSTEM code 4."@en .
+uko:FHWA_FS_5 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Major Collector"@en ; rdfs:comment "F_SYSTEM code 5."@en .
+uko:FHWA_FS_6 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Minor Collector"@en ; rdfs:comment "F_SYSTEM code 6."@en .
+uko:FHWA_FS_7 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Local"@en ; rdfs:comment "F_SYSTEM code 7."@en .
 
 uko:fhwaFunctionalSystem rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain uko:RoadSegment ;
     rdfs:range uko:FHWAFunctionalSystem ;
     rdfs:label "FHWA functional system"@en ;
-    rdfs:comment "The FHWA functional system of a road segment, matched from the state's functional classification. Kept separate from uko:roadClassification, which carries the map source's own class."@en .
+    rdfs:comment "The FHWA functional system of a road segment, taken from the state's functional classification layer by a recorded matching rule."@en .
 
-uko:VOLUME_STATE_REPORTED rdf:type owl:NamedIndividual, uko:VolumeMethod ;
-    rdfs:label "state-reported AADT"@en ;
-    rdfs:comment "An AADT that a state reported to the Highway Performance Monitoring System. HPMS does not state for each section whether the figure comes from a count or an estimate; the Field Manual requires factored counts, and growth factors where the count is not from the current year."@en .
+uko:VOLUME_STATE_REPORTED_AADT rdf:type owl:NamedIndividual, uko:VolumeMethod ;
+    rdfs:label "state-reported AADT (HPMS)"@en ;
+    rdfs:comment "An AADT that a state reported to the Highway Performance Monitoring System. HPMS does not state for each section whether the figure comes from a count or an estimate."@en .
 
-uko:volumeOnOneCarriageway rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+uko:volumeIsTwoWayFacilityTotal rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain uko:TrafficVolumeObservation ;
     rdfs:range xsd:boolean ;
-    rdfs:label "volume on one carriageway"@en ;
-    rdfs:comment "True when the observation is attached to one carriageway of a road whose source reports a two-way total for the whole facility; the value is then the two-way total, not the carriageway's own volume."@en .
+    rdfs:label "volume is two-way facility total"@en ;
+    rdfs:comment "True when the observed segment is one carriageway of a road that the source treats as a single two-way facility, so the value is the total of both carriageways and both directions, not the volume of this carriageway."@en .
 

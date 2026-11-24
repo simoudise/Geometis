@@ -1015,11 +1015,11 @@ NAME_KEY_SQL = """create or replace function pg_temp.name_key(t text) returns te
 
 
 def step_hpms():
-    """UKO 15.8.1, approved 2026-11-23 (16:27 Pacific). Rule A: a road segment takes the 2024 AADT of an HPMS section
+    """UKO 15.8.1. Rules A and B confirmed by Evangelos on 2026-11-23 (18:01 Pacific). Rule A: a road segment takes the 2024 AADT of an HPMS section
     whose direction at the segment's midpoint is within 20 degrees and that has at least half of the segment's length
     within 10 m, or within 30 m when the street names agree; the nearest qualifying section wins, 10 m matches first;
     motorways get no volume. A segment that is one-way under a two-way HPMS facility (facility type 2) carries the
-    two-way total with uko:volumeOnOneCarriageway true. Rule B: FHWA functional system from the Caltrans CRS Functional
+    two-way total with uko:volumeIsTwoWayFacilityTotal true (column on_one_carriageway). Rule B: FHWA functional system from the Caltrans CRS Functional
     Classification with the same test at 10 m. San Francisco only (decision of 2026-11-23)."""
     g = "us-ca-san-francisco"
     X("""create table if not exists gkg.hpms_section (sid serial primary key, route_id text, begin_point real, end_point real,
@@ -1089,7 +1089,7 @@ def step_hpms():
     for k in range(1, 8):
         X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, 'uko:FHWAFunctionalSystem', 'uko_individual') "
           "on conflict do nothing", {"u": f"urn:urban-kg:FHWA_FS_{k}", "g": g})
-    for u, c in (("urn:urban-kg:VOLUME_MOTOR_VEHICLE", "uko:VolumeMode"), ("urn:urban-kg:VOLUME_STATE_REPORTED", "uko:VolumeMethod")):
+    for u, c in (("urn:urban-kg:VOLUME_MOTOR_VEHICLE", "uko:VolumeMode"), ("urn:urban-kg:VOLUME_STATE_REPORTED_AADT", "uko:VolumeMethod")):
         X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, %(c)s, 'uko_individual') on conflict do nothing",
           {"u": u, "g": g, "c": c})
     ds = "urn:urban-kg:DataSource:hpms_2024"
@@ -1110,7 +1110,7 @@ def step_hpms():
     X(f"""insert into gkg.measured_value (eid, kind, feature_eid, variable, value, unit, period_start, period_end, procedure,
              source_table, source_eid, volume_direction, on_one_carriageway, source_record)
           select o.eid, 'traffic_volume', s.eid, 'AADT', h.aadt, 'vehicles per day', make_date(h.aadt_year,1,1), make_date(h.aadt_year,12,31),
-                 'uko:VOLUME_STATE_REPORTED', 'gkg.hpms_section', d.eid,
+                 'uko:VOLUME_STATE_REPORTED_AADT', 'gkg.hpms_section', d.eid,
                  case when h.facility_type=2 then 'both'
                       when h.facility_type=1 and m.denied_heading='backward' then 'forward'
                       when h.facility_type=1 and m.denied_heading='forward' then 'backward' end,
@@ -1126,7 +1126,7 @@ def step_hpms():
           join gkg.entity i on i.geofence_id='{g}' and i.urn='urn:urban-kg:FHWA_FS_'||m.f_system""")
     edges("uko:hasVolumeObservation", src, meth, f"""select v.feature_eid, v.eid, null::real from gkg.measured_value v
           join gkg.entity o on o.eid=v.eid where o.src='hpms_volume'""")
-    for c, u in (("uko:volumeMode", "urn:urban-kg:VOLUME_MOTOR_VEHICLE"), ("uko:volumeMethod", "urn:urban-kg:VOLUME_STATE_REPORTED"),
+    for c, u in (("uko:volumeMode", "urn:urban-kg:VOLUME_MOTOR_VEHICLE"), ("uko:volumeMethod", "urn:urban-kg:VOLUME_STATE_REPORTED_AADT"),
                  ("uko:volumeSource", ds)):
         edges(c, src, meth, f"""select o.eid, i.eid, null::real from gkg.entity o join gkg.entity i on i.geofence_id='{g}' and i.urn='{u}'
               where o.src='hpms_volume'""")

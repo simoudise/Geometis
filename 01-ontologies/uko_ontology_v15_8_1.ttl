@@ -17,11 +17,10 @@
 #    Synapse Partners, LLC
 #
 #    Change Log:
-#    - v15.8.1: Coordinated release 2026-11-23c (release set: UKO v15.8.1, TKO v8.5.3, MLO v1.8.1, REO v1.8.3, FKO v1.2.5; Synapse Partners). Approved by Evangelos on 2026-11-23
-#               with HPMS matching rules A and B: uko:FHWAFunctionalSystem (seven FHWA codes, a subclass of
-#               uko:RoadFunctionalClassification) and uko:fhwaFunctionalSystem on road segments;
-#               uko:VOLUME_STATE_REPORTED (a uko:VolumeMethod for AADT reported to HPMS); and
-#               uko:volumeOnOneCarriageway, which marks a two-way total attached to one carriageway.
+#    - v15.8.1: Coordinated release 2026-11-23c (release set: UKO v15.8.1, TKO v8.5.3, MLO v1.8.1, REO v1.8.3, FKO v1.2.5; Synapse Partners). Approved by Evangelos on 2026-11-23:
+#               uko:FHWAFunctionalSystem (the seven FHWA functional systems, HPMS item F_SYSTEM) and
+#               uko:fhwaFunctionalSystem; volume method uko:VOLUME_STATE_REPORTED_AADT; and
+#               uko:volumeIsTwoWayFacilityTotal for a carriageway that carries the total of a two-way facility.
 #    - v15.8.0: Coordinated release 2026-11-22b (release set: UKO v15.8.0, TKO v8.5.2, MLO v1.8.0, REO v1.8.0, FKO v1.2.4; Synapse Partners), from the design note
 #               "O4 O5 incidents" that Evangelos approved on 2026-11-22.
 #               (1) Imports the SOSA module (http://www.w3.org/ns/sosa/, the core of the W3C/OGC Semantic
@@ -199,7 +198,7 @@
     owl:imports <http://www.w3.org/ns/sosa/> ;
     dcterms:title "Urban Knowledge Ontology (UKO) v15.8.1"@en ;
     dcterms:description "Comprehensive neurosymbolic ontology for urban geospatial knowledge graphs. Companion ontologies: TKO v8.5.3, MLO v1.8.1, REO v1.8.3, FKO v1.2.5 (coordinated release 2026-11-23c). UKO is the foundational ontology and has no imports. Event-to-segment links are defined in REO via reo:affectsSegment to maintain an acyclic ontology import graph."@en ;
-    rdfs:comment "Version 15.8.1 adds the FHWA functional system of road segments, a state-reported AADT method and a one-carriageway flag for volume observations. Version 15.8.0 imports the SOSA module and adds measured values (uko:MeasuredValue, a sosa:Observation), place statistics and the fingerprint. Version 15.7.0 widens eight property domains that the GKG full build found too narrow (sharesBuildingWith, insideMall, partOfChain, operatedByOrg, nearestTransitStop, hasDataSource, pathThroughCommonSpace, constrainsSegment), makes schools and hospitals vulnerable-population facilities, and adds intersection control types, traffic and pedestrian volume observations, numeric maximum grade, lane width, pavement condition, a real-time flag on data sources and airport enplanements. Version 15.6.0 declares every UKO term the stack uses, repairs the class hierarchy (IntersectionNode, Trail, SpatialEntity), adds rail segments, priority development areas, distance measurements to landmarks and districts, reified edge provenance, and crash-derivation annotations. Version 15.5.0 delivers the Causal Effect Library effect-attribute complement (making GKG Subgraph 3 fully ontology-generated), the equity/air-quality and shared-mobility (GBFS/MDS) extensions, GTFS Pathways and Fares v2 support, and folds in the v15.4.1 weather-conditional operational constraint patch. Version 15.4.0 integrated Sevtsuk/Basu Urban Network Analysis (UNA) requirements, establishing a Multiplex Graph architecture connecting pedestrian and vehicular layers. Building on v15.2.0 which removed the erroneous import of <urn:synapse:tko:>, removed redundant file concatenations, and downgraded compoundConditionRiskMap keys to a 2D format."@en .
+    rdfs:comment "Version 15.8.1 adds the FHWA functional system, a state-reported AADT method and a two-way facility flag on volume observations. Version 15.8.0 imports the SOSA module and adds measured values (uko:MeasuredValue, a sosa:Observation), place statistics and the fingerprint. Version 15.7.0 widens eight property domains that the GKG full build found too narrow (sharesBuildingWith, insideMall, partOfChain, operatedByOrg, nearestTransitStop, hasDataSource, pathThroughCommonSpace, constrainsSegment), makes schools and hospitals vulnerable-population facilities, and adds intersection control types, traffic and pedestrian volume observations, numeric maximum grade, lane width, pavement condition, a real-time flag on data sources and airport enplanements. Version 15.6.0 declares every UKO term the stack uses, repairs the class hierarchy (IntersectionNode, Trail, SpatialEntity), adds rail segments, priority development areas, distance measurements to landmarks and districts, reified edge provenance, and crash-derivation annotations. Version 15.5.0 delivers the Causal Effect Library effect-attribute complement (making GKG Subgraph 3 fully ontology-generated), the equity/air-quality and shared-mobility (GBFS/MDS) extensions, GTFS Pathways and Fares v2 support, and folds in the v15.4.1 weather-conditional operational constraint patch. Version 15.4.0 integrated Sevtsuk/Basu Urban Network Analysis (UNA) requirements, establishing a Multiplex Graph architecture connecting pedestrian and vehicular layers. Building on v15.2.0 which removed the erroneous import of <urn:synapse:tko:>, removed redundant file concatenations, and downgraded compoundConditionRiskMap keys to a 2D format."@en .
 
 #################################################################
 #    PART 1: FOUNDATIONAL CLASSES
@@ -6141,37 +6140,37 @@ uko:FACTOR_12 uko:derivedFromCrashData "true"^^xsd:boolean ;
 
 
 #################################################################
-#    UKO 15.8.1 (2026-11-23): FHWA functional system, state-reported AADT, one-carriageway flag
+#    UKO 15.8.1 (2026-11-23c): FHWA functional system and HPMS volumes
+#    Approved by Evangelos on 2026-11-23 (rules A and B, 18:01 Pacific).
 #################################################################
 
 uko:FHWAFunctionalSystem rdf:type owl:Class ;
-    rdfs:subClassOf uko:RoadFunctionalClassification ;
     rdfs:label "FHWA Functional System"@en ;
-    rdfs:comment "One of the seven functional-system codes that the Federal Highway Administration uses in the Highway Performance Monitoring System (HPMS Field Manual, data item F_SYSTEM: IH, OFE, OPA, MiA, MaC, MiC, Local). States assign the codes; in California the source is the Caltrans CRS Functional Classification."@en .
+    rdfs:comment "One of the seven functional systems of the Federal Highway Administration (HPMS data item F_SYSTEM), as a state's FHWA-approved functional classification assigns them. Separate from uko:RoadFunctionalClassification, whose members follow the vocabulary of uko:roadClassification."@en .
 
-uko:FHWA_FS_1 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "1 Interstate"@en .
-uko:FHWA_FS_2 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "2 Principal Arterial - Other Freeways and Expressways"@en .
-uko:FHWA_FS_3 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "3 Principal Arterial - Other"@en .
-uko:FHWA_FS_4 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "4 Minor Arterial"@en .
-uko:FHWA_FS_5 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "5 Major Collector"@en .
-uko:FHWA_FS_6 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "6 Minor Collector"@en .
-uko:FHWA_FS_7 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "7 Local"@en .
+uko:FHWA_FS_1 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Interstate"@en ; rdfs:comment "F_SYSTEM code 1."@en .
+uko:FHWA_FS_2 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Principal Arterial - Other Freeways and Expressways"@en ; rdfs:comment "F_SYSTEM code 2."@en .
+uko:FHWA_FS_3 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Principal Arterial - Other"@en ; rdfs:comment "F_SYSTEM code 3."@en .
+uko:FHWA_FS_4 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Minor Arterial"@en ; rdfs:comment "F_SYSTEM code 4."@en .
+uko:FHWA_FS_5 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Major Collector"@en ; rdfs:comment "F_SYSTEM code 5."@en .
+uko:FHWA_FS_6 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Minor Collector"@en ; rdfs:comment "F_SYSTEM code 6."@en .
+uko:FHWA_FS_7 rdf:type owl:NamedIndividual, uko:FHWAFunctionalSystem ; rdfs:label "Local"@en ; rdfs:comment "F_SYSTEM code 7."@en .
 
 uko:fhwaFunctionalSystem rdf:type owl:ObjectProperty, owl:FunctionalProperty ;
     rdfs:domain uko:RoadSegment ;
     rdfs:range uko:FHWAFunctionalSystem ;
     rdfs:label "FHWA functional system"@en ;
-    rdfs:comment "The FHWA functional system of a road segment, matched from the state's functional classification. Kept separate from uko:roadClassification, which carries the map source's own class."@en .
+    rdfs:comment "The FHWA functional system of a road segment, taken from the state's functional classification layer by a recorded matching rule."@en .
 
-uko:VOLUME_STATE_REPORTED rdf:type owl:NamedIndividual, uko:VolumeMethod ;
-    rdfs:label "state-reported AADT"@en ;
-    rdfs:comment "An AADT that a state reported to the Highway Performance Monitoring System. HPMS does not state for each section whether the figure comes from a count or an estimate; the Field Manual requires factored counts, and growth factors where the count is not from the current year."@en .
+uko:VOLUME_STATE_REPORTED_AADT rdf:type owl:NamedIndividual, uko:VolumeMethod ;
+    rdfs:label "state-reported AADT (HPMS)"@en ;
+    rdfs:comment "An AADT that a state reported to the Highway Performance Monitoring System. HPMS does not state for each section whether the figure comes from a count or an estimate."@en .
 
-uko:volumeOnOneCarriageway rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
+uko:volumeIsTwoWayFacilityTotal rdf:type owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:domain uko:TrafficVolumeObservation ;
     rdfs:range xsd:boolean ;
-    rdfs:label "volume on one carriageway"@en ;
-    rdfs:comment "True when the observation is attached to one carriageway of a road whose source reports a two-way total for the whole facility; the value is then the two-way total, not the carriageway's own volume."@en .
+    rdfs:label "volume is two-way facility total"@en ;
+    rdfs:comment "True when the observed segment is one carriageway of a road that the source treats as a single two-way facility, so the value is the total of both carriageways and both directions, not the volume of this carriageway."@en .
 
 ###############################################################################
 #    END OF UKO v15.8.1 ONTOLOGY
