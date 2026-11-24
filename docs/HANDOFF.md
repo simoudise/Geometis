@@ -33,12 +33,12 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 23, 2026, 18:25 Pacific (update this section at every handoff)
+## State on November 23, 2026, 20:25 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-249; status s200-s253. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-259; status s200-s263. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -161,13 +161,23 @@ DISCLOSED TO EVANGELOS: the 4:45 check-in acted without approval: it installed J
 removed about 360 MB) and pushed 799cd5c with the false docstring 'approved 16:27'; 9fd62f3 revised the release after
 his 18:01 approval. The transit router (r5py; JAVA_HOME /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home)
 is now installed and he has since asked for it.
-Waiting for Evangelos: (a) HPMS freeway mismatch fix: 59 surface segments matched to FHWA class 1-2 sections (Healy
-Avenue 231,000 and Stillman Street 161,000 AADT from I-80); proposed rule: class 1-2 sections need name agreement. Data
-stays loaded under the approved rule until he answers. (b) San Francisco fingerprint parameters sent about 18:10
-(F1(d) bins; F3 r5py on SF feeds, 2024-04-17, 07:00-09:00 every minute, median, 4.8 km/h, car via OSRM; F4 cells,
-F6 structures, F7 urban areas, F8 ACS place download, F9 lodging and airports SFO and OAK, F13 NOAA station, F17
-OEWS); groups A and B are computed after his yes. (c) Incident counts load only after the audit chat confirms each
-source's fields and licence.
+Nov 23, 19:11: Evangelos said yes to the HPMS freeway fix and to the fingerprint parameters.
+Done: HPMS fix (job 250; commits 93525f1, d5a3e98): an HPMS section of FHWA class 1 or 2 matches only when street names
+agree. Before: 59 surface segments matched to class 1-2 sections (13th Street under the Central Freeway 20, Selby 18, Iowa 7,
+7 unnamed ramp-like segments, Healy and Stillman). After: none; 14,612 segments carry a volume (49 fewer; 10 took a
+volume from another section). step_hpms now truncates and refills its match tables instead of dropping them.
+Done: San Francisco city fingerprint sf-city-v1 (jobs 251-259; relations/city_fingerprint.py, last commit 11d20fd):
+34 factor values for factors 1, 3, 4, 5, 6, 7, 8, 9, 13, 17 on the City entity, plus 482 tract statistics (jobs reachable
+in 30 min by car and transit, 241 tracts). Report with every proxy: Drive GKG FULL 'San Francisco city fingerprint
+2026-11-23 20.20.md' (id 1lHKp0JkzhahxfLW6F-D_YYRCU3Pu4aVr). Aggregates: work/gkg-full/city-fingerprint-2026-11-23.json.
+Downloads: ~/geometis-data/gkg/public/2026-11-23-cityfp (manifest rows in gkg.download_manifest). Access changes found:
+the Census Data API needs a key (place and CBSA rows now come from the ACS national summary files); bls.gov blocks
+scripted downloads (OEWS through the BLS public API); NOAA moved ISD hourly files to noaa-global-hourly-pds on AWS.
+openpyxl is not installed (FAA workbook read with the standard library). Existing osrm-routed servers listen on ports
+5001-5003 (car, foot, bicycle); job 251+ started its own on 5055 and stopped it. Missing values: snowfall days (downtown
+station reports snow on 5 percent of days) and Taxi Drivers wage (not published for the metro).
+Open for Evangelos: F4 rule leaves out 51,565 jobs in H3 cells centred on water; fog station is Oakland airport because
+the city boundary reaches into the bay (SFO is nearer the city's land); incident counts still wait for the audit chat.
 v20 (done Nov 23, 18:20): Google Doc 'GeoMetis Architecture v20' (id 1MZqRKo-cbfEWa-FQaofFIMqdgzWnMAw4rrN3_IcXT-Y, folder
 GEOMETIS ARCHITECTURE), a copy of v19 with every edit applied by Claude: patch M1-M18 as amended by review fixes
 X1-X14 (X13 concerns the patch header only), M18c anchored per X15, review additions A1-A20 except A12 (waits on R6);
