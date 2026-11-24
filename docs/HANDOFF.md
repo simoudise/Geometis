@@ -33,12 +33,12 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 23, 2026, 14:45 Pacific (update this section at every handoff)
+## State on November 23, 2026, 16:35 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-246; status s200-s243. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-247; status s200-s247. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -142,6 +142,24 @@ gkg.edge_for_crash_prediction as exposure (Test 2 rule M7d). (b) Crash-type mapp
 groups), passenger-vehicle flag, REO 1.8.2 terms (crash-derived). (c) San Francisco city fingerprint: factor groups A
 (1, 4, 5, 6, 8) and B (3, 7, 9, 13, 17) and whether to install a transit router. Ontology files go to Drive once
 these releases are approved.
+Nov 23, 16:13-16:21 decisions: crash types approved; 'complete the San Francisco fingerprint'; 'follow the
+architecture' on volumes (HPMS AADT becomes a SPECTRA encoder input per v19 9.5.4 and patch M7a; the M7d hold-out
+applied only to the first transfer evaluation) - so volume relations are NOT excluded from the crash-prediction view;
+'make the architecture consistent resulting in v20'. Still unanswered: HPMS rules A and B and UKO 15.8.1 additions;
+transit router for fingerprint factor 3; whether v20 is a new Google Doc I edit or a patch he folds.
+Done: REO 1.8.2 (commit 9ff772f; tools/make_reo_1_8_2.py): reo:CrashTypeGroup (11 groups of Kusano et al. 2025),
+reo:incidentCrashTypeGroup (relation 96) and reo:involvesPassengerVehicle, both crash-derived; check_stack 0;
+HermiT consistent. Job 247 loaded gkg.tims_party (San Francisco party files; no personal fields), typed all 40,828 San
+Francisco crashes (pedestrian 8,035; front-to-rear 7,279; intersection 6,758; cyclist 5,278; motorcycle 4,843; single
+vehicle 4,020; lateral 2,763; other 714; opposite direction 646; backing 492; with a passenger vehicle 35,223 by the
+draft count) and built 39,306 edges; 0 domain or range rejections. The rule includes right turns as approved, so the
+intersection count is 87 above the 14:35 draft. 363 crash records in the San Francisco geofence buffer come from
+Contra Costa files (Richmond, El Cerrito) and stay untyped. A full validation pass (relations.validate) has not been
+rerun since Nov 22.
+v20: the SPECTRA patch (M1-M18, Drive 'v19 patch - SPECTRA review decisions ... (draft)') is not folded into v19
+(v19 last modified Nov 3). The Nov 13 review ('SPECTRA patch review.md') recommends against folding as is: 15 fixes
+(X1-X15), 20 additional edits (A1-A20) and open decisions R1-R24. Tests 1 and 2 results and the Nov 19 flag (no
+architecture revisions until the Test 3 pilot) also bear on v20.
 (c) The audit chat uses Mac mini jobs 300-349 and s300-s349, runs read-only queries on the San Francisco geofence,
 records its state in docs/ontology-audit.md and does not edit this file. Before dropping or renaming any gkg table
 (including the relations steps schema, entities and cleanup, which truncate or drop tables), warn the audit chat
