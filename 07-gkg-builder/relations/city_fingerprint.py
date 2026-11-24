@@ -340,7 +340,15 @@ def _transit_reach(orig, dest, osm, feeds):
         if ch:
             log(step="cityfp", gtfs=f.name, changes=ch)
             dropped.append(f"{f.name} cleaned: " + "; ".join(ch))
-    feeds = clean
+    import com.conveyal.gtfs  # available once r5py has started the JVM
+    feeds = []
+    for c in clean:
+        try:
+            com.conveyal.gtfs.GTFSFeed.writableTempFileFromGtfs(str(c)).close()
+            feeds.append(c)
+        except Exception as e:
+            dropped.append(f"{c.name} REJECTED by R5's GTFS loader: {str(e)[:120]}")
+            log(step="cityfp", r5_dropped_feed=dropped[-1])
     while True:
         try:
             net = r5py.TransportNetwork(str(osm), [str(f) for f in feeds])
