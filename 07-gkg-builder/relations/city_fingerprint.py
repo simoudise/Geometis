@@ -291,7 +291,18 @@ def _transit_reach(orig, dest, osm, feeds):
     every minute from 07:00 to 09:00 on 2024-04-17."""
     import r5py, geopandas as gpd
     from shapely.geometry import Point
-    net = r5py.TransportNetwork(str(osm), [str(f) for f in feeds])
+    feeds, dropped = list(feeds), []
+    while True:
+        try:
+            net = r5py.TransportNetwork(str(osm), [str(f) for f in feeds])
+            break
+        except r5py.util.exceptions.GtfsFileError as e:
+            bad = [f for f in feeds if f.name in str(e)]
+            if not bad:
+                raise
+            feeds.remove(bad[0])
+            dropped.append(f"{bad[0].name}: {str(e).splitlines()[1][:120] if len(str(e).splitlines()) > 1 else str(e)[:120]}")
+            log(step="cityfp", r5_dropped_feed=dropped[-1])
     o = gpd.GeoDataFrame({"id": list(orig.index)}, geometry=[Point(x, y) for x, y in zip(orig.lon, orig.lat)], crs=4326)
     d = gpd.GeoDataFrame({"id": list(dest.index)}, geometry=[Point(x, y) for x, y in zip(dest.lon, dest.lat)], crs=4326)
     kw = dict(origins=o, destinations=d, departure=SERVICE_DAY, departure_time_window=WINDOW, percentiles=[50],
@@ -305,7 +316,7 @@ def _transit_reach(orig, dest, osm, feeds):
     tt = tt[tt[col].notna() & (tt[col] <= LIMIT_MIN)]
     jobs = dest.jobs.to_dict()
     reach = tt.assign(j=tt["to_id"].map(jobs)).groupby("from_id").j.sum()
-    return np.array([float(reach.get(i, 0.0)) for i in orig.index]), getattr(r5py, "__version__", "?")
+    return np.array([float(reach.get(i, 0.0)) for i in orig.index]), getattr(r5py, "__version__", "?"), dropped
 
 
 # --------------------------------------------------------------------------- factor 13 helpers
@@ -584,7 +595,14 @@ def step_cityfp():
     dest_all = _cells(b, 10)
     dkm = _haversine_km(37.76, -122.44, dest_all.lat.values, dest_all.lon.values)
     dest_car = dest_all[dkm <= 70].reset_index(drop=True)
-    car = _car_reach(orig, dest_car)
+    cache = Path.home() / "Geometis-mini" / "work" / "gkg-full" / f"cityfp-car-cache-{len(orig)}-{len(dest_car)}.json"
+    if cache.exists():
+        car = np.array(json.loads(cache.read_text()))
+    else:
+        car = _car_reach(orig, dest_car)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(car.tolist()))
+    log(step="cityfp", car_done=True, car_destinations=len(dest_car))
     osm = Path.home() / "geometis-data" / "gkg" / "r5" / "sf.osm.pbf"
     bbox = (-122.6501, 37.4460, -121.8962, 38.0999)
     dest_tr = dest_all[(dest_all.lon > bbox[0]) & (dest_all.lon < bbox[2]) & (dest_all.lat > bbox[1]) & (dest_all.lat < bbox[3])].reset_index(drop=True)
@@ -599,7 +617,7 @@ def step_cityfp():
             feeds.append(path)
         if not (span[0] <= "20240417" <= span[1]):
             nosvc.append(f"{f['feed']} {f.get('provider', '')} ({span[0]}-{span[1]})")
-    transit, r5v = _transit_reach(orig, dest_tr, osm, feeds)
+    transit, r5v, r5_dropped = _transit_reach(orig, dest_tr, osm, feeds)
     walk = dict(Q("""select c.geoid, v.value from gkg.measured_value v join gkg.entity e on e.eid=v.feature_eid
                      join gkg.census_tract c on c.geofence_id=e.geofence_id and c.urn=e.urn
                      where v.variable='VAR_JOBS_REACHABLE' and v.travel_mode='MODE_WALK'"""))
@@ -607,14 +625,15 @@ def step_cityfp():
     orig["walk"] = [walk.get(t) for t in orig.index]
     wts = orig.population.fillna(0)
     for mode, col, note in (("car", "car", "free-flow car times overstate peak access; jobs anywhere in California within reach"),
-                            ("transit", "transit", "network and jobs limited to the regional OSM cut; feeds without service on 2024-04-17: " + "; ".join(nosvc)),
+                            ("transit", "transit", "network and jobs limited to the regional OSM cut; feeds without service on 2024-04-17: " + "; ".join(nosvc)
+                             + ("; feeds R5 rejected: " + "; ".join(d.split(":")[0] for d in r5_dropped) if r5_dropped else "")),
                             ("walking", "walk", "tract walking values of Nov 22 (graph walk, San Francisco jobs only)")):
         sel = orig[col].notna() & (wts > 0)
         comps.append(("FACTOR_03", f"jobs reachable within 30 minutes by {mode} (resident-weighted mean of tracts)",
                       float(np.average(orig[col][sel], weights=wts[sel])), "jobs", f"f3-{col}-city-v1",
                       {"car": "osrm-car-norcal", "transit": "r5py-gtfs-2024-04-17", "walk": "lodes8-2024"}[col], note))
     info["f3"] = {"origins": len(orig), "car_destinations_h3r10": len(dest_car), "transit_destinations_h3r10": len(dest_tr),
-                  "feeds": [p.name for p in feeds], "feeds_without_service_on_day": nosvc, "r5py": r5v,
+                  "feeds": [p.name for p in feeds], "feeds_without_service_on_day": nosvc, "r5py": r5v, "r5_dropped": r5_dropped,
                   "tract_median_car": float(np.median(car)), "tract_median_transit": float(np.median(transit))}
 
     # ---- Factor 13.
