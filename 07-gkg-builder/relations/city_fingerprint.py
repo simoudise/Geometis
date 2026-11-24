@@ -64,7 +64,8 @@ URLS = {
     "ghcnd_stations": "https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt",
     "ghcnd_station": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/{id}.csv",
     "isd_history": "https://www.ncei.noaa.gov/pub/data/noaa/isd-history.csv",
-    "isd_year": "https://www.ncei.noaa.gov/data/global-hourly/access/{year}/{sid}.csv",
+    # NCEI moved the hourly files to the NOAA Open Data bucket (the old path now redirects to an index page).
+    "isd_year": "https://noaa-global-hourly-pds.s3.amazonaws.com/{year}/{sid}.csv",
     # bls.gov refuses scripted file downloads (HTTP 403), so OEWS values come from the BLS public API (v1, no key).
     "bls_api": "https://api.bls.gov/publicAPI/v1/timeseries/data/",
 }
@@ -437,7 +438,9 @@ def _isd_fog(core):
         vis, ok = [], True
         for y in range(2015, 2025):
             try:
-                f = _cached(f"isd_{sid}_{y}.csv", URLS["isd_year"].format(year=y, sid=sid))
+                f = _cached(f"isd2_{sid}_{y}.csv", URLS["isd_year"].format(year=y, sid=sid))
+                if f.read_bytes()[:1] == b"<":
+                    raise ValueError("not a CSV file")
             except Exception:
                 ok = False
                 break
