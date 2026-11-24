@@ -53,12 +53,11 @@ LODGING = {"hotel", "motel", "hostel", "inn", "bed_and_breakfast", "guest_house"
 AIRPORTS = ["SFO", "OAK"]
 CBSA = "41860"
 OEWS_OCC = {"53-3054": "Taxi Drivers", "53-3053": "Shuttle Drivers and Chauffeurs"}
-ACS_VARS = ["B01003_001E", "B01003_001M", "B19013_001E", "B19013_001M", "B25044_001E", "B25044_001M", "B25044_003E",
-            "B25044_003M", "B25044_010E", "B25044_010M"]
+ACS_TABLES = ["b01003", "b19013", "b25044"]
+PLACE_GEO, CBSA_SUFFIX = "1600000US0667000", "US" + CBSA
 URLS = {
-    "acs_place": "https://api.census.gov/data/2024/acs/acs5?get=NAME," + ",".join(ACS_VARS) + "&for=place:67000&in=state:06",
-    "acs_cbsa": "https://api.census.gov/data/2024/acs/acs5?get=NAME,B01003_001E,B01003_001M"
-                "&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:" + CBSA,
+    # The Census Data API now requires a key, so place and metro rows come from the national table-based summary files.
+    "acs_sf": "https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-{t}.dat",
     "uac20": "https://www2.census.gov/geo/tiger/TIGER2024/UAC20/tl_2024_us_uac20.zip",
     "areawater": "https://www2.census.gov/geo/tiger/TIGER2024/AREAWATER/tl_2024_06075_areawater.zip",
     "faa_page": "https://www.faa.gov/airports/planning_capacity/passenger_allcargo_stats/passenger",
@@ -66,16 +65,17 @@ URLS = {
     "ghcnd_station": "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/{id}.csv",
     "isd_history": "https://www.ncei.noaa.gov/pub/data/noaa/isd-history.csv",
     "isd_year": "https://www.ncei.noaa.gov/data/global-hourly/access/{year}/{sid}.csv",
-    "oews": "https://www.bls.gov/oes/special-requests/oesm{yy}ma.zip",
+    # bls.gov refuses scripted file downloads (HTTP 403), so OEWS values come from the BLS public API (v1, no key).
+    "bls_api": "https://api.bls.gov/publicAPI/v1/timeseries/data/",
 }
 NEW_SOURCES = {
-    "acs5y2024-api": "ACS 5-year 2020-2024 through the Census Data API (place 0667000; CBSA 41860)",
+    "acs5y2024-api": "ACS 5-year 2020-2024 table-based summary files, national rows for place 0667000 and CBSA 41860",
     "tiger2024-uac20": "TIGER/Line 2024 2020 Census urban areas (UAC20)",
     "tiger2024-areawater": "TIGER/Line 2024 area hydrography, San Francisco County",
     "faa-enplanements": "FAA passenger boarding (enplanement) data, all airports, latest final calendar year",
     "noaa-ghcnd": "NOAA GHCN-Daily station record",
     "noaa-isd": "NOAA Integrated Surface Database hourly record",
-    "bls-oews": "BLS Occupational Employment and Wage Statistics, latest May release, metropolitan areas",
+    "bls-oews": "BLS Occupational Employment and Wage Statistics, latest May release, through the BLS public API",
     "osrm-car-norcal": "OSRM car profile on the Geofabrik Northern California extract (free-flow)",
     "r5py-gtfs-2024-04-17": "r5py (R5) on the San Francisco GTFS feeds of the transit stage and the regional OpenStreetMap cut",
 }
@@ -106,8 +106,23 @@ def _cached(name, url):
 def step_downloads():
     """Every public file the city fingerprint needs, with a manifest row each."""
     DL.mkdir(parents=True, exist_ok=True)
-    _cached("acs_place_0667000.json", URLS["acs_place"])
-    _cached("acs_cbsa_41860.json", URLS["acs_cbsa"])
+    if not (DL / "acs_place_cbsa.json").exists():
+        import requests
+        rows = {}
+        for t in ACS_TABLES:
+            with requests.get(URLS["acs_sf"].format(t=t), stream=True, timeout=900, headers=UA) as r:
+                r.raise_for_status()
+                r.encoding = "utf-8"
+                lines = r.iter_lines(decode_unicode=True)
+                head = next(lines).split("|")
+                for ln in lines:
+                    geo = ln.split("|", 1)[0]
+                    if geo == PLACE_GEO or (geo.startswith("310") and geo.endswith(CBSA_SUFFIX)):
+                        rows.setdefault(geo, {}).update(dict(zip(head, ln.split("|"))))
+            X("insert into gkg.download_manifest values (%(u)s,%(p)s,now(),null,null,%(n)s)",
+              {"u": URLS["acs_sf"].format(t=t), "p": str(DL / "acs_place_cbsa.json"), "n": f"{t}: rows for place 0667000 and CBSA 41860 kept"})
+        (DL / "acs_place_cbsa.json").write_text(json.dumps(rows, indent=1))
+        log(step="downloads", acs_geos=sorted(rows))
     _cached("tl_2024_us_uac20.zip", URLS["uac20"])
     _cached("tl_2024_06075_areawater.zip", URLS["areawater"])
     # FAA: the newest final "all enplanements" Excel file linked from the passenger boarding page.
@@ -133,14 +148,15 @@ def step_downloads():
             break
     _cached("ghcnd-stations.txt", URLS["ghcnd_stations"])
     _cached("isd-history.csv", URLS["isd_history"])
-    # OEWS: the newest May release that exists (2025, then 2024).
-    if not list(DL.glob("oesm*ma.zip")):
-        for yy in ("25", "24"):
-            try:
-                _get(URLS["oews"].format(yy=yy), DL / f"oesm{yy}ma.zip")
-                break
-            except Exception as e:
-                log(step="downloads", oews=yy, error=str(e)[:120])
+    # OEWS mean hourly wage (data type 03) for the metro area; series OEU M 0041860 000000 occupation 03.
+    if not (DL / "bls_oews_41860.json").exists():
+        import requests
+        ids = [f"OEUM00{CBSA}000000{o.replace('-', '')}03" for o in OEWS_OCC]
+        r = requests.post(URLS["bls_api"], json={"seriesid": ids}, timeout=120)
+        r.raise_for_status()
+        (DL / "bls_oews_41860.json").write_text(r.text)
+        X("insert into gkg.download_manifest values (%(u)s,%(p)s,now(),%(b)s,null,%(n)s)",
+          {"u": URLS["bls_api"] + " " + ",".join(ids), "p": str(DL / "bls_oews_41860.json"), "b": len(r.content), "n": "BLS API v1"})
     log(step="downloads", files=sorted(p.name for p in DL.iterdir()))
 
 
@@ -158,9 +174,11 @@ def _city_land():
     return core, land, area, core_area
 
 
-def _acs_api(name):
-    d = json.loads((DL / name).read_text())
-    return dict(zip(d[0], d[1]))
+def _acs_rows():
+    d = json.loads((DL / "acs_place_cbsa.json").read_text())
+    place = d[PLACE_GEO]
+    cbsa = [v for k, v in d.items() if k.startswith("310") and k.endswith(CBSA_SUFFIX)][0]
+    return place, cbsa
 
 
 def _xwalk_blocks():
@@ -355,10 +373,9 @@ def step_cityfp():
     info, comps = {}, []   # comps: (factor, component, value, unit, formula version, source key, proxy note or None)
     core, land, land_km2, core_km2 = _city_land()
     info["core_km2"], info["land_km2"] = round(core_km2, 2), round(land_km2, 2)
-    place = _acs_api("acs_place_0667000.json")
-    cbsa = _acs_api("acs_cbsa_41860.json")
-    pop = float(place["B01003_001E"])
-    info["acs_place_name"], info["acs_cbsa_name"] = place["NAME"], cbsa["NAME"]
+    place, cbsa = _acs_rows()
+    pop = float(place["B01003_E001"])
+    info["acs_place_geo"], info["acs_cbsa_geo"] = place["GEO_ID"], cbsa["GEO_ID"]
 
     # ---- Factor 1, city level, over the vehicular network of the core.
     seg = pd.DataFrame(Q("""select degrees(ST_Azimuth(ST_StartPoint(l)::geography, ST_EndPoint(l)::geography)),
@@ -494,8 +511,8 @@ def step_cityfp():
                  and households_below_35k is not null and households_100k_plus is not null""", {"g": G, "p": S.SF_COUNTY + "%"})
     lo = np.array([float(r[0]) for r in lo_hi]); hi_ = np.array([float(r[1]) for r in lo_hi])
     dissim = 0.5 * np.abs(lo / lo.sum() - hi_ / hi_.sum()).sum()
-    zv = (float(place["B25044_003E"]) + float(place["B25044_010E"])) / float(place["B25044_001E"])
-    comps += [("FACTOR_08", "median household income (city, ACS B19013 place)", float(place["B19013_001E"]), "US dollars, inflation-adjusted to 2024",
+    zv = (float(place["B25044_E003"]) + float(place["B25044_E010"])) / float(place["B25044_E001"])
+    comps += [("FACTOR_08", "median household income (city, ACS B19013 place)", float(place["B19013_E001"]), "US dollars, inflation-adjusted to 2024",
                "f8a-city-v1", "acs5y2024-api", None),
               ("FACTOR_08", "share of households with no vehicle (city, ACS B25044 place)", zv, "share 0-1", "f8b-city-v1", "acs5y2024-api", None),
               ("FACTOR_08", "income dissimilarity index, households below $35,000 vs $100,000 and above, across tracts", float(dissim),
@@ -527,10 +544,10 @@ def step_cityfp():
         ecol = [c for c in fa.columns if re.match(r"CY\s*\d+\s*Enplanements", c, re.I)][0]
         ap = fa[fa.Locid.astype(str).str.strip().isin(AIRPORTS)]
         enp = {r.Locid.strip(): float(r[ecol]) for _, r in ap.iterrows()}
-        comps.append(("FACTOR_09", "annual airport enplanements per metro resident (SFO and OAK)", sum(enp.values()) / float(cbsa["B01003_001E"]),
+        comps.append(("FACTOR_09", "annual airport enplanements per metro resident (SFO and OAK)", sum(enp.values()) / float(cbsa["B01003_E001"]),
                       "ratio", "f9b-v1", "faa-enplanements", f"{fx[-1].name}, column {ecol}; airports within 40 km taken as SFO and OAK"))
         info["f9_enplanements"] = enp
-        info["f9_metro_population"] = float(cbsa["B01003_001E"])
+        info["f9_metro_population"] = float(cbsa["B01003_E001"])
 
     # ---- Factor 3: tract values by car, transit and walking; city value = resident-weighted mean.
     orig = _tract_origins()
@@ -585,20 +602,18 @@ def step_cityfp():
         comps.append(("FACTOR_13", "hours per year with visibility below 1 km", isd["fog_hours"], "hours per year", "f13-v1", "noaa-isd",
                       f"proxy for fog; ISD {isd['station']} {isd['name']}, {isd['distance_m']} m from the city"))
 
-    # ---- Factor 17.
-    oz = sorted(DL.glob("oesm*ma.zip"))
-    if oz:
-        with zipfile.ZipFile(oz[-1]) as zf:
-            name = [n for n in zf.namelist() if re.search(r"MSA.*\.xlsx$", n, re.I)][0]
-            oe = pd.read_excel(zf.open(name), dtype=str)
-        oe.columns = [c.upper() for c in oe.columns]
-        sel = oe[(oe.AREA == CBSA) & oe.OCC_CODE.isin(OEWS_OCC)]
-        for r in sel.itertuples():
-            v = pd.to_numeric(r.H_MEAN, errors="coerce")
-            comps.append(("FACTOR_17", f"mean hourly wage, SOC {r.OCC_CODE} {OEWS_OCC[r.OCC_CODE]}", None if pd.isna(v) else float(v),
-                          "US dollars per hour", "f17-v1", "bls-oews",
-                          f"{oz[-1].name} {name}; employed drivers only, gig ride-hail drivers not counted"))
-        info["f17"] = {"file": oz[-1].name, "rows": len(sel), "area_title": sel.AREA_TITLE.iloc[0] if len(sel) else None}
+    # ---- Factor 17 (BLS API; the latest annual value is the May release of that year).
+    bj = json.loads((DL / "bls_oews_41860.json").read_text())
+    info["f17"] = {"messages": bj.get("message")}
+    for ser in bj.get("Results", {}).get("series", []):
+        occ = ser["seriesID"][-8:-2]
+        occ = occ[:2] + "-" + occ[2:]
+        latest = [x for x in ser.get("data", []) if x.get("latest") == "true"]
+        val = float(latest[0]["value"]) if latest and latest[0]["value"] not in ("-", "") else None
+        note = (f"May {latest[0]['year']} release; employed drivers only, gig ride-hail drivers not counted" if latest
+                else "no estimate published for this metro area")
+        comps.append(("FACTOR_17", f"mean hourly wage, SOC {occ} {OEWS_OCC.get(occ, '')}", val, "US dollars per hour", "f17-v1", "bls-oews", note))
+        info["f17"][occ] = latest[0] if latest else None
 
     # ---- Store: data sources, the fingerprint, its factor values, tract reach statistics, and their edges.
     for k, v in NEW_SOURCES.items():
