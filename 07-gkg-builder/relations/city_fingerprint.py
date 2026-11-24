@@ -286,12 +286,61 @@ def _car_reach(orig, dest):
         proc.wait(timeout=30)
 
 
+def _sanitize_gtfs(src, out_dir):
+    """Copy of a GTFS zip that R5's loader accepts: optional tables with no rows are left out, blank transfer_type
+    values become 0 (recommended transfer point, the GTFS default), and trips with a time of 72:00:00 or later are
+    removed (R5's limit; only long-distance trains have them). Returns the path and a list of the changes."""
+    out = out_dir / src.name
+    changes = []
+    with zipfile.ZipFile(src) as zin, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
+        names = zin.namelist()
+        drop_trips = set()
+        if "stop_times.txt" in names:
+            st = pd.read_csv(zin.open("stop_times.txt"), dtype=str, keep_default_na=False)
+            for c in ("arrival_time", "departure_time"):
+                h = pd.to_numeric(st[c].str.split(":").str[0], errors="coerce")
+                drop_trips |= set(st.trip_id[h >= 72])
+            if drop_trips:
+                changes.append(f"removed {len(drop_trips)} trips with times of 72 h or more")
+        for n in names:
+            data = zin.read(n)
+            base = n.rsplit("/", 1)[-1]
+            if base.endswith(".txt") and base not in ("agency.txt", "stops.txt", "routes.txt", "trips.txt", "stop_times.txt",
+                                                       "calendar.txt", "calendar_dates.txt"):
+                if len([l for l in data.decode("utf-8-sig", "replace").splitlines() if l.strip()]) <= 1:
+                    changes.append(f"left out empty {base}")
+                    continue
+            if base == "transfers.txt":
+                t = pd.read_csv(io.BytesIO(data), dtype=str, keep_default_na=False)
+                if "transfer_type" in t:
+                    nb = int((t.transfer_type.str.strip() == "").sum())
+                    if nb:
+                        t.loc[t.transfer_type.str.strip() == "", "transfer_type"] = "0"
+                        changes.append(f"set {nb} blank transfer_type values to 0")
+                        data = t.to_csv(index=False).encode()
+            if base in ("trips.txt", "stop_times.txt", "frequencies.txt") and drop_trips:
+                t = pd.read_csv(io.BytesIO(data), dtype=str, keep_default_na=False)
+                if "trip_id" in t:
+                    data = t[~t.trip_id.isin(drop_trips)].to_csv(index=False).encode()
+            zout.writestr(n, data)
+    return out, changes
+
+
 def _transit_reach(orig, dest, osm, feeds):
     """Jobs reachable within 30 minutes by transit (with walking access and egress): r5py, median over departures
     every minute from 07:00 to 09:00 on 2024-04-17."""
     import r5py, geopandas as gpd
     from shapely.geometry import Point
-    feeds, dropped = list(feeds), []
+    work = Path.home() / "Geometis-mini" / "work" / "gkg-full" / "r5-gtfs"
+    work.mkdir(parents=True, exist_ok=True)
+    clean, dropped = [], []
+    for f in feeds:
+        c, ch = _sanitize_gtfs(f, work)
+        clean.append(c)
+        if ch:
+            log(step="cityfp", gtfs=f.name, changes=ch)
+            dropped.append(f"{f.name} cleaned: " + "; ".join(ch))
+    feeds = clean
     while True:
         try:
             net = r5py.TransportNetwork(str(osm), [str(f) for f in feeds])
@@ -301,7 +350,7 @@ def _transit_reach(orig, dest, osm, feeds):
             if not bad:
                 raise
             feeds.remove(bad[0])
-            dropped.append(f"{bad[0].name}: {str(e).splitlines()[1][:120] if len(str(e).splitlines()) > 1 else str(e)[:120]}")
+            dropped.append(f"{bad[0].name} REJECTED: {str(e).splitlines()[1][:120] if len(str(e).splitlines()) > 1 else str(e)[:120]}")
             log(step="cityfp", r5_dropped_feed=dropped[-1])
     o = gpd.GeoDataFrame({"id": list(orig.index)}, geometry=[Point(x, y) for x, y in zip(orig.lon, orig.lat)], crs=4326)
     d = gpd.GeoDataFrame({"id": list(dest.index)}, geometry=[Point(x, y) for x, y in zip(dest.lon, dest.lat)], crs=4326)
@@ -613,10 +662,11 @@ def step_cityfp():
             continue
         span = f.get("service_span") or ["0", "0"]
         path = B.GTFS_CACHE / f["feed"] / f"{f['dataset']}.zip"
-        if path.exists():
-            feeds.append(path)
         if not (span[0] <= "20240417" <= span[1]):
+            # A feed with no service on the day adds no departures, so leaving it out does not change any travel time.
             nosvc.append(f"{f['feed']} {f.get('provider', '')} ({span[0]}-{span[1]})")
+        elif path.exists():
+            feeds.append(path)
     transit, r5v, r5_dropped = _transit_reach(orig, dest_tr, osm, feeds)
     walk = dict(Q("""select c.geoid, v.value from gkg.measured_value v join gkg.entity e on e.eid=v.feature_eid
                      join gkg.census_tract c on c.geofence_id=e.geofence_id and c.urn=e.urn
@@ -626,7 +676,7 @@ def step_cityfp():
     wts = orig.population.fillna(0)
     for mode, col, note in (("car", "car", "free-flow car times overstate peak access; jobs anywhere in California within reach"),
                             ("transit", "transit", "network and jobs limited to the regional OSM cut; feeds without service on 2024-04-17: " + "; ".join(nosvc)
-                             + ("; feeds R5 rejected: " + "; ".join(d.split(":")[0] for d in r5_dropped) if r5_dropped else "")),
+                             + ("; " + "; ".join(r5_dropped) if r5_dropped else "")),
                             ("walking", "walk", "tract walking values of Nov 22 (graph walk, San Francisco jobs only)")):
         sel = orig[col].notna() & (wts > 0)
         comps.append(("FACTOR_03", f"jobs reachable within 30 minutes by {mode} (resident-weighted mean of tracts)",
