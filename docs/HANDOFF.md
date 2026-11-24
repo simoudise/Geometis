@@ -33,12 +33,12 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 23, 2026, 20:25 Pacific (update this section at every handoff)
+## State on November 24, 2026, 07:55 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-259; status s200-s263. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-261; status s200-s265. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -176,8 +176,19 @@ scripted downloads (OEWS through the BLS public API); NOAA moved ISD hourly file
 openpyxl is not installed (FAA workbook read with the standard library). Existing osrm-routed servers listen on ports
 5001-5003 (car, foot, bicycle); job 251+ started its own on 5055 and stopped it. Missing values: snowfall days (downtown
 station reports snow on 5 percent of days) and Taxi Drivers wage (not published for the metro).
-Open for Evangelos: F4 rule leaves out 51,565 jobs in H3 cells centred on water; fog station is Oakland airport because
-the city boundary reaches into the bay (SFO is nearer the city's land); incident counts still wait for the audit chat.
+Nov 24, 07:43 (Evangelos): clear the caches; exclude the database and data folders from Time Machine; F4 keeps only
+cells centred on land; weather stations ranked by distance to the city's land; INRIX has not replied (he wrote again).
+Done (job 260, commit 68a2cd8): Homebrew download cache (2.2 GB) and pip cache (0.5 GB) cleared; Time Machine sticky
+exclusions on /opt/homebrew/var/postgresql@17 and ~/geometis-data (tmutil isexcluded confirms). Exclusions affect
+backups to the G-DRIVE disk; local APFS snapshots still cover the whole Data volume. Fog now from SFO (ISD
+724940-23234, 9.9 km from the city's land): 18.0 hours a year (Oakland gave 28.8). Report: Drive GKG FULL
+'San Francisco city fingerprint 2026-11-24 07.55.md' (id 16dRLhDAi0jG57LBMem7rXMm4T_Rc65_o); 20.20 copy SUPERSEDED.
+Disk (job 261, s264-s265): 15 GiB free; Data volume 945.5 GB used, of which the job runner sees about 77 GB (database
+10 GB, ~/geometis-data 20 GB, /opt/homebrew 17 GB, /Applications 14 GB, ~/Library 4.9 GB, venvs 2.3 GB); the Storage
+panel adds Documents 34.9 GB and other apps. 24 hourly local snapshots (oldest 2026-11-23-080917, all purgeable); the
+last one holding the deleted trip tables and Test 2 folders expires about 13:10 Pacific Nov 24. A check-in at 13:47
+Pacific (trigger trig_01HTjiSrbkLakXSgNscpo34U) re-measures. Where the remaining ~750 GB sits is not known: the job
+runner lacks Full Disk Access, and the Storage panel still showed System Data as 'Calculating'.
 v20 (done Nov 23, 18:20): Google Doc 'GeoMetis Architecture v20' (id 1MZqRKo-cbfEWa-FQaofFIMqdgzWnMAw4rrN3_IcXT-Y, folder
 GEOMETIS ARCHITECTURE), a copy of v19 with every edit applied by Claude: patch M1-M18 as amended by review fixes
 X1-X14 (X13 concerns the patch header only), M18c anchored per X15, review additions A1-A20 except A12 (waits on R6);
