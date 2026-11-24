@@ -33,12 +33,12 @@ Read this file, then `docs/test-plan-2026-11.md`, before doing anything. The tes
 - `symmetric` is a reserved word in PostgreSQL; the relation table uses `is_symmetric`.
 - A job script must end with `|| exit 1` after the Python call, or the runner logs exit 0 for a failed step.
 
-## State on November 24, 2026, 07:55 Pacific (update this section at every handoff)
+## State on November 24, 2026, 10:55 Pacific (update this section at every handoff)
 
 CURRENT WORK: GeoMetis-GKG, the full geospatial knowledge graph build for San Francisco and the five Contra Costa
 cities (brief from Evangelos, Nov 20). Three steps, each stopping for his approval: (1) relation inventory, (2) feasibility
 and timing, (3) build. Branch `gkg-full`, made from `a2-stage1-loader` at 9f9ee50. GeoMetis 1 has stopped; this work
-has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-261; status s200-s265. Nothing is running or queued.
+has the Mac mini. Job numbers for this work: main queue 200-299, status lane s200-s299. Used so far: main 200-263; status s200-s266. Nothing is running or queued.
 
 Step 1 (done, awaiting Evangelos's approval): inventory of all 285 object properties in UKO 15.5, TKO 8.4, MLO 1.7,
 REO 1.6.1 and FKO 1.2.1. Code: `07-gkg-builder/relations/dump_object_properties.py` and `classify_inventory.py`
@@ -183,12 +183,16 @@ exclusions on /opt/homebrew/var/postgresql@17 and ~/geometis-data (tmutil isexcl
 backups to the G-DRIVE disk; local APFS snapshots still cover the whole Data volume. Fog now from SFO (ISD
 724940-23234, 9.9 km from the city's land): 18.0 hours a year (Oakland gave 28.8). Report: Drive GKG FULL
 'San Francisco city fingerprint 2026-11-24 07.55.md' (id 16dRLhDAi0jG57LBMem7rXMm4T_Rc65_o); 20.20 copy SUPERSEDED.
-Disk (job 261, s264-s265): 15 GiB free; Data volume 945.5 GB used, of which the job runner sees about 77 GB (database
-10 GB, ~/geometis-data 20 GB, /opt/homebrew 17 GB, /Applications 14 GB, ~/Library 4.9 GB, venvs 2.3 GB); the Storage
-panel adds Documents 34.9 GB and other apps. 24 hourly local snapshots (oldest 2026-11-23-080917, all purgeable); the
-last one holding the deleted trip tables and Test 2 folders expires about 13:10 Pacific Nov 24. A check-in at 13:47
-Pacific (trigger trig_01HTjiSrbkLakXSgNscpo34U) re-measures. Where the remaining ~750 GB sits is not known: the job
-runner lacks Full Disk Access, and the Storage panel still showed System Data as 'Calculating'.
+Disk, RESOLVED Nov 24: Evangelos's 'sudo du' found 664 GB in /Library/Caches/com.sophos.cg, a Sophos Home cache
+that Sophos support calls a known bug (fix in a future update; their advice: delete the folder and restart). Job 262
+stopped PostgreSQL after a checkpoint (reference counts: 59,920,051 edges; 1,583,072 entities; 22,579 measured values;
+150,870 road segments; 10 GB). Evangelos deleted the cache (766 MB left, Sophos's live files) and the local snapshots,
+and restarted the Mac mini. Job 263 started PostgreSQL (brew services, login item restored); every count matched;
+780 GiB free; 0 local snapshots. FileVault: after any restart someone must log in at the Mac mini before Screen
+Sharing or the SMB share work; Evangelos then reconnects smb://10.0.0.202 on the MacBook. Sophos exceptions for
+/opt/homebrew/var/postgresql@17/ and /Users/katevan/geometis-data/ were recommended; Sophos says they may not stop the
+cache from growing, so log free space before and after each heavy job and tell Evangelos if it falls more than the job
+writes. The 13:47 disk check-in was cancelled (no longer needed).
 v20 (done Nov 23, 18:20): Google Doc 'GeoMetis Architecture v20' (id 1MZqRKo-cbfEWa-FQaofFIMqdgzWnMAw4rrN3_IcXT-Y, folder
 GEOMETIS ARCHITECTURE), a copy of v19 with every edit applied by Claude: patch M1-M18 as amended by review fixes
 X1-X14 (X13 concerns the patch header only), M18c anchored per X15, review additions A1-A20 except A12 (waits on R6);
