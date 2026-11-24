@@ -708,19 +708,21 @@ def step_cityfp():
                   "tract_median_car": float(np.median(car)), "tract_median_transit": float(np.median(transit))}
 
     # ---- Factor 13.
-    gh = _ghcnd(core)
+    # Stations are ranked by distance to the city's land, not to the city boundary, which reaches into the bay
+    # (Evangelos, Nov 24 07:43).
+    gh = _ghcnd(land)
     info["f13_ghcnd"] = gh
     if gh.get("station"):
-        note = f"GHCN-Daily {gh['station']} {gh['name']}, {gh['distance_m']} m from the city"
+        note = f"GHCN-Daily {gh['station']} {gh['name']}, {gh['distance_m']} m from the city's land"
         comps += [("FACTOR_13", "days per year with precipitation of 10 mm or more", gh["heavy_rain_days"], "days per year", "f13-v1", "noaa-ghcnd", note),
                   ("FACTOR_13", "days per year with maximum temperature of 35 C or more", gh["hot_days"], "days per year", "f13-v1", "noaa-ghcnd", note),
                   ("FACTOR_13", "days per year with snowfall of 1 cm or more", gh["snow_days"], "days per year", "f13-v1", "noaa-ghcnd",
                    note + ("" if gh["snow_days"] is not None else "; SNOW reported on fewer than 90 percent of days, value missing"))]
-    isd = _isd_fog(core)
+    isd = _isd_fog(land)
     info["f13_isd"] = isd
     if isd.get("station"):
         comps.append(("FACTOR_13", "hours per year with visibility below 1 km", isd["fog_hours"], "hours per year", "f13-v1", "noaa-isd",
-                      f"proxy for fog; ISD {isd['station']} {isd['name']}, {isd['distance_m']} m from the city"))
+                      f"proxy for fog; ISD {isd['station']} {isd['name']}, {isd['distance_m']} m from the city's land"))
 
     # ---- Factor 17 (BLS API; the latest annual value is the May release of that year).
     bj = json.loads((DL / "bls_oews_41860.json").read_text())
