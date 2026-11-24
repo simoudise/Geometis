@@ -1018,7 +1018,9 @@ def step_hpms():
     """UKO 15.8.1. Rules A and B confirmed by Evangelos on 2026-11-23 (18:01 Pacific). Rule A: a road segment takes the 2024 AADT of an HPMS section
     whose direction at the segment's midpoint is within 20 degrees and that has at least half of the segment's length
     within 10 m, or within 30 m when the street names agree; the nearest qualifying section wins, 10 m matches first;
-    motorways get no volume. A segment that is one-way under a two-way HPMS facility (facility type 2) carries the
+    motorways get no volume. An HPMS section of FHWA functional system 1 or 2 (Interstate; other freeways and
+    expressways) matches only when the street names agree (approved by Evangelos 2026-11-23, 19:11 Pacific, after 59
+    surface segments took I-80 volumes). A segment that is one-way under a two-way HPMS facility (facility type 2) carries the
     two-way total with uko:volumeIsTwoWayFacilityTotal true (column on_one_carriageway). Rule B: FHWA functional system from the Caltrans CRS Functional
     Classification with the same test at 10 m. San Francisco only (decision of 2026-11-23)."""
     g = "us-ca-san-francisco"
@@ -1075,7 +1077,8 @@ def step_hpms():
                  pg_temp.name_key(p.name) = pg_temp.name_key(l.rname) name_ok
           from src_l l, lateral (select ST_LineLocatePoint(l.g, p.mid) f) ff
           where l.src='hpms' and p.rc in {RULE_A_CLASSES} and ST_DWithin(l.g, p.g, 30) and {angle} <= 20) b
-        where b.share10 >= 0.5 or (b.share30 >= 0.5 and b.name_ok)""")
+        where (b.share10 >= 0.5 or (b.share30 >= 0.5 and b.name_ok))
+          and (coalesce(b.f_system, 0) not in (1, 2) or b.name_ok)""")
     X("""delete from gkg.segment_volume_match m using (select urn, sid, row_number() over (partition by urn
            order by (share10>=0.5) desc, dist, sid) rk from gkg.segment_volume_match) r where r.urn=m.urn and r.sid=m.sid and r.rk>1""")
     X("drop table if exists gkg.segment_fc_match")
