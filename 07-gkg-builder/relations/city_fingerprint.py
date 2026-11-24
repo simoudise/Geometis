@@ -441,13 +441,16 @@ def _isd_fog(core):
             except Exception:
                 ok = False
                 break
-            d = pd.read_csv(f, usecols=["DATE", "VIS"], dtype=str)
+            d = pd.read_csv(f, dtype=str, usecols=lambda c: c in ("DATE", "VIS"))
+            if "VIS" not in d or "DATE" not in d:
+                ok = False
+                break
             v = d.VIS.str.split(",", expand=True)
             d = d.assign(m=pd.to_numeric(v[0], errors="coerce"), q=v[1])
             d = d[(d.m < 999999) & (~d.q.isin(["2", "3", "6", "7"]))]
             vis.append(d.assign(hour=d.DATE.str[:13]).groupby("hour").m.min())
         if not ok:
-            tried.append((sid, name, round(r.dist), "missing years"))
+            tried.append((sid, name, round(r.dist), "missing years or no visibility field"))
             continue
         v = pd.concat(vis)
         cover = len(v) / hours
@@ -675,7 +678,14 @@ def step_cityfp():
             nosvc.append(f"{f['feed']} {f.get('provider', '')} ({span[0]}-{span[1]})")
         elif path.exists():
             feeds.append(path)
-    transit, r5v, r5_dropped = _transit_reach(orig, dest_tr, osm, feeds)
+    tcache = cache.with_name(f"cityfp-transit-cache-{len(orig)}-{len(dest_tr)}.json")
+    if tcache.exists():
+        transit, r5v, r5_dropped = json.loads(tcache.read_text())
+        transit = np.array(transit)
+    else:
+        transit, r5v, r5_dropped = _transit_reach(orig, dest_tr, osm, feeds)
+        tcache.write_text(json.dumps([transit.tolist(), r5v, r5_dropped]))
+    log(step="cityfp", transit_done=True, transit_destinations=len(dest_tr))
     walk = dict(Q("""select c.geoid, v.value from gkg.measured_value v join gkg.entity e on e.eid=v.feature_eid
                      join gkg.census_tract c on c.geofence_id=e.geofence_id and c.urn=e.urn
                      where v.variable='VAR_JOBS_REACHABLE' and v.travel_mode='MODE_WALK'"""))
