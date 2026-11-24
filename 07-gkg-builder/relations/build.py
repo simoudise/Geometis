@@ -35,7 +35,7 @@ TIMS_DIR = Path.home() / "Geometis-mini/tims-incoming"
 GEOFENCES = ["us-ca-contra-costa-5", "us-ca-san-francisco"]
 URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")
 CODE_VERSION = os.environ.get("GKG_CODE_VERSION", "gkg-full")
-ONTO_VERSION = "UKO 15.8.0 / REO 1.8.2 (release 2026-11-23b)"
+ONTO_VERSION = "UKO 15.8.1 / REO 1.8.3 (release 2026-11-23c)"
 
 LANDMARK = ["Museum", "Theater", "ConcertHall", "OperaHouse", "CityHall", "Courthouse", "Library",
             "GovernmentBuilding", "Stadium", "Arena"]
@@ -180,6 +180,12 @@ RELATIONS = [
     ("uko:factorSetUsed", False, False, "fingerprint distance to each factor it uses"),
     # Added Nov 23 (REO 1.8.2, approved by Evangelos 16:13). Built by step "crashtype" for San Francisco only.
     ("reo:incidentCrashTypeGroup", True, False, "crash record to its crash-type group (Kusano et al. 2025 groups; Synapse rule on SWITRS parties 1 and 2)"),
+    # Added Nov 23 (UKO 15.8.1, HPMS rules A and B approved by Evangelos 16:27). Built by step "hpms", San Francisco only.
+    ("uko:fhwaFunctionalSystem", False, False, "road segment to its FHWA functional system (rule B: Caltrans CRS functional classification within 10 m and 20 degrees over half the segment)"),
+    ("uko:hasVolumeObservation", False, False, "road segment to its HPMS 2024 AADT observation (rule A)"),
+    ("uko:volumeMode", False, False, "volume observation to what it counts"),
+    ("uko:volumeMethod", False, False, "volume observation to how the figure was obtained"),
+    ("uko:volumeSource", False, False, "volume observation to its data source release"),
 ]
 
 DDL = """
@@ -264,11 +270,11 @@ def step_schema():
 
 
 def catalogue_from_ontology(out_dir):
-    """Write relation_type.tsv and class_closure.tsv from UKO 15.8 + REO 1.8.2 + MLO 1.8.0 + SOSA (run where rdflib is installed)."""
+    """Write relation_type.tsv and class_closure.tsv from UKO 15.8.1 + REO 1.8.3 + MLO 1.8.1 + SOSA (run where rdflib is installed)."""
     import rdflib
     from rdflib.namespace import RDF, RDFS, OWL
     g = rdflib.Graph()
-    for f in ["uko_ontology_v15_8.ttl", "reo_ontology_v1_8_2.ttl", "mlo_ontology_v1_8_0.ttl", "external/sosa.ttl"]:
+    for f in ["uko_ontology_v15_8_1.ttl", "reo_ontology_v1_8_3.ttl", "mlo_ontology_v1_8_1.ttl", "external/sosa.ttl"]:
         g.parse(ONTO / f)
     nm = g.namespace_manager
     q = lambda x: x.n3(nm)
@@ -999,6 +1005,155 @@ def step_crashtype():
         sf_crash_records=Q("select count(*) from gkg.entity where geofence_id=%(g)s and uko_class='reo:HistoricalIncidentRecord'", {"g": g})[0][0])
 
 
+HPMS_DIR = Path.home() / "geometis-data/gkg/public/2026-11-23"
+# Classes the rules apply to (the classes the match tests of jobs 239-243 measured). Rule A also excludes motorways.
+RULE_B_CLASSES = "('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street')"
+RULE_A_CLASSES = "('trunk','primary','secondary','tertiary','residential','unclassified','living_street')"
+NAME_KEY_SQL = """create or replace function pg_temp.name_key(t text) returns text language sql immutable as $f$
+  select split_part(regexp_replace(regexp_replace(regexp_replace(upper(coalesce(t,'')),'\\mSTREET\\M','ST','g'),
+         '\\mAVENUE\\M','AVE','g'),'^(NORTH|SOUTH|EAST|WEST|N|S|E|W) ',''),' ',1) $f$"""
+
+
+def step_hpms():
+    """UKO 15.8.1, approved 2026-11-23 (16:27 Pacific). Rule A: a road segment takes the 2024 AADT of an HPMS section
+    whose direction at the segment's midpoint is within 20 degrees and that has at least half of the segment's length
+    within 10 m, or within 30 m when the street names agree; the nearest qualifying section wins, 10 m matches first;
+    motorways get no volume. A segment that is one-way under a two-way HPMS facility (facility type 2) carries the
+    two-way total with uko:volumeOnOneCarriageway true. Rule B: FHWA functional system from the Caltrans CRS Functional
+    Classification with the same test at 10 m. San Francisco only (decision of 2026-11-23)."""
+    g = "us-ca-san-francisco"
+    X("""create table if not exists gkg.hpms_section (sid serial primary key, route_id text, begin_point real, end_point real,
+         f_system smallint, facility_type smallint, aadt integer, aadt_year integer, year_record integer, props jsonb,
+         geom geometry(Geometry,4326), source_file text)""")
+    X("""create table if not exists gkg.caltrans_fc (sid serial primary key, route_id text, f_system smallint, county_label text,
+         props jsonb, geom geometry(Geometry,4326), source_file text)""")
+    X("truncate gkg.hpms_section, gkg.caltrans_fc restart identity")
+    from shapely.geometry import shape
+    hp = json.load(open(HPMS_DIR / "hpms_2024_ca_075.geojson"))["features"]
+    rows = []
+    for f in hp:
+        pr = f["properties"]
+        rows.append((pr.get("route_id"), pr.get("begin_point"), pr.get("end_point"), pr.get("f_system"), pr.get("facility_type"),
+                     pr.get("aadt"), (pr.get("aadt_d") or "")[:4] or None, pr.get("year_record"), json.dumps(pr),
+                     "SRID=4326;" + shape(f["geometry"]).wkt, "hpms_2024_ca_075.geojson"))
+    copy("gkg.hpms_section", ["route_id", "begin_point", "end_point", "f_system", "facility_type", "aadt", "aadt_year", "year_record",
+                              "props", "geom", "source_file"], rows)
+    fc = json.load(open(HPMS_DIR / "caltrans_crs_fc_sf_bbox.geojson"))["features"]
+    copy("gkg.caltrans_fc", ["route_id", "f_system", "county_label", "props", "geom", "source_file"],
+         [(f["properties"].get("RouteID"), f["properties"].get("F_System"), f["properties"].get("County_label"), json.dumps(f["properties"]),
+           "SRID=4326;" + shape(f["geometry"]).wkt, "caltrans_crs_fc_sf_bbox.geojson") for f in fc])
+    log(step="hpms", hpms_sections=len(hp), fc_lines=len(fc))
+    X(NAME_KEY_SQL)
+    X("drop table if exists pg_temp.src_l, pg_temp.seg_p")
+    X("""create temp table src_l as
+         select 'hpms'::text src, sid, f_system, (ST_Dump(ST_Transform(geom,3310))).geom g,
+                regexp_replace(route_id,'^[^_]*_[^_]*_|_[A-Z]$','','g') rname from gkg.hpms_section
+         union all select 'fc', sid, f_system, (ST_Dump(ST_Transform(geom,3310))).geom, null from gkg.caltrans_fc""")
+    X("create index on src_l using gist (g)")
+    X(f"""create temp table seg_p as select urn, road_classification rc, name, g, length_m,
+          ST_LineInterpolatePoint(g,0.5) mid,
+          degrees(ST_Azimuth(ST_LineInterpolatePoint(g,greatest(0,0.5-least(0.25,10/greatest(length_m,1)))),
+                             ST_LineInterpolatePoint(g,least(1,0.5+least(0.25,10/greatest(length_m,1)))))) az,
+          exists (select 1 from jsonb_array_elements(case when jsonb_typeof(access_restrictions)='array' then access_restrictions else '[]' end) r
+                  where r->>'access_type'='denied' and r->'when'->>'heading' in ('forward','backward')
+                    and r->'when'->'mode' = 'null'::jsonb and r->'between' = 'null'::jsonb) oneway,
+          (select r->'when'->>'heading' from jsonb_array_elements(case when jsonb_typeof(access_restrictions)='array' then access_restrictions else '[]' end) r
+                  where r->>'access_type'='denied' and r->'when'->>'heading' in ('forward','backward')
+                    and r->'when'->'mode' = 'null'::jsonb and r->'between' = 'null'::jsonb limit 1) denied_heading
+        from (select urn, road_classification, name, length_m, access_restrictions, ST_LineMerge(ST_Transform(geom,3310)) g
+              from gkg.road_segment where geofence_id='{g}' and road_classification in {RULE_B_CLASSES}) s
+        where GeometryType(g)='LINESTRING' and length_m>0""")
+    X("create index on seg_p using gist (g)")
+    angle = """(select least(x,180-x) from (select abs(mod((degrees(ST_Azimuth(ST_LineInterpolatePoint(l.g,greatest(0,f-0.02)),
+               ST_LineInterpolatePoint(l.g,least(1,f+0.02))))-p.az)::numeric+360,180)) x) y)"""
+    X("drop table if exists gkg.segment_volume_match")
+    X(f"""create table gkg.segment_volume_match as
+        select p.urn, p.rc, p.oneway, p.denied_heading, b.* from seg_p p cross join lateral (
+          select l.sid, l.f_system, ST_Distance(p.g,l.g) dist,
+                 ST_Length(ST_Intersection(p.g, ST_Buffer(l.g,10)))/ST_Length(p.g) share10,
+                 ST_Length(ST_Intersection(p.g, ST_Buffer(l.g,30)))/ST_Length(p.g) share30,
+                 pg_temp.name_key(p.name) = pg_temp.name_key(l.rname) name_ok
+          from src_l l, lateral (select ST_LineLocatePoint(l.g, p.mid) f) ff
+          where l.src='hpms' and p.rc in {RULE_A_CLASSES} and ST_DWithin(l.g, p.g, 30) and {angle} <= 20) b
+        where b.share10 >= 0.5 or (b.share30 >= 0.5 and b.name_ok)""")
+    X("""delete from gkg.segment_volume_match m using (select urn, sid, row_number() over (partition by urn
+           order by (share10>=0.5) desc, dist, sid) rk from gkg.segment_volume_match) r where r.urn=m.urn and r.sid=m.sid and r.rk>1""")
+    X("drop table if exists gkg.segment_fc_match")
+    X(f"""create table gkg.segment_fc_match as
+        select distinct on (p.urn) p.urn, l.sid, l.f_system, ST_Distance(p.g,l.g) dist,
+               ST_Length(ST_Intersection(p.g, ST_Buffer(l.g,10)))/ST_Length(p.g) share10
+        from seg_p p join src_l l on l.src='fc' and ST_DWithin(l.g, p.g, 10), lateral (select ST_LineLocatePoint(l.g, p.mid) f) ff
+        where {angle} <= 20 and ST_Length(ST_Intersection(p.g, ST_Buffer(l.g,10)))/ST_Length(p.g) >= 0.5 and l.f_system between 1 and 7
+        order by p.urn, ST_Distance(p.g,l.g), l.sid""")
+    # entities: FHWA individuals, the observation per matched segment, the vocabulary individuals and the data source
+    for k in range(1, 8):
+        X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, 'uko:FHWAFunctionalSystem', 'uko_individual') "
+          "on conflict do nothing", {"u": f"urn:urban-kg:FHWA_FS_{k}", "g": g})
+    for u, c in (("urn:urban-kg:VOLUME_MOTOR_VEHICLE", "uko:VolumeMode"), ("urn:urban-kg:VOLUME_STATE_REPORTED", "uko:VolumeMethod")):
+        X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, %(c)s, 'uko_individual') on conflict do nothing",
+          {"u": u, "g": g, "c": c})
+    ds = "urn:urban-kg:DataSource:hpms_2024"
+    X("insert into gkg.aux_entity values (%(g)s, %(u)s, 'uko:DataSource', 'data_source', %(n)s, null, null) "
+      "on conflict (geofence_id, urn) do update set name=excluded.name",
+      {"g": g, "u": ds, "n": "FHWA HPMS Spatial All Sections 2024 (data.transportation.gov 42um-tgh5, public domain), San Francisco County"})
+    X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, 'uko:DataSource', 'aux:data_source') on conflict do nothing",
+      {"u": ds, "g": g})
+    X("delete from gkg.measured_value where eid in (select eid from gkg.entity where src='hpms_volume')")
+    for c in ["uko:fhwaFunctionalSystem", "uko:hasVolumeObservation", "uko:volumeMode", "uko:volumeMethod", "uko:volumeSource"]:
+        reset(c)
+    X("delete from gkg.entity where src='hpms_volume'")
+    X(f"""insert into gkg.entity (urn, geofence_id, uko_class, src)
+          select 'urn:urban-kg:TrafficVolumeObservation:hpms2024:'||m.urn, '{g}', 'uko:TrafficVolumeObservation', 'hpms_volume'
+          from gkg.segment_volume_match m""")
+    for col in ("volume_direction text", "on_one_carriageway boolean", "source_record text"):
+        X(f"alter table gkg.measured_value add column if not exists {col}")
+    X(f"""insert into gkg.measured_value (eid, kind, feature_eid, variable, value, unit, period_start, period_end, procedure,
+             source_table, source_eid, volume_direction, on_one_carriageway, source_record)
+          select o.eid, 'traffic_volume', s.eid, 'AADT', h.aadt, 'vehicles per day', make_date(h.aadt_year,1,1), make_date(h.aadt_year,12,31),
+                 'uko:VOLUME_STATE_REPORTED', 'gkg.hpms_section', d.eid,
+                 case when h.facility_type=2 then 'both'
+                      when h.facility_type=1 and m.denied_heading='backward' then 'forward'
+                      when h.facility_type=1 and m.denied_heading='forward' then 'backward' end,
+                 (h.facility_type=2 and m.oneway),
+                 h.route_id||' '||h.begin_point||'-'||h.end_point
+          from gkg.segment_volume_match m join gkg.hpms_section h on h.sid=m.sid
+          join gkg.entity s on s.geofence_id='{g}' and s.urn=m.urn
+          join gkg.entity o on o.geofence_id='{g}' and o.urn='urn:urban-kg:TrafficVolumeObservation:hpms2024:'||m.urn
+          join gkg.entity d on d.geofence_id='{g}' and d.urn='{ds}'""")
+    src, meth = "FHWA HPMS 2024; Caltrans CRS Functional Classification (CC BY)", "rules A and B approved 2026-11-23 (relations/build.py step_hpms)"
+    edges("uko:fhwaFunctionalSystem", src, meth, f"""select s.eid, i.eid, m.dist::real from gkg.segment_fc_match m
+          join gkg.entity s on s.geofence_id='{g}' and s.urn=m.urn
+          join gkg.entity i on i.geofence_id='{g}' and i.urn='urn:urban-kg:FHWA_FS_'||m.f_system""")
+    edges("uko:hasVolumeObservation", src, meth, f"""select v.feature_eid, v.eid, null::real from gkg.measured_value v
+          join gkg.entity o on o.eid=v.eid where o.src='hpms_volume'""")
+    for c, u in (("uko:volumeMode", "urn:urban-kg:VOLUME_MOTOR_VEHICLE"), ("uko:volumeMethod", "urn:urban-kg:VOLUME_STATE_REPORTED"),
+                 ("uko:volumeSource", ds)):
+        edges(c, src, meth, f"""select o.eid, i.eid, null::real from gkg.entity o join gkg.entity i on i.geofence_id='{g}' and i.urn='{u}'
+              where o.src='hpms_volume'""")
+    # domain and range check for these five relations only
+    checks = {"uko:fhwaFunctionalSystem": ("uko:RoadSegment", "uko:FHWAFunctionalSystem"),
+              "uko:hasVolumeObservation": (None, "uko:TrafficVolumeObservation"),
+              "uko:volumeMode": ("uko:TrafficVolumeObservation", "uko:VolumeMode"),
+              "uko:volumeMethod": ("uko:TrafficVolumeObservation", "uko:VolumeMethod"),
+              "uko:volumeSource": ("uko:TrafficVolumeObservation", "uko:DataSource")}
+    for c, (d, r_) in checks.items():
+        r = rid(c)
+        for side, cls in (("subj", d), ("obj", r_)):
+            if not cls:
+                continue
+            bad = conn.execute(f"""delete from gkg.edge x where x.rid=%(r)s and not exists (select 1 from gkg.entity e
+                     join gkg.class_closure k on k.uko_class=e.uko_class where e.eid=x.{side} and k.ancestor=%(c)s)""", {"r": r, "c": cls}).rowcount
+            if bad:
+                X("insert into gkg.edge_rejected (rid, reason, n) values (%(r)s, %(w)s, %(n)s)",
+                  {"r": r, "w": ("domain" if side == "subj" else "range") + " not " + cls, "n": bad})
+            log(step="hpms", relation=c, check=side, removed=bad)
+    log(step="hpms", volume_segments=Q("select count(*) from gkg.segment_volume_match")[0][0],
+        fc_segments=Q("select count(*) from gkg.segment_fc_match")[0][0],
+        one_carriageway=Q("select count(*) from gkg.measured_value where kind='traffic_volume' and on_one_carriageway")[0][0],
+        directional=Q("select count(*) from gkg.measured_value where kind='traffic_volume' and volume_direction in ('forward','backward')")[0][0],
+        direction_unknown=Q("select count(*) from gkg.measured_value where kind='traffic_volume' and volume_direction is null")[0][0])
+
+
 def step_transit():
     """Trips, stop times, service exceptions, transfers, fares and service areas from the GTFS datasets the
     transit stage used (gkg.build.source_versions), restricted to the stored reference service day."""
@@ -1302,7 +1457,7 @@ def step_cleanup():
 STEPS = [("schema", step_schema), ("catalogue", step_catalogue), ("entities", step_entities), ("aux", step_aux),
          ("blocks", step_blocks), ("work", step_work), ("stored", step_stored), ("containment", step_containment),
          ("proximity", step_proximity), ("topology", step_topology), ("roadnet", step_roadnet), ("access", step_access),
-         ("commons", step_commons), ("other", step_commercial_safety_freight), ("tims", step_tims), ("crashtype", step_crashtype), ("transit", step_transit),
+         ("commons", step_commons), ("other", step_commercial_safety_freight), ("tims", step_tims), ("crashtype", step_crashtype), ("hpms", step_hpms), ("transit", step_transit),
          ("distances", step_distances), ("recreation", step_recreation), ("retype", step_retype), ("index", step_index), ("enforce", step_enforce),
          ("views", step_views), ("cleanup", step_cleanup)]
 

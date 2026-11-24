@@ -94,3 +94,8 @@
 94	uko:distanceTo	uko:FingerprintDistance	uko:Fingerprint	False	False		fingerprint distance to its second fingerprint
 95	uko:factorSetUsed	uko:FingerprintDistance	uko:FingerprintFactor	False	False		fingerprint distance to each factor it uses
 96	reo:incidentCrashTypeGroup	reo:HistoricalIncidentRecord	reo:CrashTypeGroup	True	False		crash record to its crash-type group (Kusano et al. 2025 groups; Synapse rule on SWITRS parties 1 and 2)
+97	uko:fhwaFunctionalSystem	uko:RoadSegment	uko:FHWAFunctionalSystem	False	False		road segment to its FHWA functional system (rule B: Caltrans CRS functional classification within 10 m and 20 degrees over half the segment)
+98	uko:hasVolumeObservation	uko:RoadSegment,uko:PedestrianNetworkEdge,uko:IntersectionNode	uko:TrafficVolumeObservation	False	False	uko:volumeObservationOf	road segment to its HPMS 2024 AADT observation (rule A)
+99	uko:volumeMode	uko:TrafficVolumeObservation	uko:VolumeMode	False	False		volume observation to what it counts
+100	uko:volumeMethod	uko:TrafficVolumeObservation	uko:VolumeMethod	False	False		volume observation to how the figure was obtained
+101	uko:volumeSource	uko:TrafficVolumeObservation	uko:DataSource	False	False		volume observation to its data source release

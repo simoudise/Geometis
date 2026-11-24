@@ -15,9 +15,9 @@ OVERTURE_BASE = f"s3://overturemaps-us-west-2/release/{OVERTURE_RELEASE}/theme=t
 
 # Ontology release the builder classifies and labels against (coordinated release 2026-11-22b). Every build records
 # these versions in gkg.build.source_versions. UKO 15.5 stays in 01-ontologies for the frozen Tests 1 and 2.
-ONTOLOGY_RELEASE = {"uko": "15.8.0", "tko": "8.5.2", "mlo": "1.8.0", "reo": "1.8.2", "fko": "1.2.4"}
+ONTOLOGY_RELEASE = {"uko": "15.8.1", "tko": "8.5.3", "mlo": "1.8.1", "reo": "1.8.3", "fko": "1.2.5"}
 ONTOLOGY_DIR = Path(__file__).resolve().parents[2] / "01-ontologies"
-UKO_TTL = ONTOLOGY_DIR / "uko_ontology_v15_8.ttl"
+UKO_TTL = ONTOLOGY_DIR / "uko_ontology_v15_8_1.ttl"
 
 TIGER_VINTAGE = 2024
 TIGER_URL = "https://www2.census.gov/geo/tiger/TIGER{v}/{layer_upper}/tl_{v}_{state}_{layer}.zip"
