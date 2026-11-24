@@ -1068,8 +1068,8 @@ def step_hpms():
     X("create index on seg_p using gist (g)")
     angle = """(select least(x,180-x) from (select abs(mod((degrees(ST_Azimuth(ST_LineInterpolatePoint(l.g,greatest(0,f-0.02)),
                ST_LineInterpolatePoint(l.g,least(1,f+0.02))))-p.az)::numeric+360,180)) x) y)"""
-    X("drop table if exists gkg.segment_volume_match")
-    X(f"""create table gkg.segment_volume_match as
+    X("drop table if exists pg_temp.svm, pg_temp.sfc")  # temp tables only; the gkg tables are truncated, never dropped
+    X(f"""create temp table svm as
         select p.urn, p.rc, p.oneway, p.denied_heading, b.* from seg_p p cross join lateral (
           select l.sid, l.f_system, ST_Distance(p.g,l.g) dist,
                  ST_Length(ST_Intersection(p.g, ST_Buffer(l.g,10)))/ST_Length(p.g) share10,
@@ -1079,15 +1079,20 @@ def step_hpms():
           where l.src='hpms' and p.rc in {RULE_A_CLASSES} and ST_DWithin(l.g, p.g, 30) and {angle} <= 20) b
         where (b.share10 >= 0.5 or (b.share30 >= 0.5 and b.name_ok))
           and (coalesce(b.f_system, 0) not in (1, 2) or b.name_ok)""")
-    X("""delete from gkg.segment_volume_match m using (select urn, sid, row_number() over (partition by urn
-           order by (share10>=0.5) desc, dist, sid) rk from gkg.segment_volume_match) r where r.urn=m.urn and r.sid=m.sid and r.rk>1""")
-    X("drop table if exists gkg.segment_fc_match")
-    X(f"""create table gkg.segment_fc_match as
+    X("""delete from svm m using (select urn, sid, row_number() over (partition by urn
+           order by (share10>=0.5) desc, dist, sid) rk from svm) r where r.urn=m.urn and r.sid=m.sid and r.rk>1""")
+    X("create table if not exists gkg.segment_volume_match as select * from svm where false")
+    X("truncate gkg.segment_volume_match")
+    X("insert into gkg.segment_volume_match select * from svm")
+    X(f"""create temp table sfc as
         select distinct on (p.urn) p.urn, l.sid, l.f_system, ST_Distance(p.g,l.g) dist,
                ST_Length(ST_Intersection(p.g, ST_Buffer(l.g,10)))/ST_Length(p.g) share10
         from seg_p p join src_l l on l.src='fc' and ST_DWithin(l.g, p.g, 10), lateral (select ST_LineLocatePoint(l.g, p.mid) f) ff
         where {angle} <= 20 and ST_Length(ST_Intersection(p.g, ST_Buffer(l.g,10)))/ST_Length(p.g) >= 0.5 and l.f_system between 1 and 7
         order by p.urn, ST_Distance(p.g,l.g), l.sid""")
+    X("create table if not exists gkg.segment_fc_match as select * from sfc where false")
+    X("truncate gkg.segment_fc_match")
+    X("insert into gkg.segment_fc_match select * from sfc")
     # entities: FHWA individuals, the observation per matched segment, the vocabulary individuals and the data source
     for k in range(1, 8):
         X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, 'uko:FHWAFunctionalSystem', 'uko_individual') "
