@@ -67,6 +67,7 @@ reo:CongestionEvent	reo:TrafficIncidentEvent
 reo:CrashLinkedCategory	reo:CrashLinkedCategory
 reo:CrashLinkedCategory	reo:NonCollisionCategory
 reo:CrashLinkedCategory	sosa:ObservableProperty
+reo:CrashTypeGroup	reo:CrashTypeGroup
 reo:CriminalActivityReportEvent	reo:CriminalActivityReportEvent
 reo:CriminalActivityReportEvent	reo:Event
 reo:CriminalActivityReportEvent	reo:RouteEvent

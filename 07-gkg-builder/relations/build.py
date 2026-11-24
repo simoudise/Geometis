@@ -35,7 +35,7 @@ TIMS_DIR = Path.home() / "Geometis-mini/tims-incoming"
 GEOFENCES = ["us-ca-contra-costa-5", "us-ca-san-francisco"]
 URN_NS = uuid.UUID("6f1c2a5e-3b7d-4e8a-9c41-0d2b7e5f9a10")
 CODE_VERSION = os.environ.get("GKG_CODE_VERSION", "gkg-full")
-ONTO_VERSION = "UKO 15.8.0 / REO 1.8.1 (release 2026-11-23)"
+ONTO_VERSION = "UKO 15.8.0 / REO 1.8.2 (release 2026-11-23b)"
 
 LANDMARK = ["Museum", "Theater", "ConcertHall", "OperaHouse", "CityHall", "Courthouse", "Library",
             "GovernmentBuilding", "Stadium", "Arena"]
@@ -178,6 +178,8 @@ RELATIONS = [
     ("uko:distanceFrom", False, False, "fingerprint distance to its first fingerprint (lower entity key)"),
     ("uko:distanceTo", False, False, "fingerprint distance to its second fingerprint"),
     ("uko:factorSetUsed", False, False, "fingerprint distance to each factor it uses"),
+    # Added Nov 23 (REO 1.8.2, approved by Evangelos 16:13). Built by step "crashtype" for San Francisco only.
+    ("reo:incidentCrashTypeGroup", True, False, "crash record to its crash-type group (Kusano et al. 2025 groups; Synapse rule on SWITRS parties 1 and 2)"),
 ]
 
 DDL = """
@@ -262,11 +264,11 @@ def step_schema():
 
 
 def catalogue_from_ontology(out_dir):
-    """Write relation_type.tsv and class_closure.tsv from UKO 15.8 + REO 1.8.1 + MLO 1.8.0 + SOSA (run where rdflib is installed)."""
+    """Write relation_type.tsv and class_closure.tsv from UKO 15.8 + REO 1.8.2 + MLO 1.8.0 + SOSA (run where rdflib is installed)."""
     import rdflib
     from rdflib.namespace import RDF, RDFS, OWL
     g = rdflib.Graph()
-    for f in ["uko_ontology_v15_8.ttl", "reo_ontology_v1_8_1.ttl", "mlo_ontology_v1_8_0.ttl", "external/sosa.ttl"]:
+    for f in ["uko_ontology_v15_8.ttl", "reo_ontology_v1_8_2.ttl", "mlo_ontology_v1_8_0.ttl", "external/sosa.ttl"]:
         g.parse(ONTO / f)
     nm = g.namespace_manager
     q = lambda x: x.n3(nm)
@@ -926,6 +928,77 @@ def step_tims():
              join gkg.entity i on i.geofence_id=a.geofence_id and i.urn='urn:route-event-kg:KABCO_'||m.k""")
 
 
+# Crash-type rule approved by Evangelos on 2026-11-23 (16:13 Pacific). Groups: Kusano et al. 2025, Figure 2. Fields:
+# their appendix Table A2 (California). Codes: TIMS SWITRS codebook. First two parties only (Kusano et al. 2025).
+# Order: pedestrian, cyclist, motorcycle, single vehicle, then the vehicle-to-vehicle groups; the first match wins.
+# SECONDARY_CRASH is never assigned at crash level (Waymo counts crashed vehicles; the GKG holds one record per crash).
+CRASH_TYPE_SQL = """case
+  when '2' in (t1,t2) or 'N' in (v1,v2) or collision_type='G' then 'PEDESTRIAN'
+  when '4' in (t1,t2) or 'L' in (v1,v2) then 'CYCLIST'
+  when v1 in ('C','O') or v2 in ('C','O') then 'MOTORCYCLE'
+  when t2 is null or t2='3' or m2='O' then 'SINGLE_VEHICLE'
+  when 'G' in (m1,m2) or trim(pcf_category)='21' then 'V2V_BACKING'
+  when collision_type='C' then 'V2V_FRONT_TO_REAR'
+  when collision_type='D' or (('E' in (m1,m2) or 'F' in (m1,m2) or 'D' in (m1,m2)) and collision_type in ('A','H')) then 'V2V_INTERSECTION'
+  when collision_type='A' or 'N' in (m1,m2) or 'Q' in (m1,m2)
+       or (collision_type='B' and (d1,d2) in (('N','S'),('S','N'),('E','W'),('W','E'))) then 'V2V_OPPOSITE_DIRECTION'
+  when collision_type='B' or m1 in ('I','J','P','S') or m2 in ('I','J','P','S') then 'V2V_LATERAL'
+  else 'OTHER' end"""
+
+
+def step_crashtype():
+    """REO 1.8.2: crash-type group and passenger-vehicle flag for San Francisco crash records (Contra Costa is not built,
+    by Evangelos's decision of 2026-11-23). Party fields come from the TIMS party files; no personal fields are loaded."""
+    g = "us-ca-san-francisco"
+    keep = ["CASE_ID", "PARTY_NUMBER", "PARTY_TYPE", "AT_FAULT", "DIR_OF_TRAVEL", "MOVE_PRE_ACC", "STWD_VEHICLE_TYPE", "CHP_VEH_TYPE_TOWING"]
+    X("create table if not exists gkg.tims_party (case_id text, party_number int, party_type text, at_fault text, dir_of_travel text, "
+      "move_pre_acc text, stwd_vehicle_type text, chp_veh_type_towing text, source_file text, primary key (case_id, party_number))")
+    X("delete from gkg.tims_party where case_id in (select case_id from gkg.tims_crash where county ilike '%%francisco%%')")
+    rows = []
+    for f in sorted((TIMS_DIR / "San Francisco").glob("Parties*.csv")):
+        with open(f, newline="", encoding="utf-8-sig", errors="replace") as fh:
+            for r in csv.DictReader(fh):
+                rows.append([r["CASE_ID"].strip(), int(r["PARTY_NUMBER"])] + [r[k].strip() for k in keep[2:]] + [f.name])
+    copy("gkg.tims_party", ["case_id", "party_number", "party_type", "at_fault", "dir_of_travel", "move_pre_acc",
+                            "stwd_vehicle_type", "chp_veh_type_towing", "source_file"], rows)
+    X("alter table gkg.tims_crash add column if not exists crash_type_group text")
+    X("alter table gkg.tims_crash add column if not exists involves_passenger_vehicle boolean")
+    n = conn.execute(f"""update gkg.tims_crash c set crash_type_group = x.ctg, involves_passenger_vehicle = x.pv from (
+        select case_id, {CRASH_TYPE_SQL} ctg, coalesce(v1 in ('A','B','D','E') or v2 in ('A','B','D','E'), false) pv from (
+          select c.case_id, c.collision_type, c.pcf_category,
+            max(p.party_type) filter (where p.party_number=1) t1, max(p.party_type) filter (where p.party_number=2) t2,
+            max(p.stwd_vehicle_type) filter (where p.party_number=1) v1, max(p.stwd_vehicle_type) filter (where p.party_number=2) v2,
+            max(p.move_pre_acc) filter (where p.party_number=1) m1, max(p.move_pre_acc) filter (where p.party_number=2) m2,
+            max(p.dir_of_travel) filter (where p.party_number=1) d1, max(p.dir_of_travel) filter (where p.party_number=2) d2
+          from gkg.tims_crash c join gkg.tims_party p using (case_id) where c.county ilike '%%francisco%%'
+          group by c.case_id, c.collision_type, c.pcf_category) y) x where x.case_id = c.case_id""").rowcount
+    log(step="crashtype", party_rows=len(rows), crashes_typed=n,
+        by_group=dict(Q("select crash_type_group, count(*) from gkg.tims_crash where county ilike '%%francisco%%' group by 1 order by 2 desc")),
+        untyped_sf=Q("select count(*) from gkg.tims_crash where county ilike '%%francisco%%' and crash_type_group is null")[0][0])
+    reset("reo:incidentCrashTypeGroup")
+    for k in ["PEDESTRIAN", "CYCLIST", "MOTORCYCLE", "SINGLE_VEHICLE", "SECONDARY_CRASH", "V2V_BACKING", "V2V_FRONT_TO_REAR",
+              "V2V_OPPOSITE_DIRECTION", "V2V_INTERSECTION", "V2V_LATERAL", "OTHER"]:
+        X("insert into gkg.entity (urn, geofence_id, uko_class, src) values (%(u)s, %(g)s, 'reo:CrashTypeGroup', 'reo_individual') "
+          "on conflict do nothing", {"u": "urn:route-event-kg:CTG_" + k, "g": g})
+    edges("reo:incidentCrashTypeGroup", "TIMS SWITRS crashes and parties (downloaded 2026-11-10)",
+          "crash-type rule approved 2026-11-23 (relations/build.py CRASH_TYPE_SQL); groups of Kusano et al. 2025",
+          f"""select r.eid, i.eid, null::real from gkg.crash_attachment a join gkg.tims_crash t using (case_id)
+              join gkg.entity r on r.geofence_id=a.geofence_id and r.urn='urn:route-event-kg:HistoricalIncidentRecord:tims:'||a.case_id
+              join gkg.entity i on i.geofence_id=a.geofence_id and i.urn='urn:route-event-kg:CTG_'||t.crash_type_group
+              where a.geofence_id='{g}'""")
+    # Domain and range check for this relation only (step "enforce" scans every relation).
+    r = rid("reo:incidentCrashTypeGroup")
+    for side, cls in (("subj", "reo:HistoricalIncidentRecord"), ("obj", "reo:CrashTypeGroup")):
+        bad = conn.execute(f"""delete from gkg.edge x where x.rid=%(r)s and not exists (select 1 from gkg.entity e
+                 join gkg.class_closure c on c.uko_class=e.uko_class where e.eid=x.{side} and c.ancestor=%(c)s)""", {"r": r, "c": cls}).rowcount
+        if bad:
+            X("insert into gkg.edge_rejected (rid, reason, n) values (%(r)s, %(w)s, %(n)s)",
+              {"r": r, "w": ("domain" if side == "subj" else "range") + " not " + cls, "n": bad})
+        log(step="crashtype", check=side, removed=bad)
+    log(step="crashtype", edges=Q("select count(*) from gkg.edge where rid=%(r)s", {"r": r})[0][0],
+        sf_crash_records=Q("select count(*) from gkg.entity where geofence_id=%(g)s and uko_class='reo:HistoricalIncidentRecord'", {"g": g})[0][0])
+
+
 def step_transit():
     """Trips, stop times, service exceptions, transfers, fares and service areas from the GTFS datasets the
     transit stage used (gkg.build.source_versions), restricted to the stored reference service day."""
@@ -1229,7 +1302,7 @@ def step_cleanup():
 STEPS = [("schema", step_schema), ("catalogue", step_catalogue), ("entities", step_entities), ("aux", step_aux),
          ("blocks", step_blocks), ("work", step_work), ("stored", step_stored), ("containment", step_containment),
          ("proximity", step_proximity), ("topology", step_topology), ("roadnet", step_roadnet), ("access", step_access),
-         ("commons", step_commons), ("other", step_commercial_safety_freight), ("tims", step_tims), ("transit", step_transit),
+         ("commons", step_commons), ("other", step_commercial_safety_freight), ("tims", step_tims), ("crashtype", step_crashtype), ("transit", step_transit),
          ("distances", step_distances), ("recreation", step_recreation), ("retype", step_retype), ("index", step_index), ("enforce", step_enforce),
          ("views", step_views), ("cleanup", step_cleanup)]
 

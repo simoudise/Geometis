@@ -93,3 +93,4 @@
 93	uko:distanceFrom	uko:FingerprintDistance	uko:Fingerprint	False	False		fingerprint distance to its first fingerprint (lower entity key)
 94	uko:distanceTo	uko:FingerprintDistance	uko:Fingerprint	False	False		fingerprint distance to its second fingerprint
 95	uko:factorSetUsed	uko:FingerprintDistance	uko:FingerprintFactor	False	False		fingerprint distance to each factor it uses
+96	reo:incidentCrashTypeGroup	reo:HistoricalIncidentRecord	reo:CrashTypeGroup	True	False		crash record to its crash-type group (Kusano et al. 2025 groups; Synapse rule on SWITRS parties 1 and 2)
