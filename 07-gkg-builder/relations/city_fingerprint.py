@@ -174,6 +174,36 @@ def _city_land():
     return core, land, area, core_area
 
 
+def _xlsx_rows(path):
+    """Rows of the first worksheet of an .xlsx file, read with the standard library (openpyxl is not installed)."""
+    import xml.etree.ElementTree as ET
+    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    with zipfile.ZipFile(path) as z:
+        shared = []
+        if "xl/sharedStrings.xml" in z.namelist():
+            for si in ET.fromstring(z.read("xl/sharedStrings.xml")).findall("m:si", ns):
+                shared.append("".join(t.text or "" for t in si.iter("{%s}t" % ns["m"])))
+        sheet = sorted(n for n in z.namelist() if n.startswith("xl/worksheets/sheet"))[0]
+        out = []
+        for row in ET.fromstring(z.read(sheet)).iter("{%s}row" % ns["m"]):
+            vals = {}
+            for c in row.findall("m:c", ns):
+                ref = re.match(r"([A-Z]+)", c.get("r")).group(1)
+                col = 0
+                for ch in ref:
+                    col = col * 26 + ord(ch) - 64
+                v = c.find("m:v", ns)
+                if c.get("t") == "s" and v is not None:
+                    val = shared[int(v.text)]
+                elif c.get("t") == "inlineStr":
+                    val = "".join(t.text or "" for t in c.iter("{%s}t" % ns["m"]))
+                else:
+                    val = v.text if v is not None else None
+                vals[col - 1] = val
+            out.append([vals.get(i) for i in range(max(vals) + 1)] if vals else [])
+    return out
+
+
 def _acs_rows():
     d = json.loads((DL / "acs_place_cbsa.json").read_text())
     place = d[PLACE_GEO]
@@ -537,13 +567,13 @@ def step_cityfp():
     info["f9_lodging"] = dict(lodg)
     fx = sorted(DL.glob("faa_cy*_all-enplanements.xlsx"))
     if fx:
-        fa = pd.read_excel(fx[-1], header=None)
+        fa = pd.DataFrame(_xlsx_rows(fx[-1]))
         hdr = next(i for i in range(15) if any(str(v).strip().lower() == "locid" for v in fa.iloc[i]))
-        fa.columns = [str(c).strip() for c in fa.iloc[hdr]]
+        fa.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in fa.iloc[hdr]]
         fa = fa.iloc[hdr + 1:]
         ecol = [c for c in fa.columns if re.match(r"CY\s*\d+\s*Enplanements", c, re.I)][0]
         ap = fa[fa.Locid.astype(str).str.strip().isin(AIRPORTS)]
-        enp = {r.Locid.strip(): float(r[ecol]) for _, r in ap.iterrows()}
+        enp = {r.Locid.strip(): float(str(r[ecol]).replace(",", "")) for _, r in ap.iterrows()}
         comps.append(("FACTOR_09", "annual airport enplanements per metro resident (SFO and OAK)", sum(enp.values()) / float(cbsa["B01003_E001"]),
                       "ratio", "f9b-v1", "faa-enplanements", f"{fx[-1].name}, column {ecol}; airports within 40 km taken as SFO and OAK"))
         info["f9_enplanements"] = enp
