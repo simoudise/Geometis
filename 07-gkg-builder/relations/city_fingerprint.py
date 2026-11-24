@@ -430,7 +430,7 @@ def _isd_fog(core):
     h = h.sort_values("dist")
     hours = 10 * 365 * 24 + 3 * 24
     tried = []
-    for _, r in h.head(6).iterrows():
+    for _, r in h.iterrows():  # nearest first; tide and harbour stations without a visibility field are skipped
         if r.dist > 50000:
             break
         sid, name = f"{r.USAF}{r.WBAN}", str(r.get("STATION NAME", ""))
